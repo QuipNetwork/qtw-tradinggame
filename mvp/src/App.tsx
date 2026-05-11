@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Index from './routes/Index';
 import KioskSignUp from './routes/Kiosk/SignUp';
 import KioskWelcome from './routes/Kiosk/Welcome';
 import PhoneProfile from './routes/Phone/Profile';
@@ -8,7 +9,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/kiosk" replace />} />
+        <Route path="/" element={<Index />} />
         <Route path="/kiosk" element={<KioskSignUp />} />
         <Route path="/kiosk/welcome" element={<KioskWelcome />} />
         <Route path="/p/:agentId" element={<PhoneProfile />} />
