@@ -1,9 +1,9 @@
-// Canvas rendering primitives shared by summary.html mocks and the MVP app.
+// Canvas rendering primitives shared by design-doc.html mocks and the MVP app.
 // Pure, deterministic: identical inputs → identical pixels. Visual changes here
 // propagate to both consumers automatically.
 //
 // Consumers:
-//   • summary.html loads this as <script type="module" src="shared-design/glyph.js">
+//   • design-doc.html loads this as <script type="module" src="shared-design/glyph.js">
 //     and accesses functions via window.QuipGlyph.{strHash,renderGlyph,…}
 //   • mvp app imports it via the `@shared` Vite alias: import * as Glyph from '@shared/glyph.js'
 
@@ -275,7 +275,7 @@ export function renderFakeQR(canvas, seedStr) {
   }
 }
 
-// Browser-side globals: lets summary.html consume this as a plain <script>
+// Browser-side globals: lets design-doc.html consume this as a plain <script>
 // (without ESM imports) by reading window.QuipGlyph.
 if (typeof window !== 'undefined') {
   window.QuipGlyph = {

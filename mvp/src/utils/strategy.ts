@@ -1,5 +1,5 @@
 // Deterministic mapping from slider values to portfolio weights.
-// Ported verbatim from summary.html so kiosk welcome / phone profile and
+// Ported verbatim from design-doc.html so kiosk welcome / phone profile and
 // the design doc produce identical numbers for the same inputs.
 
 import type { SliderValues } from '../api';
@@ -20,7 +20,7 @@ export function labelFor(idx: number, val: number): string {
 
 // Returns [BTC, ETH, SOL, USDC, reserve]. The first four sum to (1 - reserve).
 // p* are 0..1 (i.e. slider/100). p3 and p4 are part of the contract but
-// unused in the current formula — kept for parity with summary.html.
+// unused in the current formula — kept for parity with design-doc.html.
 export function computeWeights(p1: number, p2: number, _p3: number, _p4: number, p5: number): number[] {
   const concentration = Math.max(0, p2 - p5 * 0.5);
   const top    = 0.30 + concentration * 0.40;

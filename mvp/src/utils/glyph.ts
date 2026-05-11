@@ -1,6 +1,6 @@
 // Thin TypeScript wrapper around the shared canvas algorithms in
 // shared-design/glyph.js — see that file for the actual implementations
-// (kept there so summary.html and this app share the same pixels).
+// (kept there so design-doc.html and this app share the same pixels).
 //
 // The Vite alias @shared → ../shared-design (see mvp/vite.config.ts) makes
 // the import below resolve at build time without copying the source.

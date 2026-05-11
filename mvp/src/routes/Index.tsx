@@ -91,7 +91,7 @@ export default function Index() {
           <div style={kickerStyle}>Design doc</div>
           <h2 style={{ fontSize: 22, fontWeight: 600, margin: '6px 0 12px' }}>Full project summary</h2>
           <a
-            href="/summary.html"
+            href="/design-doc.html"
             style={{
               ...cardStyle,
               textDecoration: 'none',

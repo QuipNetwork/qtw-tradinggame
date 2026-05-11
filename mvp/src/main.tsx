@@ -4,7 +4,7 @@ import App from './App';
 import symbolsSvg from '../../shared-design/symbols.svg.html?raw';
 
 // Inject the shared SVG symbol library so <use href="#crypto-btc"/> etc. work
-// across the whole app. Same file summary.html consumes.
+// across the whole app. Same file design-doc.html consumes.
 const symbolsHost = document.createElement('div');
 symbolsHost.innerHTML = symbolsSvg;
 symbolsHost.style.position = 'absolute';

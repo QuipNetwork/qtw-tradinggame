@@ -23,11 +23,11 @@ Dev server: `http://localhost:5173`
 
 ## Design source of truth
 
-Mock screens live in `../summary.html`. Both this app and that file consume the same shared CSS at `../shared-design/v4-mocks.css` (via a `public/shared-design` symlink). When you edit a mock in `summary.html`, the change propagates to this MVP automatically — they cannot drift visually.
+Mock screens live in `../design-doc.html`. Both this app and that file consume the same shared CSS at `../shared-design/v4-mocks.css` (via a `public/shared-design` symlink). When you edit a mock in `design-doc.html`, the change propagates to this MVP automatically — they cannot drift visually.
 
 Same goes for the SVG symbol library (`../shared-design/symbols.svg.html`): injected at app startup by `src/main.tsx` so `<use href="#crypto-btc" />` etc. work everywhere.
 
-The canvas algorithms (player glyph + QR) live in `../shared-design/glyph.js` and are imported via the `@shared` Vite alias (`src/utils/glyph.ts` is a thin TypeScript wrapper). `summary.html` imports the same module — pixels stay identical.
+The canvas algorithms (player glyph + QR) live in `../shared-design/glyph.js` and are imported via the `@shared` Vite alias (`src/utils/glyph.ts` is a thin TypeScript wrapper). `design-doc.html` imports the same module — pixels stay identical.
 
 ## API contract
 
