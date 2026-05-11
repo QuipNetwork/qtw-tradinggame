@@ -100,8 +100,11 @@
       <li><a href="#scope"><span class="num">06</span>Scope</a></li>
       <li><a href="#params"><span class="num">07</span>Sliders</a></li>
       <li><a href="#arch"><span class="num">08</span>Arch</a></li>
-      <li><a href="#playground"><span class="num">09</span>Playground</a></li>
-      <li><a href="#tbd"><span class="num">10</span>TBDs</a></li>
+      <li><a href="#api"><span class="num">09</span>API</a></li>
+      <li><a href="#hardware"><span class="num">10</span>Hardware</a></li>
+      <li><a href="#acceptance"><span class="num">11</span>Acceptance</a></li>
+      <li><a href="#playground"><span class="num">12</span>Playground</a></li>
+      <li><a href="#tbd"><span class="num">13</span>TBDs</a></li>
     </ul>
   </div>
 </nav>
@@ -119,7 +122,7 @@
 
   <div class="hero-facts">
     <div><span>Format</span><strong>Booth kiosk + phone profile</strong></div>
-    <div><span>Duration</span><strong>2 days, continuous</strong></div>
+    <div><span>Dates</span><strong>Jun 25–26, 2026 · continuous</strong></div>
     <div><span>Prize tier</span><strong>Top 10 win</strong></div>
     <div><span>Modeled after</span><strong>Base @ Consensys Miami</strong></div>
   </div>
@@ -1492,9 +1495,90 @@
   </div>
 </section>
 
+<!-- ================================================ API CONTRACT -->
+<section id="api">
+  <div class="kicker">09 · API contract</div>
+  <h2>Front-end ↔ back-end interface</h2>
+  <p class="lede">The MVP code (<code>mvp/src/api/</code>) ships a complete TypeScript contract with a working mock implementation. To go live, the back-end team implements the same four functions against a real service — the UI never has to change.</p>
+
+  <div class="card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 8px;">The four operations</h3>
+    <ul style="margin-left: 18px; margin-top: 12px;">
+      <li><code>submitAgent(config)</code> → <code>{ agentId, qrUrl }</code> · creates a new agent, persists strategy state, returns the QR-coded profile URL.</li>
+      <li><code>getAgent(agentId)</code> → <code>AgentConfig | null</code> · loads an agent's name, handle, slider values. Used by kiosk welcome and phone profile.</li>
+      <li><code>requestOptimization(agentId)</code> → <code>RoutingResult</code> · dispatches a job to Quip Network and returns the winning provider's solution plus latency / vs-classical numbers. Called on initial submit and every slider retune.</li>
+      <li><code>subscribeAgent(agentId, callback)</code> → unsubscribe fn · push updates of mark-to-market P&amp;L for the phone profile and big-screen leaderboard. WebSocket or SSE.</li>
+    </ul>
+  </div>
+
+  <div class="card muted" style="margin-top: 18px;">
+    <h3 style="margin-bottom: 8px;">Where it lives in code</h3>
+    <ul style="margin-left: 18px; margin-top: 8px;">
+      <li><code>mvp/src/api/types.ts</code> — TypeScript contracts (<code>AgentConfig</code>, <code>RoutingResult</code>, <code>LeaderboardEntry</code>, <code>AgentUpdate</code>).</li>
+      <li><code>mvp/src/api/mocks.ts</code> — current implementation (random provider win, seeded leaderboard, <code>localStorage</code> persistence, simulated subscription).</li>
+      <li><code>mvp/src/api/index.ts</code> — single re-export point. <strong>The UI imports only from here.</strong></li>
+    </ul>
+    <p style="margin-top: 12px; margin-bottom: 0;">To swap in a real backend: implement <code>mvp/src/api/real.ts</code> matching the types, then change <code>index.ts</code> to re-export from <code>./real</code>. No UI files need to change.</p>
+  </div>
+</section>
+
+<!-- ================================================ HARDWARE & VENUE -->
+<section id="hardware">
+  <div class="kicker">10 · Hardware &amp; venue</div>
+  <h2>What we'll have onsite</h2>
+  <p class="lede">Minimal hardware footprint by design — the activation runs on two devices and the booth TV.</p>
+
+  <div class="grid-2" style="margin-top: 24px;">
+    <div class="card">
+      <h3 style="margin-bottom: 8px;">Devices</h3>
+      <ul style="margin-left: 18px; margin-top: 8px;">
+        <li><strong>Kiosk laptop (1)</strong> — runs <code>/kiosk</code>, the sign-up surface attendees interact with. Standard 13–15" laptop, kiosk-mode browser pointed at the deployed URL.</li>
+        <li><strong>TV display driver (1)</strong> — a second laptop <em>or tablet</em> connected to the booth TV, running <code>/tv</code> in full-screen and cycling A → B → C with D-interrupts on new sign-ups.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 8px;">Display &amp; network</h3>
+      <ul style="margin-left: 18px; margin-top: 8px;">
+        <li><strong>Big screen</strong> — venue-provided TV. Final resolution TBD; <code>/tv</code> is built responsive so 1080p and 4K both render cleanly.</li>
+        <li><strong>Primary network</strong> — venue Wi-Fi (assumed adequate).</li>
+        <li><strong>Backup network</strong> — cellular hotspot. Worth pre-testing on the kiosk + TV driver before doors open.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card muted" style="margin-top: 18px;">
+    <h3 style="margin-bottom: 8px;">Players' phones</h3>
+    <p style="margin-bottom: 0;">Each attendee's own phone serves as their profile surface — scanned in via the kiosk-generated QR. No hardware on our side.</p>
+  </div>
+</section>
+
+<!-- ================================================ ACCEPTANCE -->
+<section id="acceptance">
+  <div class="kicker">11 · Acceptance criteria</div>
+  <h2>What "MVP done" means</h2>
+  <p class="lede">This is a live demo of our routing network, so the bar is "feels fast and never visibly breaks" rather than "scales to thousands." Concurrent traffic at a booth is low; perceived responsiveness is the win.</p>
+
+  <div class="card" style="margin-top: 24px;">
+    <h3 style="margin-bottom: 8px;">Must-pass before opening day</h3>
+    <ul style="margin-left: 18px; margin-top: 12px;">
+      <li><strong>Routing latency feels live.</strong> Each kiosk launch and slider retune returns a routing result inside ~3 seconds end-to-end, with provider badge + solve time visible.</li>
+      <li><strong>No visible failure modes in the happy path.</strong> Sign-up → confirmation → QR → phone profile completes without errors on a fresh device.</li>
+      <li><strong>Big-screen rotation runs for a full conference day unattended.</strong> No memory leak, no stuck state, no crashed tab. The D-interrupt fires within a few seconds of a new sign-up.</li>
+      <li><strong>Phone retunes propagate.</strong> A slider drag on the phone triggers a new routing job and the new portfolio appears on the phone and in any leaderboard entry within a few seconds.</li>
+      <li><strong>Provider provenance is correct.</strong> Every UI that shows a strategy also shows which provider solved it — never blank, never wrong.</li>
+    </ul>
+  </div>
+
+  <div class="card muted" style="margin-top: 18px;">
+    <h3 style="margin-bottom: 8px;">Pre-event smoke test</h3>
+    <p style="margin-bottom: 0;">A dry run on the actual kiosk hardware + TV + venue (or representative) network the day before doors open. Worst possible time to discover a hostname or hotspot issue is at 9 a.m. on Day 1.</p>
+  </div>
+</section>
+
 <!-- ================================================ PLAYGROUND -->
 <section id="playground">
-  <div class="kicker">09 · Playground</div>
+  <div class="kicker">12 · Playground</div>
   <h2>Glyph generator</h2>
   <p class="lede">Enter a name, adjust the sliders, and click <strong>Generate glyph</strong>. The mapping below documents which inputs drive which visual properties.</p>
 
@@ -1578,7 +1662,7 @@
 
 <!-- ================================================ TBDs -->
 <section id="tbd">
-  <div class="kicker">10 · Open questions</div>
+  <div class="kicker">13 · Open questions</div>
   <h2>What still needs to be decided</h2>
 
   <div style="display: flex; gap: 14px; align-items: center; margin-top: 18px; margin-bottom: 8px; flex-wrap: wrap;">
