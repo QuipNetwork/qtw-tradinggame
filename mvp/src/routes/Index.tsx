@@ -101,10 +101,10 @@ export default function Index() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>summary.html</div>
+                <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>Open the design doc</div>
                 <div style={{ fontSize: 14, color: '#52525b', lineHeight: 1.5 }}>
-                  End-to-end design doc: reference activation, attendee flow, all screen mockups, big-screen
-                  rotation, scope, slider→QUBO mapping, architecture, glyph playground, and open TBDs.
+                  End-to-end project summary: reference activation, attendee flow, all screen mockups,
+                  big-screen rotation, scope, slider→QUBO mapping, architecture, glyph playground, and open TBDs.
                 </div>
               </div>
               <div style={{ fontSize: 18, color: '#71717a', flexShrink: 0 }}>→</div>
