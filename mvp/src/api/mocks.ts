@@ -35,6 +35,22 @@ const TOP_10: LeaderboardEntry[] = [
   { rank: 10, agentId: 'a10', name: 'Tunneling Tina',         handle: '@tunnelingtina',       total:  9994, plUSD:    -6, plPct: -0.06, jobsSolved: 28, primaryProvider: 'CPU' },
 ];
 
+// Synthetic AgentConfig for each seeded leaderboard entry so that demo URLs
+// (e.g. /kiosk/welcome?agent=a06, /p/a06) render without needing the kiosk
+// form to have created the agent in this browser's localStorage.
+const SEEDED_AGENTS: Record<string, AgentConfig> = {
+  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { tradingActivity: 95, riskPreference: 95, tradeSize: 85, holdingStyle: 10, diversification: 20 } },
+  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { tradingActivity: 80, riskPreference: 85, tradeSize: 70, holdingStyle: 20, diversification: 30 } },
+  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60, holdingStyle: 35, diversification: 45 } },
+  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50, holdingStyle: 45, diversification: 55 } },
+  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65, holdingStyle: 40, diversification: 50 } },
+  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50, holdingStyle: 30, diversification: 55 } },
+  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40, holdingStyle: 60, diversification: 65 } },
+  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45, holdingStyle: 55, diversification: 70 } },
+  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40, holdingStyle: 70, diversification: 60 } },
+  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { tradingActivity: 25, riskPreference: 30, tradeSize: 30, holdingStyle: 80, diversification: 75 } },
+};
+
 function uuid(): string {
   return 'a' + Math.random().toString(36).slice(2, 10);
 }
@@ -52,8 +68,10 @@ export async function submitAgent(config: AgentConfig): Promise<{ agentId: strin
 
 export async function getAgent(agentId: string): Promise<AgentConfig | null> {
   const raw = localStorage.getItem(STORAGE_PREFIX + agentId);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  if (raw) {
+    try { return JSON.parse(raw); } catch { /* fall through to seeded */ }
+  }
+  return SEEDED_AGENTS[agentId] ?? null;
 }
 
 export async function requestOptimization(_agentId: string): Promise<RoutingResult> {
