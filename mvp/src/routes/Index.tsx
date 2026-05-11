@@ -76,7 +76,7 @@ export default function Index() {
     <div style={{ minHeight: '100vh', background: '#fafafa', padding: '48px 24px 80px' }}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <header style={{ marginBottom: 40 }}>
-          <div style={kickerStyle}>Quantum Tech World 2026 · MVP preview · v0.1</div>
+          <div style={kickerStyle}>Quantum Tech World 2026 · MVP preview</div>
           <h1 style={{ fontSize: 36, fontWeight: 700, margin: '8px 0 12px', letterSpacing: '-0.02em' }}>
             Quip Network · QTW 2026 Trading Competition
           </h1>
