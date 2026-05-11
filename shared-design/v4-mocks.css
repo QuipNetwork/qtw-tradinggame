@@ -1,0 +1,5288 @@
+  :root {
+    --zinc-50: #fafafa;
+    --zinc-100: #f4f4f5;
+    --zinc-200: #e4e4e7;
+    --zinc-300: #d4d4d8;
+    --zinc-400: #a1a1aa;
+    --zinc-500: #71717a;
+    --zinc-600: #52525b;
+    --zinc-700: #3f3f46;
+    --zinc-800: #27272a;
+    --zinc-900: #18181b;
+    --zinc-950: #09090b;
+    --coral: #ff6467;
+    --coral-soft: #fff0f1;
+    --pink: #f472b6;
+    /* === Quip Quantum colorway — committed roles === */
+    --signal: #4BE0FF;          /* live / you / interactive */
+    --signal-soft: #ecfaff;
+    --up: #10b981;              /* P&L positive only */
+    --down: #ef4444;            /* P&L negative only */
+    --ink: #0a0a0f;             /* deepest dark surface */
+    --ink-soft: #14141a;        /* elevated card on ink */
+    --ink-line: #2a2a35;        /* hairlines on ink */
+    /* legacy tokens kept for procedural pattern generator only — do not use in mock UI */
+    --legacy-yellow: #FEF278;
+    --legacy-purple: #E6D7FF;
+    --green: var(--up);         /* alias so existing rules keep working */
+    --cyan: var(--signal);
+    --r-sm: 4px;
+    --r-md: 8px;
+    --r-lg: 14px;
+    --max: 1100px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--zinc-50);
+    color: var(--zinc-950);
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; letter-spacing: -0.015em; }
+  h1 { font-size: clamp(2.6rem, 5.5vw, 4.4rem); line-height: 1.02; }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.15; margin-bottom: 0.6em; }
+  h3 { font-size: 1.2rem; line-height: 1.25; margin-bottom: 0.4em; }
+  h4 { font-size: 0.95rem; line-height: 1.3; font-family: 'Inter', system-ui, sans-serif; font-weight: 600; letter-spacing: 0; }
+  p { margin-bottom: 0.9em; color: var(--zinc-800); }
+  p.lede { font-size: 1.18rem; line-height: 1.55; color: var(--zinc-700); max-width: 60ch; }
+  a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--coral); }
+  code, .mono { font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace; font-size: 0.86em; }
+  em { font-style: italic; color: var(--coral); font-weight: 500; }
+  strong { font-weight: 600; }
+
+  /* Layout */
+  .page { max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+  section { padding: 80px 0; border-top: 1px solid var(--zinc-200); }
+  section:first-of-type { border-top: 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 720px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    section { padding: 56px 0; }
+  }
+
+  /* Kicker / labels */
+  .kicker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-500);
+    margin-bottom: 1rem;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--zinc-700);
+    background: var(--zinc-100);
+    border: 1px solid var(--zinc-200);
+  }
+  .pill.coral { background: var(--coral-soft); color: var(--coral); border-color: var(--coral); }
+  .pill.dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Hero */
+  .hero { padding-top: 80px; padding-bottom: 60px; }
+  .hero-title-row { display: flex; align-items: flex-end; gap: 32px; flex-wrap: wrap; margin-bottom: 28px; }
+  .hero-title-row canvas { flex-shrink: 0; border-radius: var(--r-md); }
+  .hero-facts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-top: 36px;
+    border-top: 1px solid var(--zinc-200);
+    border-bottom: 1px solid var(--zinc-200);
+  }
+  .hero-facts > div {
+    padding: 18px 14px;
+    border-right: 1px solid var(--zinc-200);
+  }
+  .hero-facts > div:last-child { border-right: 0; }
+  .hero-facts span {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--zinc-500);
+    margin-bottom: 6px;
+  }
+  .hero-facts strong { font-size: 1rem; color: var(--zinc-900); font-weight: 600; }
+  @media (max-width: 720px) {
+    .hero-facts { grid-template-columns: repeat(2, 1fr); }
+    .hero-facts > div:nth-child(2) { border-right: 0; }
+    .hero-facts > div:nth-child(1), .hero-facts > div:nth-child(2) { border-bottom: 1px solid var(--zinc-200); }
+  }
+
+  /* Cards */
+  .card {
+    background: white;
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 24px;
+  }
+  .card.muted { background: var(--zinc-100); }
+  .card.dark { background: var(--zinc-900); color: var(--zinc-100); border-color: var(--zinc-800); }
+  .card.dark p, .card.dark li { color: var(--zinc-300); }
+  .card.dark h3, .card.dark h4 { color: white; }
+  .card-list { display: flex; flex-direction: column; gap: 12px; }
+
+  /* Mockup frame */
+  .mockup-frame {
+    border: 1px solid var(--zinc-300);
+    border-radius: var(--r-md);
+    padding: 8px;
+    background: var(--zinc-100);
+    box-shadow: 0 1px 0 var(--zinc-200), 0 12px 28px -16px rgba(15, 15, 23, 0.18);
+  }
+  .mockup-frame .chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    color: var(--zinc-500);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+  /* Kiosk frame — branded kiosk strip, no OS chrome. The production kiosk runs full-screen. */
+  .mockup-frame.kiosk .chrome {
+    background: var(--ink);
+    color: white;
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+    padding: 10px 16px;
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--ink-line);
+  }
+  .mockup-frame.kiosk .chrome::before {
+    content: "Quip · QTW Booth";
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.86rem;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    font-weight: 500;
+    color: white;
+  }
+  .mockup-frame.kiosk .chrome .net-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--signal);
+  }
+  .mockup-frame.kiosk .chrome .net-status::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 6px var(--signal);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .mockup-frame .screen {
+    background: white;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    border: 1px solid var(--zinc-200);
+  }
+  .mockup-frame.dark .screen { background: var(--zinc-950); border-color: var(--zinc-800); }
+  .mockup-frame.phone { max-width: 360px; margin: 0 auto; border-radius: 28px; padding: 14px 8px 18px; }
+  .mockup-frame.phone .chrome { display: none; }
+  .mockup-frame.phone .screen { border-radius: 18px; }
+
+  /* Booth kiosk mockup */
+  .kiosk-screen {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 24px;
+  }
+  .kiosk-form { grid-column: 1; grid-row: 1; }
+  .kiosk-preview { grid-column: 2; grid-row: 1; }
+  .kiosk-asset-strip { grid-column: 1 / -1; grid-row: 2; }
+  .kiosk-screen h4.section-title { font-family: Georgia, serif; font-size: 1.6rem; font-weight: 500; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .kiosk-screen .lede-sm { font-size: 0.88rem; color: var(--zinc-500); margin-bottom: 22px; max-width: 36ch; }
+
+  /* Kiosk preview panel — the hero "what you're creating" surface */
+  .kiosk-preview {
+    background: var(--ink);
+    color: white;
+    border-radius: var(--r-md);
+    padding: 22px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--ink-line);
+  }
+  .kiosk-preview::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(255, 100, 103, 0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .kiosk-preview > * { position: relative; z-index: 1; }
+  .kiosk-preview .preview-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--signal);
+    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .kiosk-preview .preview-label::before {
+    content: "";
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 6px var(--signal);
+  }
+  .kiosk-preview canvas {
+    border-radius: var(--r-md);
+    box-shadow: 0 18px 32px -16px rgba(255, 100, 103, 0.45), 0 0 0 1px rgba(255, 100, 103, 0.25);
+  }
+  .kiosk-preview .preview-name {
+    font-family: Georgia, serif;
+    font-size: 1.6rem;
+    line-height: 1.1;
+    margin-top: 14px;
+    color: white;
+    letter-spacing: -0.01em;
+  }
+  .kiosk-preview .preview-handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--zinc-400);
+    margin-top: 4px;
+  }
+  .kiosk-preview .preview-status {
+    width: 100%;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--ink-line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .kiosk-preview .prov-chip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--ink-line);
+    border-radius: var(--r-sm);
+    font-size: 0.74rem;
+    color: white;
+  }
+  .kiosk-preview .prov-chip .prov-tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .kiosk-preview .prov-chip.quantum .prov-tag { background: var(--quip-gradient); color: white; }
+  .kiosk-preview .prov-chip.classical .prov-tag { background: var(--ink-line); color: var(--zinc-300); }
+
+  /* Stacked allocation bar (used on the strategy-returned screen) */
+  .alloc-bar {
+    display: flex;
+    height: 16px;
+    width: 100%;
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    background: var(--zinc-100);
+    box-shadow: inset 0 0 0 1px var(--zinc-200);
+  }
+  .alloc-bar > span {
+    height: 100%;
+    transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .alloc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 12px;
+  }
+  .alloc-legend .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--zinc-700);
+  }
+  .alloc-legend .chip .dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .alloc-legend .chip strong {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--zinc-950);
+    font-weight: 600;
+  }
+  .alloc-legend .chip .usd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--zinc-500);
+    margin-left: 2px;
+  }
+
+  /* QR card — cyan signal accent, framed as a "take this with you" affordance */
+  .qr-card {
+    text-align: center;
+    padding: 16px 14px 12px;
+    background: var(--signal-soft);
+    border: 1px solid rgba(75, 224, 255, 0.5);
+    border-radius: var(--r-md);
+    position: relative;
+  }
+  .qr-card::before {
+    content: "Take it with you";
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #0891b2;
+    margin-bottom: 10px;
+  }
+  .qr-card canvas {
+    border-radius: var(--r-sm);
+    background: white;
+  }
+  .qr-card .qr-cap {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--zinc-700);
+    line-height: 1.4;
+  }
+
+  /* Asset strip — horizontal row of tickers across the bottom of the kiosk */
+  .kiosk-asset-strip {
+    background: var(--zinc-50);
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .kiosk-asset-strip .strip-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-500);
+    flex-shrink: 0;
+  }
+  .kiosk-asset-strip .strip-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .kiosk-asset-strip .ticker-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: white;
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-sm);
+    font-size: 0.78rem;
+  }
+  .kiosk-asset-strip .ticker-chip .glyph {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+  }
+  .kiosk-asset-strip .ticker-chip .ticker {
+    font-weight: 600;
+    color: var(--zinc-900);
+    font-size: 0.78rem;
+  }
+  .kiosk-asset-strip .ticker-chip .change {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+  }
+  .kiosk-asset-strip .ticker-chip .change.up { color: var(--up); }
+  .kiosk-asset-strip .ticker-chip .change.down { color: var(--down); }
+  .kiosk-asset-strip .strip-tail {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--zinc-400);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* Launch CTA — bigger, with sub-line */
+  .kiosk-form .btn-launch {
+    margin-top: 12px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
+  }
+  .kiosk-form .launch-sub {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    color: var(--zinc-500);
+    text-align: center;
+  }
+
+  @media (max-width: 720px) {
+    .kiosk-screen { grid-template-columns: 1fr; }
+    .kiosk-form, .kiosk-preview, .kiosk-asset-strip { grid-column: 1; }
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--zinc-500); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .field .input {
+    border: 1px solid var(--zinc-300);
+    border-radius: var(--r-sm);
+    padding: 9px 11px;
+    font-size: 0.92rem;
+    background: white;
+    color: var(--zinc-800);
+  }
+  .field .input.placeholder { color: var(--zinc-400); }
+  .slider-row { margin-bottom: 14px; }
+  .slider-row .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .slider-row .label { font-size: 0.84rem; font-weight: 500; }
+  .slider-row .val { font-size: 0.78rem; color: var(--zinc-500); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .slider {
+    height: 6px;
+    background: var(--zinc-200);
+    border-radius: 3px;
+    position: relative;
+  }
+  .slider .track {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: var(--zinc-900);
+    border-radius: 3px;
+  }
+  .slider .knob {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--zinc-900);
+    transform: translate(-50%, -50%);
+  }
+  .btn-launch {
+    margin-top: 8px;
+    padding: 11px 16px;
+    width: 100%;
+    background: var(--zinc-950);
+    color: white;
+    border: none;
+    border-radius: var(--r-sm);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+  }
+  .btn-launch.coral { background: var(--coral); }
+
+  /* Right side — assets table */
+  .assets-panel {
+    background: var(--zinc-50);
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 14px;
+  }
+  .assets-panel h5 {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-500);
+    margin-bottom: 10px;
+  }
+  .asset-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--zinc-200);
+    font-size: 0.84rem;
+  }
+  .asset-row:last-child { border-bottom: 0; }
+  .asset-row .glyph {
+    width: 22px; height: 22px;
+    border-radius: var(--r-sm);
+  }
+  .asset-row .ticker { font-weight: 600; color: var(--zinc-900); }
+  .asset-row .price { font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--zinc-700); font-size: 0.78rem; }
+  .asset-row .change { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.78rem; }
+  .asset-row .change.up { color: #16a34a; }
+  .asset-row .change.down { color: #dc2626; }
+
+  /* "QIP solved by" badge */
+  .provider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--zinc-950);
+    color: white;
+    border-radius: var(--r-md);
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .provider-badge.classical { background: var(--zinc-700); }
+  .provider-badge .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 10px var(--coral);
+  }
+  .provider-badge.classical .dot { background: var(--zinc-400); box-shadow: none; }
+
+  /* Big screen mockup — locked to 1920×1080 reference.
+     LIGHT THEME by default — expo halls have flood lighting that washes dark screens.
+     container-type: size lets descendants use cqh/cqw so the mockup at any
+     rendered width is a proportional preview of the TV output (laptop → HDMI). */
+  .bigscreen {
+    aspect-ratio: 16/9;
+    background: white;
+    color: var(--zinc-950);
+    border-radius: var(--r-md);
+    padding: 1.6cqh 1.8cqw;
+    position: relative;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    container-type: size;
+    border: 1px solid var(--zinc-200);
+  }
+  .bigscreen .pattern-bg {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0.10;
+    pointer-events: none;
+  }
+  .bigscreen-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 2.1cqh;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-700);
+    font-weight: 600;
+    margin-bottom: 0.8cqh;
+    position: relative; z-index: 2;
+  }
+  .bigscreen-header .live::before {
+    content: "";
+    display: inline-block;
+    width: 1.1cqh; height: 1.1cqh;
+    min-width: 8px; min-height: 8px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 1cqh var(--signal);
+    margin-right: 0.8cqh;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  /* Leaderboard — flight-board style, light surfaces, big legible rows.
+     1080p reference. At 1080: 1cqh = 10.8px. Names hit ~37px (top1 ~50px). */
+  .lb-list { display: flex; flex-direction: column; gap: 0.55cqh; position: relative; z-index: 2; min-height: 0; }
+  .lb-row {
+    display: grid;
+    grid-template-columns: 5cqh 4.4cqh minmax(0, 1fr) 13cqh 9cqh;
+    gap: 1.2cqw;
+    align-items: center;
+    padding: 1.3cqh 1.8cqw;
+    background: white;
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-sm);
+    font-size: 3.6cqh;
+    color: var(--zinc-950);
+  }
+  .lb-row.top1 {
+    background: linear-gradient(135deg, rgba(255,100,103,0.10), white 70%);
+    border: 2px solid var(--coral);
+    box-shadow: 0 0 1.8cqh rgba(255, 100, 103, 0.18);
+    padding: 1.9cqh 2cqw;
+    font-size: 4.8cqh;
+    grid-template-columns: 6cqh 5.4cqh minmax(0, 1fr) 15cqh 10cqh;
+  }
+  .lb-row .rank {
+    font-family: Georgia, serif;
+    font-weight: 500;
+    color: var(--zinc-500);
+    font-size: 3cqh;
+  }
+  .lb-row.top1 .rank {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 4.8cqh;
+    font-weight: 600;
+  }
+  .lb-row .glyph { width: 3.8cqh; height: 3.8cqh; border-radius: var(--r-sm); }
+  .lb-row.top1 .glyph { width: 5cqh; height: 5cqh; }
+  .lb-row .name {
+    color: var(--zinc-950);
+    font-weight: 500;
+    font-family: Georgia, serif;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lb-row.top1 .name { font-weight: 600; letter-spacing: -0.015em; }
+  .lb-row .pnl {
+    color: var(--zinc-950);
+    text-align: right;
+    font-family: Georgia, serif;
+    font-size: 3.4cqh;
+    letter-spacing: -0.015em;
+    font-weight: 500;
+  }
+  .lb-row.top1 .pnl { font-size: 4.8cqh; font-weight: 600; }
+  .lb-row .change {
+    text-align: right;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2.6cqh;
+    font-weight: 600;
+  }
+  .lb-row.top1 .change { font-size: 3.2cqh; }
+  .lb-row .change.up { color: var(--up); }
+  .lb-row .change.down { color: var(--down); }
+  .lb-row .name .handle-tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 400;
+    color: var(--zinc-500);
+    font-size: 0.55em;
+    margin-left: 1.2cqw;
+    letter-spacing: 0.02em;
+  }
+  .lb-row .name .you-tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #0891b2;
+    font-size: 0.55em;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    margin-left: 1.2cqw;
+    padding: 0.3em 0.7em;
+    background: var(--signal-soft);
+    border: 1px solid rgba(75, 224, 255, 0.7);
+    border-radius: 0.4em;
+    vertical-align: middle;
+  }
+  .lb-row.you {
+    background: linear-gradient(135deg, var(--signal-soft), white 70%);
+    border-color: rgba(75, 224, 255, 0.7);
+    box-shadow: 0 0 1.4cqh rgba(75, 224, 255, 0.18);
+  }
+  .lb-row.you .rank { color: #0891b2; font-weight: 600; }
+  .lb-row.you .name { color: var(--zinc-950); }
+
+  /* Spotlight — light theme, heroic typography sized at 1080p reference */
+  .spotlight-grid { display: grid; grid-template-columns: 26cqh 1fr; gap: 2.5cqw; position: relative; z-index: 2; }
+  .spotlight-glyph-wrap { display: flex; flex-direction: column; align-items: center; gap: 1cqh; }
+  .spotlight-name { font-family: Georgia, serif; font-size: 4.4cqh; color: var(--zinc-950); letter-spacing: -0.02em; text-align: center; line-height: 1.05; }
+  .spotlight-handle { font-size: 1.9cqh; color: var(--zinc-500); margin-bottom: 0.6cqh; text-align: center; font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .spotlight-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2cqh 1.5cqw;
+    font-size: 1.4cqh;
+  }
+  .spotlight-meta .label { color: var(--zinc-500); text-transform: uppercase; letter-spacing: 0.1em; font-size: 1.1cqh; margin-bottom: 0.3cqh; }
+  .spotlight-meta .value { color: var(--zinc-950); font-weight: 500; }
+  .spotlight-pl { font-family: Georgia, serif; font-size: 4.2cqh; color: var(--zinc-950); }
+  .spotlight-pl .change { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.8cqh; color: var(--up); margin-left: 1.2cqw; }
+  .spotlight-glyph-wrap canvas { width: 22cqh !important; height: 22cqh !important; }
+
+  /* Spotlight V2: hide-strategy + show holdings */
+  .spotlight-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.6cqw;
+    padding-bottom: 1.4cqh;
+    border-bottom: 1px solid var(--zinc-200);
+  }
+  .spotlight-stats .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.7cqh;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-500);
+    margin-bottom: 0.6cqh;
+  }
+  .spotlight-stats .big-num {
+    font-family: Georgia, serif;
+    font-size: 6.6cqh;
+    line-height: 1;
+    color: var(--zinc-950);
+    letter-spacing: -0.02em;
+  }
+  .spotlight-stats .big-num.green { color: var(--up); }
+  .spotlight-stats .big-num.red { color: var(--down); }
+
+  .spotlight-strategy-locked {
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed rgba(255,255,255,0.18);
+    border-radius: var(--r-sm);
+    padding: 9px 10px;
+    text-align: center;
+    margin-top: 6px;
+    width: 100%;
+  }
+  .spotlight-strategy-locked .lock-line {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.64rem;
+    color: var(--zinc-300);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 4px;
+  }
+  .spotlight-strategy-locked .locked-sub {
+    font-size: 0.68rem;
+    color: var(--zinc-500);
+    line-height: 1.4;
+  }
+
+  .spotlight-holdings { display: flex; flex-direction: column; }
+  .spotlight-holdings .holding-row {
+    display: grid;
+    grid-template-columns: 3cqh 1fr 8cqh 11cqh;
+    gap: 1cqw;
+    align-items: center;
+    padding: 1.1cqh 0;
+    border-bottom: 1px dashed var(--zinc-200);
+  }
+  .spotlight-holdings .holding-row:last-child { border-bottom: 0; }
+  .spotlight-holdings .glyph {
+    width: 2.8cqh; height: 2.8cqh;
+    border-radius: 4px;
+  }
+  .spotlight-holdings .ticker { color: var(--zinc-950); font-weight: 600; font-size: 2.4cqh; font-family: Georgia, serif; }
+  .spotlight-holdings .pct {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2cqh;
+    color: var(--zinc-600);
+    text-align: right;
+  }
+  .spotlight-holdings .usd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2.1cqh;
+    color: var(--zinc-950);
+    text-align: right;
+    font-weight: 500;
+  }
+
+  /* Rotation progress bar — subtle animation showing the spotlight cycle timer */
+  .rotation-progress {
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+    border-radius: 1px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    z-index: 2;
+  }
+  .rotation-progress .fill {
+    position: absolute;
+    top: 0; left: 0; height: 100%;
+    background: linear-gradient(90deg, var(--coral), #fb7185);
+    width: 0%;
+    animation: rotation-fill 15s linear infinite;
+    box-shadow: 0 0 8px rgba(255, 100, 103, 0.6);
+  }
+  @keyframes rotation-fill {
+    0% { width: 0%; opacity: 1; }
+    92% { width: 100%; opacity: 1; }
+    93% { opacity: 0.2; }
+    100% { width: 0%; opacity: 0; }
+  }
+
+  /* Performance graph subtle animation: line draws on view */
+  .perf-line {
+    stroke-dasharray: 700;
+    stroke-dashoffset: 700;
+    animation: draw-line 1.8s ease-out 0.2s forwards;
+  }
+  .perf-fill {
+    opacity: 0;
+    animation: fade-in 1s ease-out 0.9s forwards;
+  }
+  @keyframes draw-line { to { stroke-dashoffset: 0; } }
+  @keyframes fade-in { to { opacity: 1; } }
+
+  /* Subtle leaderboard animations */
+  .lb-row { transition: background 0.5s; }
+  .lb-row.tick { animation: tick-flash 0.9s ease; }
+  @keyframes tick-flash {
+    0%, 100% { background: rgba(255,255,255,0.06); }
+    20% { background: rgba(255, 100, 103, 0.22); }
+  }
+  .lb-row.top1.tick { animation: tick-flash-top 0.9s ease; }
+  @keyframes tick-flash-top {
+    0%, 100% { background: rgba(255, 100, 103, 0.16); }
+    20% { background: rgba(255, 100, 103, 0.36); }
+  }
+  .lb-row.you.tick { animation: tick-flash-you 0.9s ease; }
+  @keyframes tick-flash-you {
+    0%, 100% { background: rgba(75, 224, 255, 0.10); }
+    20% { background: rgba(75, 224, 255, 0.32); }
+  }
+
+  /* ─── Quip Network bottom strip (broadcast-style ticker) ─── */
+  /* All cqh/cqw — scales 1:1 with the bigscreen's 16:9 box (1920×1080 reference). */
+  .bigscreen.has-quip-panel:not(.booth-tv) { padding-bottom: 6cqh; }
+  .booth-tv.has-quip-panel .tv-state-inner { padding-bottom: 6cqh; }
+
+  .quip-net-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5.4cqh;
+    background: linear-gradient(180deg, white 0%, var(--zinc-50) 100%);
+    border-top: 1px solid var(--zinc-200);
+    padding: 0 2cqw;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 2cqw;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    overflow: hidden;
+  }
+  .quip-net-panel > div {
+    display: flex;
+    align-items: center;
+    gap: 0.7cqh;
+    flex-shrink: 0;
+  }
+  .quip-net-panel .qnp-header {
+    font-size: 1.5cqh;
+    letter-spacing: 0.18em;
+    color: var(--coral);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .quip-net-panel .qnp-header::before {
+    content: "";
+    width: 0.7cqh; height: 0.7cqh;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 0.8cqh var(--coral);
+    animation: pulse 1.6s ease-in-out infinite;
+    margin-right: 0.4cqh;
+  }
+  .quip-net-panel .qnp-label {
+    font-size: 1.4cqh;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--zinc-500);
+    margin: 0;
+  }
+  .quip-net-panel .qnp-big {
+    font-family: Georgia, serif;
+    font-size: 2.4cqh;
+    line-height: 1;
+    color: var(--zinc-950);
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .quip-net-panel .qnp-big.coral {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .quip-net-panel .qnp-medium {
+    font-family: Georgia, serif;
+    font-size: 2.1cqh;
+    line-height: 1;
+    color: var(--zinc-950);
+    margin: 0;
+  }
+  .quip-net-panel .qnp-sub {
+    font-size: 1.2cqh;
+    color: var(--zinc-500);
+    margin: 0;
+  }
+  .quip-net-panel .qnp-divider {
+    width: 1px;
+    height: 2cqh;
+    background: var(--zinc-200);
+    flex-shrink: 0;
+  }
+  .quip-net-panel .qnp-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6cqh;
+    font-size: 1.5cqh;
+  }
+  .quip-net-panel .qnp-row + .qnp-row { margin-left: 1cqh; }
+  .quip-net-panel .qnp-quantum { color: var(--coral); font-weight: 600; }
+  .quip-net-panel .qnp-classical { color: var(--zinc-500); }
+  .quip-net-panel .qnp-time { color: var(--zinc-950); font-weight: 500; }
+  .quip-net-panel .qnp-job-tick {
+    display: flex;
+    align-items: center;
+    gap: 0.6cqh;
+    font-size: 1.3cqh;
+    color: var(--signal);
+    margin-left: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+  .quip-net-panel .qnp-job-tick::before {
+    content: "";
+    width: 0.55cqh; height: 0.55cqh;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 0.7cqh var(--signal);
+    animation: qnp-ping 1.2s ease-in-out infinite;
+  }
+  @keyframes qnp-ping {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+  /* When a "new job" arrives, the strip's top hairline pulses coral. */
+  .quip-net-panel.flash {
+    border-top-color: var(--coral);
+    box-shadow: 0 -8px 24px -8px rgba(255, 100, 103, 0.55);
+    transition: border-top-color 0.2s, box-shadow 0.2s;
+  }
+  /* Hide secondary detail on narrow mockup widths */
+  @media (max-width: 720px) {
+    .quip-net-panel { gap: 14px; padding: 0 14px; }
+    .quip-net-panel .qnp-medium-wrap,
+    .quip-net-panel .qnp-rows-wrap { display: none; }
+    .quip-net-panel .qnp-divider:nth-of-type(n+2) { display: none; }
+  }
+
+  /* Light-mode override */
+  body.mode-all-light .quip-net-panel {
+    background: linear-gradient(180deg, white 0%, var(--zinc-50) 100%);
+    border-top: 1px solid rgba(255, 100, 103, 0.45);
+    backdrop-filter: none;
+  }
+  body.mode-all-light .quip-net-panel .qnp-big,
+  body.mode-all-light .quip-net-panel .qnp-medium,
+  body.mode-all-light .quip-net-panel .qnp-time { color: var(--zinc-950); }
+  body.mode-all-light .quip-net-panel .qnp-classical { color: var(--zinc-500); }
+  body.mode-all-light .quip-net-panel .qnp-divider { background: var(--zinc-200); }
+  body.mode-all-light .quip-net-panel .qnp-sub { color: var(--zinc-500); }
+
+  /* ─── Live booth-TV simulator ─── */
+  .booth-tv { padding: 0; position: relative; }
+  .booth-tv .tv-state {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  .booth-tv .tv-state.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .booth-tv .tv-state-inner {
+    padding: 1.6cqh 1.8cqw;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Reference (non-booth-tv) bigscreens also flex-column so the hero fills */
+  .bigscreen { display: flex; flex-direction: column; }
+  .bigscreen.booth-tv { display: block; }
+
+  /* ─── Sidebar layout for leaderboard + spotlight states ───────────────
+     2-column grid: main content on the left, persistent QPU/CPU rail on the right.
+     Right-rail width: 20% of TV (≈384px on 1920×1080) — true sidebar.
+     Same rule applies to the booth-tv live preview AND the static reference states
+     so they render identically. */
+  #tv-state-lb .tv-state-inner,
+  #tv-state-spot .tv-state-inner,
+  .bigscreen.lb-state,
+  .bigscreen.spot-state {
+    display: grid !important;
+    grid-template-columns: 1fr 20cqw !important;
+    grid-template-rows: auto 1fr;
+    column-gap: 1.8cqw;
+    row-gap: 1cqh;
+  }
+  #tv-state-lb .bigscreen-header,
+  #tv-state-spot .bigscreen-header,
+  .bigscreen.lb-state > .bigscreen-header,
+  .bigscreen.spot-state > .bigscreen-header { grid-column: 1 / -1; grid-row: 1; margin-bottom: 0; }
+
+  #tv-state-lb .lb-list,
+  .bigscreen.lb-state > .lb-list { grid-column: 1; grid-row: 2; align-self: stretch; }
+
+  #tv-state-spot .rotation-progress,
+  .bigscreen.spot-state > .rotation-progress { grid-column: 1; grid-row: 2; align-self: start; height: 0.25cqh; min-height: 2px; margin: 0 0 0.8cqh; }
+  #tv-state-spot .spotlight-grid,
+  .bigscreen.spot-state > .spotlight-grid { grid-column: 1; grid-row: 2; align-self: stretch; padding-top: 1.2cqh; }
+
+  #tv-state-lb .quantum-hero,
+  #tv-state-spot .quantum-hero,
+  .bigscreen.lb-state > .quantum-hero,
+  .bigscreen.spot-state > .quantum-hero {
+    grid-column: 2; grid-row: 2;
+    margin-top: 0; padding-top: 0; border-top: none;
+  }
+  /* Tv perf line — same as spotlight perf-line but resettable */
+  .booth-tv .tv-perf-line {
+    stroke-dasharray: 700;
+    stroke-dashoffset: 700;
+    transition: stroke-dashoffset 1.6s ease-out;
+  }
+  .booth-tv .tv-perf-line.drawn {
+    stroke-dashoffset: 0;
+  }
+  .booth-tv .tv-perf-fill {
+    opacity: 0;
+    transition: opacity 0.8s ease-out;
+  }
+  .booth-tv .tv-perf-fill.drawn {
+    opacity: 1;
+  }
+  /* Rotation progress — controlled by JS class toggle */
+  .booth-tv #tv-spot-rotation-fill {
+    animation: none;
+    width: 0%;
+    transition: none;
+  }
+  .booth-tv #tv-spot-rotation-fill.running {
+    animation: rotation-fill-once 15s linear forwards;
+  }
+  @keyframes rotation-fill-once {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+  /* When welcome splash is active inside tv-state, replay animation on activate */
+  .booth-tv .tv-state.active .welcome-splash {
+    animation: glyph-in 0.8s ease both;
+  }
+
+  /* Refresh indicator on the leaderboard header */
+  .refresh-pulse {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--zinc-500);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .refresh-pulse::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--signal);
+    animation: refresh-pulse-dot 2.4s ease-in-out infinite;
+  }
+  @keyframes refresh-pulse-dot {
+    0%, 100% { opacity: 0.3; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Welcome splash — 1080p reference. */
+  .welcome-splash {
+    display: grid;
+    grid-template-columns: 24cqh 1fr;
+    gap: 3cqw;
+    height: calc(100% - 4cqh);
+    align-items: center;
+    position: relative; z-index: 2;
+  }
+  .welcome-splash .big-name { font-family: Georgia, serif; font-size: 6cqh; line-height: 1; letter-spacing: -0.025em; margin-bottom: 1.4cqh; color: var(--zinc-950); }
+  .welcome-splash canvas { width: 22cqh !important; height: 22cqh !important; box-shadow: 0 1.6cqh 4cqh -1.2cqh rgba(255,100,103,0.35), 0 0 0 1px var(--zinc-200); border-radius: var(--r-md); }
+  .welcome-splash .new-tag {
+    display: inline-block; padding: 0.5cqh 1cqw; background: var(--coral); color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.2cqh; letter-spacing: 0.12em;
+    text-transform: uppercase; border-radius: 3px; margin-bottom: 1.6cqh;
+  }
+
+  /* Phone mockup contents */
+  .phone-screen { padding: 0 16px 18px; color: white; display: flex; flex-direction: column; gap: 14px; }
+
+  /* iOS-style status bar — thin strip at the very top of the phone screen */
+  .phone-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 22px 6px;
+    margin: 0 -16px 4px;
+    font-family: 'SF Pro Display', -apple-system, system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: white;
+  }
+  .phone-status-bar .icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.74rem;
+    letter-spacing: 0.02em;
+  }
+  .phone-status-bar .signal-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 1.5px;
+    height: 9px;
+  }
+  .phone-status-bar .signal-bars span {
+    width: 2px;
+    background: white;
+    border-radius: 0.5px;
+  }
+  .phone-status-bar .signal-bars span:nth-child(1) { height: 3px; }
+  .phone-status-bar .signal-bars span:nth-child(2) { height: 5px; }
+  .phone-status-bar .signal-bars span:nth-child(3) { height: 7px; }
+  .phone-status-bar .signal-bars span:nth-child(4) { height: 9px; }
+  .phone-status-bar .battery {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+  }
+  .phone-status-bar .battery .body {
+    width: 22px; height: 10px;
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 2px;
+    padding: 1px;
+  }
+  .phone-status-bar .battery .body::after {
+    content: "";
+    display: block;
+    width: 78%;
+    height: 100%;
+    background: white;
+    border-radius: 0.5px;
+  }
+  .phone-status-bar .battery .nub {
+    width: 1.5px; height: 4px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 0 1px 1px 0;
+  }
+
+  .phone-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .phone-header-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .phone-name { font-family: Georgia, serif; font-size: 1.18rem; line-height: 1.1; letter-spacing: -0.01em; }
+  .phone-handle { font-size: 0.74rem; color: var(--zinc-400); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .phone-rank-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    background: rgba(75,224,255,0.10);
+    border: 1px solid rgba(75,224,255,0.40);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--signal);
+    margin-top: 4px;
+    letter-spacing: 0.04em;
+    width: fit-content;
+  }
+  .phone-rank-pill .rank-num { color: white; font-weight: 600; }
+
+  .phone-portfolio {
+    display: grid;
+    grid-template-columns: 1fr 80px;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 0;
+    border-top: 1px solid var(--zinc-800);
+    border-bottom: 1px solid var(--zinc-800);
+  }
+  .phone-portfolio .pl-block { display: flex; flex-direction: column; gap: 2px; }
+  .phone-portfolio .pl-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-500);
+  }
+  .phone-portfolio .num { font-family: Georgia, serif; font-size: 2.1rem; color: white; line-height: 1; letter-spacing: -0.015em; }
+  .phone-portfolio .change { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.86rem; margin-top: 2px; }
+  .phone-portfolio .change.up { color: var(--up); }
+  .phone-portfolio .change.down { color: var(--down); }
+  .phone-portfolio .sparkline {
+    width: 80px; height: 36px;
+    color: var(--up);
+  }
+  .phone-portfolio .sparkline.down { color: var(--down); }
+
+  /* Mini sliders — beefy enough to drag accurately on a phone */
+  .mini-slider { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--zinc-800); }
+  .mini-slider .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .mini-slider .label { font-size: 0.84rem; color: var(--zinc-200); font-weight: 500; }
+  .mini-slider .val { font-size: 0.74rem; color: var(--signal); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .mini-slider .bar {
+    height: 8px;
+    background: var(--zinc-800);
+    border-radius: 4px;
+    position: relative;
+  }
+  .mini-slider .bar .fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    background: var(--quip-gradient);
+    border-radius: 4px;
+    box-shadow: 0 0 8px rgba(255,100,103,0.4);
+  }
+  .mini-slider .bar .fill::after {
+    content: "";
+    position: absolute;
+    right: -9px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--coral);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .phone-cta {
+    margin-top: auto;
+    padding: 10px;
+    background: var(--coral);
+    color: white;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.84rem;
+    font-weight: 500;
+  }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--zinc-100);
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 28px;
+    overflow-x: auto;
+  }
+
+  /* Phase cards */
+  .phase-card {
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 22px;
+    background: white;
+  }
+  .phase-card.mvp { border-color: var(--coral); border-width: 2px; }
+  .phase-card.mvp .pill { background: var(--coral); color: white; border-color: var(--coral); }
+  .phase-card ul { margin-left: 18px; margin-top: 8px; }
+  .phase-card li { margin-bottom: 6px; font-size: 0.94rem; color: var(--zinc-700); }
+
+  /* TBD list — compact one-line entries */
+  .tbd-list { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--zinc-200); }
+  .tbd {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--zinc-200);
+    background: transparent;
+  }
+  .tbd:hover { background: var(--zinc-50); }
+  .tbd .q { font-family: 'JetBrains Mono', ui-monospace, monospace; color: var(--coral); font-weight: 600; font-size: 0.84rem; padding-top: 2px; }
+  .tbd .body strong { color: var(--zinc-950); display: inline; margin-right: 6px; }
+  .tbd .body { color: var(--zinc-700); font-size: 0.92rem; line-height: 1.5; }
+  .tbd .body span { color: var(--zinc-700); font-size: 0.92rem; display: inline; }
+
+  /* Inspiration gallery — uniform thumbnails (5-column desktop) */
+  .gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  @media (max-width: 900px) { .gallery { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 560px) { .gallery { grid-template-columns: repeat(2, 1fr); } }
+  .gallery .thumb {
+    aspect-ratio: 4/3;
+    background: var(--zinc-900);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    border: 1px solid var(--zinc-200);
+    cursor: zoom-in;
+    position: relative;
+    transition: transform 0.18s, box-shadow 0.18s;
+    display: block;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    font: inherit;
+    color: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .gallery .thumb:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px -10px rgba(15, 15, 23, 0.35);
+  }
+  .gallery .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s;
+  }
+  .gallery .thumb:hover img { transform: scale(1.06); }
+  .gallery .thumb .cap {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 10px 12px 8px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.85));
+    color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    line-height: 1.3;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 9, 11, 0.94);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 32px;
+    flex-direction: column;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox-content {
+    width: 100%;
+    max-width: 1200px;
+    aspect-ratio: 4/3;
+    max-height: 80vh;
+    background: var(--zinc-950);
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .lightbox-content img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+  .lightbox-cap {
+    color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    margin-top: 14px;
+    max-width: 1200px;
+    text-align: center;
+    padding: 0 32px;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 20px; right: 24px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: white;
+    color: black;
+    border: none;
+    cursor: pointer;
+    font-size: 1.4rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+  }
+  .lightbox-close:hover { background: var(--coral); color: white; }
+
+  /* Playground */
+  .playground {
+    background: white;
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 720px) { .playground { grid-template-columns: 1fr; } }
+  .playground canvas { width: 220px; height: 220px; border-radius: var(--r-md); display: block; }
+  .playground .ctrls { display: flex; flex-direction: column; gap: 14px; }
+  .playground .row { display: grid; grid-template-columns: 100px 1fr 50px; gap: 12px; align-items: center; }
+  .playground .row label { font-size: 0.84rem; color: var(--zinc-700); }
+  .playground .row .v { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.8rem; color: var(--zinc-500); }
+  .playground input[type="range"] { width: 100%; accent-color: var(--coral); }
+  .playground .row.text input { padding: 8px 10px; border: 1px solid var(--zinc-300); border-radius: var(--r-sm); font-size: 0.9rem; }
+  .playground .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .playground .preset {
+    font-size: 0.72rem; padding: 4px 8px; border: 1px solid var(--zinc-300);
+    background: white; border-radius: 3px; cursor: pointer; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .playground canvas.is-hidden { display: none; }
+  .playground .glyph-placeholder {
+    width: 220px; height: 220px;
+    border-radius: var(--r-md);
+    border: 1px dashed var(--zinc-300);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    color: var(--zinc-500);
+    padding: 24px;
+  }
+  .playground .glyph-placeholder svg { color: var(--zinc-300); width: 56px; height: 56px; }
+  .playground .glyph-placeholder .gp-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--zinc-700);
+    line-height: 1.2;
+  }
+  .playground .glyph-placeholder .gp-sub {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--zinc-400);
+  }
+  .playground .glyph-placeholder.is-hidden { display: none; }
+  .playground .glyph-meta {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    color: var(--coral);
+    text-align: center;
+    line-height: 1.4;
+    min-height: 18px;
+  }
+  .playground .generate-btn {
+    margin-top: 6px;
+    padding: 11px 18px;
+    background: var(--quip-gradient);
+    color: white;
+    border: none;
+    border-radius: var(--r-sm);
+    font-size: 0.92rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter 0.18s;
+    align-self: flex-start;
+  }
+  .playground .generate-btn:hover { filter: brightness(1.08); }
+
+  /* Glyph logic explainer (sits below the playground) */
+  .glyph-logic {
+    margin-top: 28px;
+    background: var(--zinc-100);
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    padding: 22px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 720px) { .glyph-logic { grid-template-columns: 1fr; } }
+  .glyph-logic h4 {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--coral);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .glyph-logic p { font-size: 0.86rem; color: var(--zinc-700); margin-bottom: 10px; }
+  .glyph-logic ul { list-style: none; padding: 0; margin: 0; }
+  .glyph-logic li {
+    margin-bottom: 6px;
+    font-size: 0.84rem;
+    color: var(--zinc-700);
+    padding-left: 16px;
+    position: relative;
+  }
+  .glyph-logic li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--coral);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .glyph-logic li code {
+    color: var(--zinc-950);
+    font-weight: 600;
+    background: white;
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--zinc-200);
+    font-size: 0.8rem;
+    margin-right: 4px;
+  }
+
+  /* Toc */
+  .toc {
+    position: sticky; top: 18px;
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    background: white;
+    padding: 14px 16px;
+    margin-bottom: 28px;
+  }
+  .toc ol { list-style: none; padding-left: 0; counter-reset: t; column-count: 2; column-gap: 24px; }
+  .toc li {
+    font-size: 0.86rem;
+    margin-bottom: 6px;
+    counter-increment: t;
+    break-inside: avoid;
+  }
+  .toc li::before {
+    content: "0" counter(t);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    color: var(--zinc-400);
+    margin-right: 10px;
+  }
+  .toc a { text-decoration: none; }
+  .toc a:hover { color: var(--coral); }
+
+  /* Footer */
+  footer { padding: 60px 0 80px; border-top: 1px solid var(--zinc-200); color: var(--zinc-500); font-size: 0.86rem; }
+  footer .small { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.74rem; }
+
+  /* Misc helpers */
+  .hr-dot { display: block; height: 1px; background: var(--zinc-200); margin: 20px 0; }
+  .small { font-size: 0.84rem; color: var(--zinc-500); }
+  .arrow { color: var(--coral); }
+  .strike { text-decoration: line-through; color: var(--zinc-400); }
+
+  /* ─── Interactive controls ─── */
+  input.input {
+    font: inherit;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input.input:focus {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px rgba(255, 100, 103, 0.18);
+  }
+  input.input::placeholder { color: var(--zinc-400); }
+
+  .slider input[type="range"].range-overlay {
+    position: absolute;
+    top: -10px; left: 0;
+    width: 100%;
+    height: calc(100% + 20px);
+    margin: 0; padding: 0;
+    opacity: 0;
+    cursor: grab;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .slider input[type="range"].range-overlay:active { cursor: grabbing; }
+  .slider:hover .knob { transform: translate(-50%, -50%) scale(1.15); }
+  .slider .knob { transition: transform 0.12s ease, background-color 0.15s; }
+  .slider .track { transition: width 0.05s linear; }
+
+  .mini-slider .bar input[type="range"].range-overlay {
+    position: absolute;
+    top: -8px; left: 0;
+    width: 100%;
+    height: calc(100% + 16px);
+    margin: 0;
+    opacity: 0;
+    cursor: grab;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .mini-slider .bar { transition: background-color 0.2s; }
+
+  /* ─── Buttons ─── */
+  button.phone-cta, button.btn-launch {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.18s, transform 0.06s;
+  }
+  button.phone-cta:hover { background: #ff8083; }
+  button.phone-cta:active { transform: translateY(1px); }
+  button.btn-launch:hover { background: #ff8083; }
+  button.btn-launch.coral.busy {
+    background: var(--zinc-700);
+    cursor: progress;
+  }
+  button.phone-cta.busy {
+    background: var(--zinc-800);
+    cursor: progress;
+  }
+  button.phone-cta.busy::after {
+    content: "";
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--coral);
+    margin-left: 6px;
+    animation: ping 0.9s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  @keyframes ping {
+    0%, 100% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.4); opacity: 1; }
+  }
+
+  .btn-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: white;
+    color: var(--zinc-900);
+    border: 1px solid var(--zinc-300);
+    border-radius: var(--r-sm);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-trigger:hover { background: var(--zinc-900); color: white; border-color: var(--zinc-900); }
+  .btn-trigger.coral { background: var(--coral); color: white; border-color: var(--coral); }
+  .btn-trigger.coral:hover { background: #ff8083; border-color: #ff8083; }
+  /* Mockup-meta indicator. Lives outside the production palette intentionally —
+     it's a doc-only label saying "this part of the page is live", not a brand element. */
+  .interactive-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    background: var(--zinc-900);
+    color: var(--signal);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border-radius: 999px;
+    vertical-align: middle;
+    border: 1px solid var(--ink-line);
+  }
+  .interactive-tag::before {
+    content: "";
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 6px var(--signal);
+  }
+
+  /* ─── Bigscreen backgrounds: clean + a subtle accent for pop ─── */
+  /* Pattern bg — almost invisible on light background, just enough texture to feel branded */
+  .bigscreen .pattern-bg { opacity: 0.06; mix-blend-mode: multiply; }
+  .bigscreen.lb-state .pattern-bg { opacity: 0.04; }
+
+  /* Coral hairline sweep at the top edge of the bigscreen */
+  .bigscreen::before {
+    content: "";
+    position: absolute;
+    top: -120px; left: 50%;
+    width: 80%;
+    height: 240px;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(255, 100, 103, 0.18), transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Static coral hairline at the top of the bigscreen — replaces the looping sweep
+     (decorative motion was competing with the data already on screen). */
+  .bigscreen::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,100,103,0.5) 50%, transparent 100%);
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  /* Dark-mode override (review toggle only) — light is the canonical default. */
+  body.mode-all-dark .lb-row {
+    background: rgba(28, 28, 36, 0.78);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: white;
+    backdrop-filter: blur(2px);
+  }
+  body.mode-all-dark .lb-row .name,
+  body.mode-all-dark .lb-row .pnl { color: white; }
+  body.mode-all-dark .lb-row.top1 {
+    background: linear-gradient(135deg, rgba(255,100,103,0.20), rgba(28,28,36,0.85));
+    border-color: rgba(255,100,103,0.45);
+  }
+  body.mode-all-dark .lb-row.you {
+    background: linear-gradient(135deg, rgba(75,224,255,0.16), rgba(28,28,36,0.85));
+    border-color: rgba(75,224,255,0.40);
+  }
+
+  /* Spotlight rows + cards: opaque overlay so the holdings/stats stay readable */
+  .booth-tv .spotlight-grid,
+  .bigscreen .spotlight-grid { position: relative; z-index: 2; }
+  .spotlight-strategy-locked {
+    background: rgba(28, 28, 36, 0.6);
+    backdrop-filter: blur(4px);
+  }
+  body.mode-all-light .spotlight-strategy-locked {
+    background: var(--zinc-100);
+    backdrop-filter: none;
+    border-color: var(--zinc-300);
+  }
+  body.mode-all-light .spotlight-strategy-locked .lock-line { color: var(--zinc-600); }
+  body.mode-all-light .spotlight-strategy-locked .locked-sub { color: var(--zinc-500); }
+
+  /* Provider badge in light mode */
+  body.mode-all-light .provider-badge {
+    background: var(--zinc-900);
+    color: white;
+  }
+  body.mode-all-light .provider-badge.classical { background: var(--zinc-600); }
+
+  /* ─── Welcome splash animations ─── */
+  .welcome-splash.replay .glyph-anim { animation: glyph-in 0.8s ease both; }
+  .welcome-splash.replay .new-tag { animation: pop-in 0.6s 0.3s ease both; opacity: 0; }
+  .welcome-splash.replay .big-name { animation: slide-up 0.7s 0.5s ease both; opacity: 0; }
+  .welcome-splash.replay .splash-meta { animation: fade-up 0.6s 0.8s ease both; opacity: 0; }
+  .welcome-splash.replay .provider-badge { animation: badge-resolve 0.6s 1.0s ease both; opacity: 0; }
+  @keyframes glyph-in {
+    from { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0); }
+  }
+  @keyframes pop-in {
+    0%   { opacity: 0; transform: scale(0.5); }
+    60%  { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes badge-resolve {
+    0%   { opacity: 0; background: var(--zinc-700); }
+    50%  { opacity: 1; background: var(--zinc-700); }
+    100% { opacity: 1; background: var(--zinc-950); }
+  }
+  .provider-badge .dot { transition: background 0.4s, box-shadow 0.4s; }
+  .provider-badge.solving { background: var(--zinc-700) !important; }
+  .provider-badge.solving .dot {
+    background: var(--zinc-400) !important;
+    box-shadow: none !important;
+    animation: ping 0.9s ease-in-out infinite;
+  }
+
+  /* ─── Routing hero (kiosk strategy-returned) ─── */
+  .routing-hero {
+    background: linear-gradient(135deg, #0a0a10 0%, #1a1a22 100%);
+    color: white;
+    border-radius: var(--r-md);
+    padding: 22px 26px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 100, 103, 0.35);
+    box-shadow: 0 0 0 1px rgba(255, 100, 103, 0.1), 0 18px 40px -20px rgba(255, 100, 103, 0.4);
+  }
+  .routing-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 85% 10%, rgba(255, 100, 103, 0.22), transparent 55%),
+                radial-gradient(circle at 10% 90%, rgba(75, 224, 255, 0.10), transparent 50%);
+    pointer-events: none;
+  }
+  .routing-hero-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-bottom: 18px;
+    position: relative; z-index: 2;
+  }
+  .routing-pill { color: var(--coral); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .routing-pill::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 10px var(--coral);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .routing-time { color: var(--zinc-400); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .routing-hero-main {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: end;
+    margin-bottom: 18px;
+    position: relative; z-index: 2;
+  }
+  .routing-q-tag {
+    display: inline-block;
+    padding: 4px 9px;
+    background: var(--coral);
+    color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .routing-q-tag.classical { background: var(--zinc-500); }
+  .routing-name {
+    font-family: Georgia, serif;
+    font-size: 2.4rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: white;
+  }
+  .routing-name .qubit-meta {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-400);
+    margin-top: 6px;
+  }
+  .routing-hero-stats {
+    display: flex;
+    gap: 26px;
+    text-align: right;
+  }
+  .routing-hero-stats .num {
+    font-family: Georgia, serif;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: white;
+    letter-spacing: -0.02em;
+  }
+  .routing-hero-stats .num.coral {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .routing-hero-stats .sub {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-400);
+    margin-top: 7px;
+  }
+  .routing-race {
+    position: relative; z-index: 2;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+  }
+  .race-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 60px;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.78rem;
+  }
+  .race-row + .race-row { margin-top: 8px; }
+  .race-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+  }
+  .race-label.quantum { color: var(--coral); }
+  .race-label.classical { color: var(--zinc-400); }
+  .race-bar {
+    height: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .race-bar .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .race-bar .bar-fill.quantum {
+    background: linear-gradient(90deg, var(--coral), #fb7185);
+    box-shadow: 0 0 14px rgba(255, 100, 103, 0.6);
+  }
+  .race-bar .bar-fill.classical { background: var(--zinc-500); }
+  .race-time {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--zinc-300);
+    text-align: right;
+  }
+
+  /* ─── Phone routing card (the hero on the phone profile) ─── */
+  .phone-routing-card {
+    background: linear-gradient(135deg, #16161e 0%, #27272a 100%);
+    border: 1px solid rgba(255, 100, 103, 0.35);
+    border-radius: var(--r-md);
+    padding: 12px 12px 13px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .phone-routing-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 100% 0%, rgba(255,100,103,0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .phone-routing-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 8px;
+    position: relative; z-index: 2;
+  }
+  .phone-routing-pill { color: var(--coral); display: inline-flex; align-items: center; gap: 5px; }
+  .phone-routing-pill::before {
+    content: "";
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 6px var(--coral);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  .phone-routing-status { color: var(--zinc-500); }
+  .phone-routing-main {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: end;
+    position: relative; z-index: 2;
+  }
+  .phone-q-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--coral);
+    color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.16em;
+    border-radius: 2px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .phone-q-tag.classical { background: var(--zinc-500); }
+  .phone-routing-provider {
+    font-family: Georgia, serif;
+    font-size: 1.2rem;
+    color: white;
+    line-height: 1.05;
+  }
+  .phone-routing-stats {
+    text-align: right;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .phone-routing-stats .num.big {
+    font-family: Georgia, serif;
+    font-size: 1.1rem;
+    color: var(--coral);
+    line-height: 1;
+  }
+  .phone-routing-stats .num.small {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--zinc-300);
+  }
+  /* Solving state */
+  .phone-routing-card.solving {
+    border-color: rgba(160, 160, 180, 0.3);
+    background: linear-gradient(135deg, #16161e 0%, #1f1f25 100%);
+  }
+  .phone-routing-card.solving .phone-q-tag {
+    background: var(--zinc-600);
+  }
+  .phone-routing-card.solving .phone-routing-provider {
+    color: var(--zinc-300);
+  }
+  .phone-routing-card.solving .phone-routing-stats .num.big { color: var(--zinc-400); }
+
+  /* Provider race in a tight space (phone) */
+  .phone-race {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative; z-index: 2;
+  }
+  .phone-race .race-row {
+    grid-template-columns: 70px 1fr 36px;
+    gap: 8px;
+    font-size: 0.66rem;
+  }
+  .phone-race .race-row + .race-row { margin-top: 5px; }
+  .phone-race .race-label { font-size: 0.6rem; }
+  .phone-race .race-bar { height: 5px; }
+  .phone-race .race-time { font-size: 0.62rem; }
+
+  /* ─── Brand gradient (coral → pink, from quip's pattern Coral scheme) ─── */
+  :root {
+    --quip-gradient: linear-gradient(135deg, hsl(10, 75%, 60%), hsl(340, 65%, 66%));
+    --quip-gradient-soft: linear-gradient(135deg, hsl(10, 75%, 60%, 0.18), hsl(340, 65%, 66%, 0.14));
+  }
+  h1 .grad {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+    line-height: 1.18;            /* room for descenders ("g" in "Trading") */
+    padding-bottom: 0.05em;
+  }
+  button.btn-launch.coral,
+  button.phone-cta {
+    background: var(--quip-gradient);
+    border: none;
+  }
+  button.btn-launch.coral:hover,
+  button.phone-cta:hover {
+    background: linear-gradient(135deg, hsl(10, 80%, 64%), hsl(340, 70%, 70%));
+  }
+  .btn-trigger.coral {
+    background: var(--quip-gradient);
+    border: none;
+    color: white;
+  }
+  .btn-trigger.coral:hover {
+    background: linear-gradient(135deg, hsl(10, 80%, 64%), hsl(340, 70%, 70%));
+  }
+  .routing-q-tag,
+  .phone-q-tag,
+  .new-tag {
+    background: var(--quip-gradient);
+  }
+  .routing-q-tag.classical,
+  .phone-q-tag.classical { background: var(--zinc-500); }
+
+  .gradient-stripe {
+    height: 4px;
+    background: var(--quip-gradient);
+    border-radius: 2px;
+    margin: 12px 0;
+  }
+
+  /* ─── Mode toggle (designer review tool — not part of the canonical design) ─── */
+  .mode-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    margin: 18px 0 22px;
+    background: var(--zinc-100);
+    border: 1px dashed var(--zinc-300);
+    border-radius: var(--r-md);
+  }
+  .mode-toggle-wrap .review-note {
+    font-size: 0.78rem;
+    color: var(--zinc-600);
+    line-height: 1.4;
+    flex: 1;
+    min-width: 220px;
+  }
+  .mode-toggle-wrap .review-note strong {
+    color: var(--zinc-900);
+    font-weight: 600;
+  }
+  .mode-toggle {
+    background: white;
+    border: 1px solid var(--zinc-200);
+    border-radius: 999px;
+    padding: 4px 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .mode-toggle .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--zinc-500);
+    padding: 0 8px 0 6px;
+  }
+  .mode-toggle button {
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--zinc-700);
+    transition: background 0.15s, color 0.15s;
+  }
+  .mode-toggle button:hover { color: var(--zinc-950); }
+  .mode-toggle button.active {
+    background: var(--zinc-950);
+    color: white;
+  }
+
+  /* === Mode: ALL LIGHT (override anything dark) === */
+  body.mode-all-light .mockup-frame.dark { background: var(--zinc-100); border-color: var(--zinc-200); }
+  body.mode-all-light .mockup-frame.dark .screen { background: white; border-color: var(--zinc-200); }
+  body.mode-all-light .bigscreen {
+    background: white !important;
+    color: var(--zinc-950);
+  }
+  /* Bigscreen is light by default; mode-all-light is a no-op for it (kept for symmetry on phone/kiosk only) */
+  body.mode-all-light .phone-screen { background: white; color: var(--zinc-950); }
+  body.mode-all-light .phone-name { color: var(--zinc-950); }
+  body.mode-all-light .phone-portfolio { border-color: var(--zinc-200); }
+  body.mode-all-light .phone-portfolio .num { color: var(--zinc-950); }
+  body.mode-all-light .mini-slider { border-color: var(--zinc-200); }
+  body.mode-all-light .mini-slider .label { color: var(--zinc-700); }
+  body.mode-all-light .mini-slider .bar { background: var(--zinc-200); }
+  body.mode-all-light .phone-routing-card {
+    background: linear-gradient(135deg, #fff5f6, #ffffff);
+    border-color: var(--coral);
+  }
+  body.mode-all-light .phone-routing-provider { color: var(--zinc-950); }
+  body.mode-all-light .phone-routing-status { color: var(--zinc-500); }
+  body.mode-all-light .phone-routing-stats .num.small { color: var(--zinc-700); }
+  body.mode-all-light .phone-race { border-color: var(--zinc-200); }
+  body.mode-all-light .race-bar { background: var(--zinc-200); }
+  body.mode-all-light .race-bar .bar-fill.classical { background: var(--zinc-400); }
+  body.mode-all-light .race-time { color: var(--zinc-700); }
+  body.mode-all-light .race-label.classical { color: var(--zinc-500); }
+  body.mode-all-light .spotlight-name,
+  body.mode-all-light .big-name,
+  body.mode-all-light .spotlight-pl { color: var(--zinc-950); }
+  body.mode-all-light .spotlight-handle { color: var(--zinc-500); }
+  body.mode-all-light .spotlight-meta .value { color: var(--zinc-900); }
+  body.mode-all-light .provider-badge { background: var(--zinc-900); }
+
+  /* === Mode: ALL DARK (override anything light) === */
+  body.mode-all-dark .mockup-frame { background: var(--zinc-900); border-color: var(--zinc-800); }
+  body.mode-all-dark .mockup-frame .screen {
+    background: var(--zinc-950) !important;
+    color: white !important;
+    border-color: var(--zinc-800) !important;
+  }
+  body.mode-all-dark .mockup-frame .chrome { color: var(--zinc-400); }
+  body.mode-all-dark .kiosk-screen h4.section-title { color: white; }
+  body.mode-all-dark .kiosk-screen .lede-sm { color: var(--zinc-400); }
+  body.mode-all-dark .field label { color: var(--zinc-400); }
+  body.mode-all-dark input.input,
+  body.mode-all-dark .field .input {
+    background: var(--zinc-800);
+    border-color: var(--zinc-700);
+    color: white;
+  }
+  body.mode-all-dark .hr-dot { background: var(--zinc-800); }
+  body.mode-all-dark .slider { background: var(--zinc-800); }
+  body.mode-all-dark .slider .track { background: var(--coral); }
+  body.mode-all-dark .slider .knob { background: white; border-color: var(--coral); }
+  body.mode-all-dark .slider-row .label { color: white; }
+  body.mode-all-dark .slider-row .val { color: var(--zinc-400); }
+  body.mode-all-dark .assets-panel { background: var(--zinc-900); border-color: var(--zinc-800); }
+  body.mode-all-dark .assets-panel h5 { color: var(--zinc-400); }
+  body.mode-all-dark .asset-row { border-color: rgba(255,255,255,0.08); }
+  body.mode-all-dark .asset-row .ticker { color: white; }
+  body.mode-all-dark .asset-row .price,
+  body.mode-all-dark .asset-row .change { color: var(--zinc-300); }
+  body.mode-all-dark .asset-row .change.up { color: #84cc16; }
+  body.mode-all-dark .asset-row .change.down { color: #fca5a5; }
+  body.mode-all-dark .strategy-return-h2,
+  body.mode-all-dark .mockup-frame h2 { color: white; }
+  body.mode-all-dark .mockup-frame .small { color: var(--zinc-400); }
+  body.mode-all-dark .mockup-frame .kicker { color: var(--zinc-400); }
+  body.mode-all-dark .mockup-frame code { color: var(--coral); background: rgba(255,100,103,0.12); padding: 1px 4px; border-radius: 3px; }
+
+  /* ─── Provider stats line ─── */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--zinc-200);
+    border: 1px solid var(--zinc-200);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .stats-strip > div {
+    background: white;
+    padding: 14px 16px;
+  }
+  .stats-strip .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--zinc-500);
+    margin-bottom: 6px;
+  }
+  .stats-strip .num {
+    font-family: Georgia, serif;
+    font-size: 1.4rem;
+    color: var(--zinc-950);
+  }
+  .stats-strip .num.coral { color: var(--coral); }
+
+  /* ─── Sticky section nav ───────────────────────────────── */
+  .doc-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(250, 250, 250, 0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--zinc-200);
+  }
+  .doc-nav-inner {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 10px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .doc-nav-inner::-webkit-scrollbar { display: none; }
+  .doc-nav-brand {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--zinc-950);
+    text-decoration: none;
+    flex-shrink: 0;
+    padding-right: 14px;
+    border-right: 1px solid var(--zinc-200);
+  }
+  .doc-nav-brand .grad {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .doc-nav-list {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+  }
+  .doc-nav-list a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--zinc-600);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: var(--r-sm);
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+  }
+  .doc-nav-list a .num {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--zinc-400);
+  }
+  .doc-nav-list a:hover { background: var(--zinc-100); color: var(--zinc-950); }
+  .doc-nav-list a.active { background: var(--zinc-950); color: white; }
+  .doc-nav-list a.active .num { color: var(--coral); }
+  /* Anchor offset so links don't tuck under the sticky nav */
+  section[id], header[id] { scroll-margin-top: 64px; }
+
+  /* ─── TBD priority chips ──────────────────────────────── */
+  .tbd { grid-template-columns: 56px 1fr 110px; }
+  .tbd .pri {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 3px;
+    color: white;
+    align-self: start;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .tbd .pri.p0 { background: var(--coral); }
+  .tbd .pri.p1 { background: var(--zinc-700); }
+  .tbd .pri.p2 { background: var(--zinc-300); color: var(--zinc-700); }
+  .tbd .owner {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.74rem;
+    color: var(--zinc-500);
+    align-self: start;
+    text-align: right;
+    padding-top: 2px;
+  }
+  .tbd .owner em { color: var(--coral); font-style: normal; font-weight: 600; }
+  @media (max-width: 720px) {
+    .tbd { grid-template-columns: 56px 1fr; }
+    .tbd .owner { grid-column: 1 / -1; text-align: left; padding-top: 4px; }
+  }
+
+  /* ─── Quantum-advantage rail (right sidebar of leaderboard + spotlight) ─── */
+  /* Vertical layout: kicker → 88% → split bar → 12% → supporting stats footer.
+     Top-anchored with footer pinned to bottom — no centered void. */
+  .quantum-hero {
+    background: linear-gradient(180deg, #fff7f7 0%, white 100%);
+    border: 1px solid rgba(255, 100, 103, 0.35);
+    border-radius: var(--r-md);
+    padding: 1.8cqh 1.4cqw 1.4cqh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.2cqh;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 0 1.6cqh rgba(255, 100, 103, 0.10);
+    overflow: hidden;
+    min-height: 0;
+  }
+  .quantum-hero::before {
+    content: "";
+    position: absolute;
+    top: -10%; left: -10%;
+    width: 120%; height: 60%;
+    background: radial-gradient(ellipse at center, rgba(255, 100, 103, 0.10), transparent 70%);
+    pointer-events: none;
+  }
+  .quantum-hero > * { position: relative; z-index: 1; }
+  .quantum-hero .qh-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2cqh;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--coral);
+    display: flex;
+    align-items: center;
+    gap: 0.8cqh;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .quantum-hero .qh-label::before {
+    content: "";
+    width: 1.2cqh; height: 1.2cqh;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 1.4cqh var(--coral);
+    animation: pulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .quantum-hero .qh-title {
+    font-family: Georgia, serif;
+    font-size: 3.6cqh;
+    line-height: 1;
+    letter-spacing: -0.015em;
+    color: var(--zinc-950);
+    margin-top: 0.5cqh;
+  }
+
+  /* qh-grid takes the middle space and distributes content with space-between
+     so the 88% block, the bar, and the 12% block fan out — no big void. */
+  .quantum-hero .qh-grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: space-between;
+    gap: 1.6cqh;
+    margin: 1cqh 0;
+  }
+  .quantum-hero .qh-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3cqh;
+  }
+  .quantum-hero .qh-num {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22cqh;
+    line-height: 0.9;
+    letter-spacing: -0.045em;
+    font-weight: 400;
+  }
+  .quantum-hero .qh-num.classical { font-size: 13cqh; }
+  .quantum-hero .qh-num.coral {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .quantum-hero .qh-num.classical { color: var(--zinc-500); }
+  .quantum-hero .qh-name {
+    font-family: Georgia, serif;
+    font-size: 3cqh;
+    color: var(--zinc-950);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  .quantum-hero .qh-side.classical-side .qh-name { color: var(--zinc-700); font-size: 2.4cqh; }
+  .quantum-hero .qh-sub {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.7cqh;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--zinc-500);
+  }
+  .quantum-hero .qh-vs { display: none; }
+  .quantum-hero .qh-bar {
+    display: flex;
+    height: 2.6cqh;
+    width: 100%;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--zinc-100);
+    border: 1px solid var(--zinc-200);
+  }
+  .quantum-hero .qh-bar > span {
+    height: 100%;
+    transition: width 0.7s cubic-bezier(0.2,0.7,0.2,1);
+  }
+  .quantum-hero .qh-bar .quantum {
+    background: var(--quip-gradient);
+    box-shadow: 0 0 1.4cqh rgba(255, 100, 103, 0.4);
+  }
+  .quantum-hero .qh-bar .classical {
+    background: linear-gradient(90deg, var(--zinc-300), var(--zinc-400));
+  }
+  .quantum-hero .qh-divider {
+    height: 1px;
+    background: var(--zinc-200);
+    margin: 0;
+  }
+
+  /* Footer stats — pinned to bottom of the rail so the card never reads as empty */
+  .quantum-hero .qh-stats {
+    padding-top: 1.2cqh;
+    border-top: 1px solid var(--zinc-200);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9cqh;
+  }
+  .quantum-hero .qh-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.7cqh;
+    line-height: 1.2;
+  }
+  .quantum-hero .qh-stat-row .label {
+    color: var(--zinc-500);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .quantum-hero .qh-stat-row .val {
+    color: var(--zinc-950);
+    font-weight: 700;
+    font-size: 2.2cqh;
+  }
+  .quantum-hero .qh-stat-row .val.coral {
+    background: var(--quip-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Compact variant — when the spotlight needs even tighter rail proportions */
+  .quantum-hero.compact .qh-num { font-size: 14cqh; }
+  .quantum-hero.compact .qh-num.classical { font-size: 8cqh; }
+  .quantum-hero.compact .qh-bar { height: 1.6cqh; }
+
+  /* Dark-mode toggle override */
+  body.mode-all-dark .quantum-hero {
+    background: linear-gradient(180deg, rgba(20,20,28,0.95), rgba(10,10,16,0.98));
+    border-color: rgba(255,100,103,0.4);
+  }
+  body.mode-all-dark .quantum-hero .qh-title { color: white; }
+  body.mode-all-dark .quantum-hero .qh-name { color: white; }
+  body.mode-all-dark .quantum-hero .qh-side.classical-side .qh-name { color: var(--zinc-300); }
+  body.mode-all-dark .quantum-hero .qh-bar { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+  body.mode-all-dark .quantum-hero .qh-divider { background: rgba(255,255,255,0.08); }
+
+  /* ─── Bigscreen-scoped overrides ──────────────────────────
+     Components reused inside .bigscreen need to switch to cqh-based sizing
+     so they scale with the 1920×1080 reference. Outside the bigscreen they
+     stay rem-based. */
+  .bigscreen .provider-badge {
+    font-size: 1.3cqh;
+    padding: 0.7cqh 1cqw;
+    border-radius: var(--r-sm);
+    gap: 0.6cqh;
+    background: var(--zinc-950);
+    color: white;
+  }
+  .bigscreen .provider-badge .dot {
+    width: 0.85cqh; height: 0.85cqh;
+    background: var(--coral);
+    box-shadow: 0 0 1cqh var(--coral);
+  }
+  .bigscreen .refresh-pulse {
+    font-size: 1.7cqh;
+    gap: 0.7cqh;
+    font-weight: 600;
+  }
+  .bigscreen .refresh-pulse::before {
+    width: 0.9cqh; height: 0.9cqh;
+  }
+  .bigscreen .rotation-progress {
+    height: 0.25cqh;
+    min-height: 2px;
+    margin-bottom: 1.4cqh;
+  }
+  .bigscreen .kicker {
+    font-size: 1.9cqh !important;
+    margin: 0 !important;
+    font-weight: 600 !important;
+  }
+  .bigscreen .kicker.spotlight-perf-label,
+  .bigscreen [class*="kicker"] { letter-spacing: 0.14em; }
+  .booth-tv .tv-perf-line, .bigscreen svg polyline { stroke-width: max(0.2cqh, 1.5px); }
+
+  /* ─── Reduced-motion support ──────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    html { scroll-behavior: auto; }
+    .bigscreen::after { display: none; }
+    .lb-row.top1::after { display: none; }
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     VISUAL EXPLORATION — moved to explorations.html
+     ────────────────────────────────────────────────────────── */
+
+  /* ─── Print styles ────────────────────────────────────── */
+  @media print {
+    @page { margin: 16mm; }
+    html, body {
+      background: white !important;
+      color: black !important;
+      font-size: 11pt;
+    }
+    .doc-nav,
+    .mode-toggle,
+    .lightbox,
+    .btn-trigger,
+    button.phone-cta,
+    button.btn-launch,
+    .interactive-tag,
+    .toc { display: none !important; }
+    a { color: black !important; text-decoration: none; }
+    section, header.hero { padding: 24pt 0 !important; page-break-inside: avoid; }
+    section { border-top: 1pt solid #ccc !important; }
+    h1 { font-size: 24pt; }
+    h2 { font-size: 16pt; page-break-after: avoid; }
+    h3 { font-size: 12pt; page-break-after: avoid; }
+    /* Flatten dark mockups so we don't dump toner */
+    .card.dark, .mockup-frame.dark, .bigscreen, .routing-hero, .phone-routing-card {
+      background: white !important;
+      color: black !important;
+      border: 1pt solid #ccc !important;
+      box-shadow: none !important;
+    }
+    .bigscreen *, .routing-hero *, .phone-routing-card *, .card.dark * {
+      color: black !important;
+    }
+    .bigscreen::before, .bigscreen::after, .routing-hero::before, .phone-routing-card::before {
+      display: none !important;
+    }
+    .lb-row { background: white !important; border: 0.5pt solid #ddd !important; }
+    .lb-row .name, .lb-row .pnl { color: black !important; }
+    canvas { filter: grayscale(0.4); }
+    .tbd { page-break-inside: avoid; }
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     V4 BOOTH-TV DESIGN IMPORT — from explorations-24.html (#24 v4)
+     The .dir-quipsite.v4 selector overrides the legacy .bigscreen
+     visual treatment on the mock screens. Old .bigscreen styles above
+     are kept intact so non-mock UI is not affected.
+     ════════════════════════════════════════════════════════════════ */
+  /* Lock the wordmark SVG's aspect ratio to the symbol's natural 725:106 so
+     the browser's default 300×150 SVG size doesn't pad the artwork
+     horizontally (xMidYMid was centering it inside a too-wide SVG box). */
+  .quip-wm { display: inline-block; vertical-align: -0.16em; aspect-ratio: 725 / 106; width: auto; }
+
+  /* dir-quipsite — base styles */
+  .dir-quipsite { background: #fafafa; color: #18181b; padding: 0; font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif; display: grid; grid-template-rows: auto auto auto 1fr auto; }
+  .dir-quipsite .qs-eyebrow-bar { display: none; }
+  .dir-quipsite .qs-nav { display: flex; justify-content: space-between; align-items: center; padding: 2.2cqh 3cqw 2.2cqh 2.4cqw; border-bottom: 1px solid #dbdbde; gap: 1.4cqw; }
+  .dir-quipsite .qs-nav .qs-mark { display: flex; align-items: center; gap: 1cqw; }
+  .dir-quipsite .qs-nav .quip-wm { color: #18181b; height: 4.4cqh; }
+  .dir-quipsite .qs-nav .nav-divider { width: 1px; height: 3.2cqh; background: #dbdbde; }
+  /* Quip.network canonical CTA-style label: dark zinc-950 box + white mono
+     uppercase text. A separate thin dark vertical bar floats OUTSIDE the
+     button to the right (the JOIN-THE-NETWORK pattern). */
+  .dir-quipsite .qs-nav .nav-eyebrow {
+    position: relative;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.8cqh;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: white;
+    background: #09090b;
+    padding: 0.9cqh 1.2cqw 0.8cqh;
+    margin-right: 1.2cqw;
+    display: inline-flex;
+    align-items: center;
+  }
+  .dir-quipsite .qs-nav .nav-eyebrow::before { display: none; }
+  .dir-quipsite .qs-nav .nav-eyebrow::after {
+    content: '';
+    position: absolute;
+    left: calc(100% + 0.5cqw);
+    top: 0;
+    bottom: 0;
+    width: 0.38cqw;
+    background: #09090b;
+  }
+  .dir-quipsite .qs-nav .nav-live { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.4cqh; letter-spacing: 0.18em; text-transform: uppercase; color: #18181b; display: inline-flex; align-items: center; gap: 0.7cqw; }
+  .dir-quipsite .qs-nav .nav-live .dot { width: 1cqh; height: 1cqh; border-radius: 50%; background: #ff6467; box-shadow: 0 0 1cqh rgba(255,100,103,0.6); animation: qs-pulse 1.6s ease-in-out infinite; }
+  .dir-quipsite .h-eyebrow { display: inline-flex; align-items: stretch; gap: 4px; }
+  .dir-quipsite .h-eyebrow .lbl { padding: 0.7cqh 1cqw; background: linear-gradient(to right, #FEF278, #FFDE53, #EEFF64, #BCF4FF, #E6D7FF); color: #18181b; font-family: 'JetBrains Mono', monospace; font-size: 1.5cqh; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; }
+  .dir-quipsite .h-eyebrow .bar { width: 5px; background: linear-gradient(to bottom, #FFDE53, #BCF4FF, #E6D7FF); }
+  @keyframes qs-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  .dir-quipsite .qs-hero { padding: 2.4cqh 2.4cqw 1.4cqh; display: flex; justify-content: space-between; align-items: end; gap: 2cqw; }
+  .dir-quipsite .qs-hero h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; font-size: 5.6cqh; line-height: 1; letter-spacing: -0.025em; color: #18181b; }
+  .dir-quipsite .qs-hero h1 .it { font-style: italic; font-weight: 400; letter-spacing: -0.04em; }
+  .dir-quipsite .qs-hero .right { text-align: right; }
+  .dir-quipsite .qs-hero .right .lbl { font-family: 'JetBrains Mono', monospace; font-size: 1.2cqh; letter-spacing: 0.18em; text-transform: uppercase; color: #71717b; }
+  .dir-quipsite .qs-hero .right .countdown { font-family: 'JetBrains Mono', monospace; font-size: 2.4cqh; color: #18181b; margin-top: 0.4cqh; }
+
+  .dir-quipsite .qs-body { display: grid; grid-template-columns: 1fr 22cqw; gap: 1.6cqw; padding: 0 2.4cqw 1cqh; min-height: 0; }
+  .dir-quipsite .qs-table { border-top: 1px solid #18181b; display: flex; flex-direction: column; min-height: 0; }
+  .dir-quipsite .qs-table .th { display: grid; grid-template-columns: 7cqw 1fr 14cqw 9cqw; padding: 1.4cqh 0; gap: 1.4cqw; font-family: 'JetBrains Mono', monospace; font-size: 1.9cqh; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #71717b; border-bottom: 1px solid #dbdbde; flex: 0 0 auto; }
+  .dir-quipsite .qs-table .th .pnl,
+  .dir-quipsite .qs-table .th .change { text-align: right; }
+  .dir-quipsite .qs-row { display: grid; grid-template-columns: 7cqw 1fr 14cqw 9cqw; align-items: center; padding: 0; gap: 1.4cqw; border-bottom: 1px solid #e4e4e7; font-size: 3cqh; flex: 1; min-height: 0; }
+  .dir-quipsite .qs-row .rank { font-family: 'JetBrains Mono', monospace; font-size: 2.6cqh; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; }
+  .dir-quipsite .qs-row .name { font-family: Georgia, serif; font-size: 3.4cqh; line-height: 1.05; }
+  .dir-quipsite .qs-row .pnl { font-family: 'JetBrains Mono', monospace; font-size: 3cqh; font-weight: 500; text-align: right; color: #18181b; font-variant-numeric: tabular-nums; }
+  .dir-quipsite .qs-row .change { font-family: 'JetBrains Mono', monospace; font-size: 2.4cqh; font-weight: 600; color: #0A832E; text-align: right; font-variant-numeric: tabular-nums; }
+  .dir-quipsite .qs-row .change.down { color: #FF6C78; }
+  .dir-quipsite .qs-row.top1 .rank,
+  .dir-quipsite .qs-row.top2 .rank,
+  .dir-quipsite .qs-row.top3 .rank { display: inline-flex; align-items: center; gap: 0.5cqw; }
+  .dir-quipsite .qs-row .rank .medal { font-size: 2.8cqh; line-height: 1; flex-shrink: 0; }
+  .dir-quipsite .qs-row.top1,
+  .dir-quipsite .qs-row.top2,
+  .dir-quipsite .qs-row.top3 { background: #ffffff; }
+  .dir-quipsite .qs-row.top3 { border-bottom: 2px solid #71717b; }
+  .dir-quipsite .qs-row.top1 .rank { color: #18181b; font-size: 3.4cqh; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dir-quipsite .qs-row.top1 .name { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 4.2cqh; font-weight: 500; color: #18181b; letter-spacing: -0.02em; line-height: 1; }
+  .dir-quipsite .qs-row.top1 .pnl { color: #0A832E; font-size: 3.8cqh; font-weight: 700; }
+  .dir-quipsite .qs-row.top1 .change { font-size: 2.8cqh; font-weight: 700; }
+  .dir-quipsite .qs-row.top2 .rank { color: #18181b; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dir-quipsite .qs-row.top2 .name { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 3.6cqh; color: #18181b; letter-spacing: -0.015em; line-height: 1; }
+  .dir-quipsite .qs-row.top3 .rank { color: #27272a; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .dir-quipsite .qs-row.top3 .name { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 3.2cqh; color: #27272a; line-height: 1; }
+
+  .dir-quipsite .qs-rail { border: 1px solid #dbdbde; background: white; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .dir-quipsite .qs-foot { padding: 1.2cqh 2.4cqw; border-top: 1px solid #dbdbde; display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 1.3cqh; color: #71717b; letter-spacing: 0.16em; text-transform: uppercase; }
+
+  /* v3 panel scaffolding (shared by v4) */
+  .v3-panel { background: white; border: 1px solid #dbdbde; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .v3-panel-head { padding: 1.4cqh 1.4cqw 1.2cqh; border-bottom: 1px solid #dbdbde; display: flex; flex-direction: column; gap: 0.4cqh; flex: 0 0 auto; }
+  .v3-panel-eyebrow { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.4cqh; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #ff6467; display: inline-flex; align-items: center; gap: 0.6cqw; }
+  .v3-panel-eyebrow::before { content: ''; width: 0.9cqh; height: 0.9cqh; border-radius: 50%; background: #ff6467; box-shadow: 0 0 0.9cqh rgba(255,100,103,0.45); animation: qsv-pulse 1.6s ease-in-out infinite; }
+  .v3-panel-hero { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 2.8cqh; letter-spacing: -0.025em; color: #18181b; line-height: 1.05; }
+  .v3-panel-hero .accent { color: #ff6467; }
+  .v3-panel-body { padding: 1.4cqh 1.4cqw; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .v3-qc { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.6cqh; }
+  .v3-qc .num-row { display: flex; align-items: baseline; gap: 1cqw; }
+  .v3-qc .num-q { font-family: Georgia, serif; font-style: italic; font-size: 14cqh; line-height: 0.85; letter-spacing: -0.04em; color: #18181b; }
+  .v3-qc .num-q .pct { font-size: 0.55em; }
+  .v3-qc .num-c { font-family: Georgia, serif; font-style: italic; font-size: 6cqh; line-height: 0.85; color: #71717b; margin-left: auto; }
+  .v3-qc .num-c .pct { font-size: 0.55em; }
+  .v3-qc .names { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.4cqh; }
+  .v3-qc .names .n-q { font-family: Georgia, serif; font-style: italic; font-size: 1.7cqh; color: #18181b; }
+  .v3-qc .names .n-c { font-family: Georgia, serif; font-style: italic; font-size: 1.4cqh; color: #71717b; }
+  .v3-qc .ms-bar { height: 1cqh; display: flex; background: #dbdbde; border-radius: 999px; overflow: hidden; margin-top: 0.6cqh; }
+  .v3-qc .ms-bar .q { width: 88%; background: #ff6467; }
+  .v3-qc .ms-bar .c { width: 12%; background: #71717b; }
+  .v3-panel-foot { padding: 0.9cqh 1.4cqw; border-top: 1px solid #dbdbde; font-family: 'JetBrains Mono', monospace; font-size: 1.4cqh; color: #71717b; letter-spacing: 0.14em; text-transform: uppercase; flex: 0 0 auto; display: flex; justify-content: space-between; }
+  .v3-panel-foot strong { color: #18181b; font-weight: 600; }
+  .v3-panel-foot .coral { color: #ff6467; }
+  @keyframes qsv-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* v4 main layout */
+  .dir-quipsite.v4 { display: grid; grid-template-rows: auto auto 1fr auto; }
+  .dir-quipsite.v4 .qs-body-v4 { display: grid; grid-template-columns: 1fr 22cqw; grid-template-rows: auto 1fr; column-gap: 1.6cqw; row-gap: 0; padding: 0 2.4cqw 1cqh; min-height: 0; }
+  .dir-quipsite.v4 .qs-hero-left { grid-column: 1; grid-row: 1; padding: 2.4cqh 0 1.4cqh; display: flex; justify-content: space-between; align-items: end; gap: 2cqw; }
+  .dir-quipsite.v4 .qs-hero-left .left h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; font-size: 5.6cqh; line-height: 1; letter-spacing: -0.025em; color: #18181b; }
+  .dir-quipsite.v4 .qs-hero-left .left h1 .it { font-style: italic; font-weight: 400; letter-spacing: -0.04em; }
+  .dir-quipsite.v4 .qs-table-area { grid-column: 1; grid-row: 2; min-height: 0; display: flex; flex-direction: column; }
+  .dir-quipsite.v4 .qs-table-area .qs-table { flex: 1; height: 100%; }
+
+  .v4-rail { grid-column: 2 !important; grid-row: 1 / 3 !important; background: transparent; border: none; padding: 2.4cqh 0 0 !important; display: grid !important; grid-template-rows: 1fr 1fr !important; gap: 1.6cqh; min-height: 0; }
+
+  /* v4 cleanup */
+  .dir-quipsite .h-eyebrow .bar { display: none; }
+  .dir-quipsite .h-eyebrow .lbl { padding: 1.1cqh 1.8cqw; font-size: 1.7cqh; }
+  .dir-quipsite.v4 .qs-foot { display: none; }
+  .dir-quipsite.v4 { grid-template-rows: auto 1fr; }
+  .dir-quipsite.v4 .v4-rail { grid-row: 1 / 3 !important; padding: 0 !important; margin-top: 2cqh; gap: 0; }
+  .dir-quipsite.v4 .qs-body-v4 { padding: 0 2.4cqw 2.4cqh; column-gap: 2cqw; }
+  .dir-quipsite.v4 .v3-panel-head { padding: 2.2cqh 2cqw 1.8cqh; gap: 0.9cqh; }
+  .dir-quipsite.v4 .v3-panel-eyebrow { font-size: 1.9cqh; gap: 0.8cqw; }
+  .dir-quipsite.v4 .v3-panel-eyebrow::before { width: 1.1cqh; height: 1.1cqh; }
+  .dir-quipsite.v4 .v3-panel-hero { font-size: 3.4cqh; line-height: 1.05; }
+  .dir-quipsite.v4 .v3-panel-body { padding: 2cqh 2cqw; }
+  .dir-quipsite.v4 .v3-panel-foot { padding: 1.4cqh 2cqw; font-size: 1.85cqh; letter-spacing: 0.12em; }
+  .dir-quipsite.v4 .v3-qc { gap: 1cqh; }
+  .dir-quipsite.v4 .v3-qc .names .n-q { font-size: 2.3cqh; }
+  .dir-quipsite.v4 .v3-qc .names .n-c { font-size: 1.9cqh; }
+  .dir-quipsite.v4 .v3-qc .ms-bar { height: 1.2cqh; margin-top: 1cqh; }
+  .dir-quipsite.v4 .v3-plist { gap: 1.4cqh; }
+  .dir-quipsite.v4 .v3-plist .pr { gap: 1.2cqw; }
+  .dir-quipsite.v4 .v3-plist .pr .nm { font-size: 3cqh; }
+  .dir-quipsite.v4 .v3-plist .pr .pct { font-size: 2.6cqh; }
+  .dir-quipsite.v4 .v3-plist .pr .pbar { height: 0.7cqh; margin-top: 0.5cqh; }
+  .dir-quipsite.v4 .qs-table .th { padding: 2.2cqh 0; font-size: 2.1cqh; }
+  .dir-quipsite.v4 .qs-row { padding: 1cqh 0; }
+  .dir-quipsite.v4 .qs-row .name { font-size: 3.6cqh; }
+  .dir-quipsite.v4 .qs-row .pnl { font-size: 3.2cqh; }
+  .dir-quipsite.v4 .qs-row .change { font-size: 2.6cqh; }
+  .dir-quipsite.v4 .qs-row.top1 { padding: 1.6cqh 0; }
+  .dir-quipsite.v4 .qs-row.top1 .name { font-size: 4.4cqh; }
+  .dir-quipsite.v4 .qs-row.top1 .pnl { font-size: 3.8cqh; }
+  .dir-quipsite.v4 .qs-row.top1 .change { font-size: 3cqh; }
+  .dir-quipsite.v4 .qs-row.top1 .rank { font-size: 3.4cqh; }
+  .dir-quipsite.v4 .qs-hero-left .right .lbl { font-size: 1.6cqh !important; }
+  .dir-quipsite.v4 .qs-hero-left .right .countdown { font-size: 4cqh !important; }
+
+  /* v4 single-merged-box rail */
+  .dir-quipsite.v4 .v4-rail { grid-template-rows: 1fr !important; gap: 0 !important; }
+  .v4-mega { background: transparent; border: none; display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+  .v4-section { display: flex; flex-direction: column; min-height: 0; }
+  .v4-section + .v4-section { border-top: 1px solid #dbdbde; padding-top: 1.4cqh; }
+  .v4-mega .v3-panel-eyebrow { display: none; }
+  .dir-quipsite.v4 .v4-mega .v3-panel-head { border-bottom: none; padding: 1.6cqh 1.8cqw 0.6cqh; }
+  .dir-quipsite.v4 .v4-mega .v3-panel-body { padding: 0.8cqh 1.8cqw 1.4cqh; }
+  .dir-quipsite.v4 .v4-mega .v3-panel-hero { line-height: 1.05; }
+  .dir-quipsite.v4 .v4-mega .v3-panel-hero .accent { color: #0891B2; }
+  .dir-quipsite.v4 .v4-mega .v3-qc .ms-bar .q { background: #0891B2; }
+  .dir-quipsite.v4 .v4-mega .v4-stack .seg.q { background: #0891B2; }
+  .dir-quipsite.v4 .v4-mega .v4-pr.q .type { background: #0891B2; box-shadow: 0 0 0.8cqh rgba(8,145,178,0.3); }
+
+  .v4-plist { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .v4-stack { display: flex; height: 1.6cqh; border-radius: 999px; overflow: hidden; background: #ececef; margin-bottom: 1.4cqh; }
+  .v4-stack .seg { display: block; height: 100%; }
+  .v4-stack .seg + .seg { box-shadow: inset 1px 0 0 white; }
+  .v4-stack .seg.q  { background: #ff6467; }
+  .v4-stack .seg.c1 { background: #3f3f46; }
+  .v4-stack .seg.c2 { background: #52525b; }
+  .v4-stack .seg.c3 { background: #71717b; }
+  .v4-stack .seg.c4 { background: #a1a1aa; }
+  .v4-stack .seg.c5 { background: #b4b4bb; }
+  .v4-stack .seg.c6 { background: #c4c4c8; }
+  .v4-stack .seg.c7 { background: #d4d4d8; }
+  .v4-stack .seg.c8 { background: #e4e4e7; }
+  .v4-pr { display: grid; grid-template-columns: auto 1fr auto; gap: 1.2cqw; align-items: center; padding: 0.6cqh 0; }
+  .v4-pr + .v4-pr { border-top: 1px solid #f1f1f3; }
+  .v4-pr .type { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.2cqh; font-weight: 700; letter-spacing: 0.12em; color: white; padding: 0.4cqh 0.7cqw; border-radius: 999px; text-transform: uppercase; line-height: 1; display: inline-block; }
+  .v4-pr.q .type { background: #ff6467; box-shadow: 0 0 0.8cqh rgba(255,100,103,0.35); }
+  .v4-pr.c .type { background: #52525b; }
+  .v4-pr .nm { font-family: Georgia, serif; font-style: italic; font-size: 2.6cqh; line-height: 1; color: #18181b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .v4-pr .pct { font-family: 'JetBrains Mono', monospace; font-size: 2.4cqh; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; }
+
+  /* v4 overrides on bigscreen to disable legacy effects that bleed in */
+  .bigscreen.dir-quipsite::before,
+  .bigscreen.dir-quipsite::after { display: none !important; }
+  .bigscreen.dir-quipsite .pattern-bg,
+  .bigscreen.dir-quipsite .quip-net-panel { display: none !important; }
+  .bigscreen.dir-quipsite { padding-bottom: 0 !important; }
+
+  /* ─────────────────────────────────────────────────────────────
+     v4 design language applied to kiosk + phone mockups
+     ─────────────────────────────────────────────────────────────
+     Goal: bring the sign-up kiosk, post-routing welcome kiosk, and
+     personal-profile phone in line with the v4 booth-TV visual
+     vocabulary that lives in lines 2667–2835 above.
+
+     Rules of the language:
+     - Coral (#ff6467) is reserved for negative-value semantics
+       (losses, .change.down). For "quantum / QPU / D-Wave" accents
+       we now use cyan #0891B2.
+     - Type chips are small uppercase JetBrains Mono pills.
+     - Display text leans on Georgia italic; labels lean on
+       JetBrains Mono letterspaced.
+     - All overrides are scoped to the two mockup frames so the
+       booth-frame v4 mocks above and other UI are untouched.
+     ───────────────────────────────────────────────────────────── */
+
+  /* — Tokens (local to this block) — */
+  /* Reusing inline values rather than CSS custom props to make
+     the overrides explicit and grep-friendly. */
+
+  /* — Kiosk chrome status pill — switch the indicator dot from
+     signal-cyan to a cleaner zinc + cyan combo and add a touch of
+     letterspacing for the v4 cadence. */
+  .mockup-frame.kiosk .chrome .net-status {
+    color: #18181b;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .mockup-frame.kiosk .chrome .net-status::before {
+    background: #0891B2;
+    box-shadow: 0 0 6px rgba(8,145,178,0.55);
+  }
+
+  /* — Kiosk #1 (sign-up): hero "Create your trading agent" — Georgia
+     italic emphasis on "agent" makes it scan like the v4 leaderboard
+     hero "Top ten quantum trading agents." */
+  .mockup-frame.kiosk .kiosk-screen h4.section-title {
+    color: #18181b;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .mockup-frame.kiosk .kiosk-screen h4.section-title em,
+  .mockup-frame.kiosk .kiosk-screen h4.section-title .it {
+    font-style: italic;
+    color: #18181b;
+  }
+  .mockup-frame.kiosk .kiosk-screen .lede-sm {
+    color: #52525b;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .mockup-frame.kiosk .field label {
+    color: #71717b;
+    letter-spacing: 0.14em;
+  }
+
+  /* — Kiosk preview panel — was tinted with coral radial glow; swap
+     for cyan so the quantum-vs-classical narrative reads visually. */
+  .mockup-frame.kiosk .kiosk-preview::before {
+    background: radial-gradient(circle at 50% 0%, rgba(8,145,178,0.22), transparent 60%);
+  }
+  .mockup-frame.kiosk .kiosk-preview canvas {
+    box-shadow: 0 18px 32px -16px rgba(8,145,178,0.45), 0 0 0 1px rgba(8,145,178,0.25);
+  }
+  .mockup-frame.kiosk .kiosk-preview .preview-label {
+    color: #BCF4FF;
+    letter-spacing: 0.18em;
+  }
+  .mockup-frame.kiosk .kiosk-preview .preview-label::before {
+    background: #0891B2;
+    box-shadow: 0 0 6px rgba(8,145,178,0.6);
+  }
+  /* Provider chips: QPU = cyan, CPU = zinc — matches v4 leaderboard chips. */
+  .mockup-frame.kiosk .kiosk-preview .prov-chip.quantum .prov-tag {
+    background: #0891B2;
+    color: white;
+    box-shadow: 0 0 0.8cqh rgba(8,145,178,0.3);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+  }
+  .mockup-frame.kiosk .kiosk-preview .prov-chip.classical .prov-tag {
+    background: #3f3f46;
+    color: #d4d4d8;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+  }
+
+  /* — Kiosk launch CTA — the "Route to Quip Network →" button is
+     the brand CTA. We keep coral here on purpose: it's the primary
+     action color, not a quantum-state indicator. (Coral retained
+     as CTA brand color per task instructions — judgment call.)
+     We do tighten the typography to v4 cadence. */
+  .mockup-frame.kiosk button.btn-launch.coral,
+  .mockup-frame.kiosk button.btn-launch.coral:hover {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.005em;
+  }
+  .mockup-frame.kiosk .kiosk-form .launch-sub {
+    color: #71717b;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.66rem;
+  }
+
+  /* — Kiosk asset strip — JetBrains Mono ticker text, zinc treatment. */
+  .mockup-frame.kiosk .kiosk-asset-strip {
+    background: #ffffff;
+    border-color: #e4e4e7;
+  }
+  .mockup-frame.kiosk .kiosk-asset-strip .strip-label,
+  .mockup-frame.kiosk .kiosk-asset-strip .strip-tail {
+    color: #71717b;
+    letter-spacing: 0.16em;
+  }
+  .mockup-frame.kiosk .kiosk-asset-strip .ticker-chip .ticker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #18181b;
+  }
+  .mockup-frame.kiosk .kiosk-asset-strip .ticker-chip .change.up { color: #0A832E; }
+  /* .change.down stays coral (loss semantics) via the original rule. */
+
+  /* — Kiosk #2 (post-routing): routing hero — recolor all coral
+     accents to cyan since they represent quantum compute. Keep the
+     dark background (it's a hero card; v4 mega panels use white,
+     but this card sits inside the welcome screen as the "ROUTED"
+     moment and benefits from the dark contrast). */
+  .mockup-frame.kiosk .routing-hero {
+    border-color: rgba(8,145,178,0.40);
+    box-shadow: 0 0 0 1px rgba(8,145,178,0.10), 0 18px 40px -20px rgba(8,145,178,0.4);
+  }
+  .mockup-frame.kiosk .routing-hero::before {
+    background:
+      radial-gradient(circle at 85% 10%, rgba(8,145,178,0.22), transparent 55%),
+      radial-gradient(circle at 10% 90%, rgba(188,244,255,0.10), transparent 50%);
+  }
+  .mockup-frame.kiosk .routing-pill {
+    color: #BCF4FF;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+  }
+  .mockup-frame.kiosk .routing-pill::before {
+    background: #0891B2;
+    box-shadow: 0 0 10px rgba(8,145,178,0.7);
+  }
+  .mockup-frame.kiosk .routing-q-tag {
+    background: #0891B2;
+    box-shadow: 0 0 0.8cqh rgba(8,145,178,0.3);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    border-radius: 999px;
+    padding: 3px 10px;
+  }
+  .mockup-frame.kiosk .routing-q-tag.classical {
+    background: #3f3f46;
+    box-shadow: none;
+  }
+  .mockup-frame.kiosk .routing-name {
+    font-style: italic;
+    letter-spacing: -0.025em;
+  }
+  .mockup-frame.kiosk .routing-name .qubit-meta {
+    color: #a1a1aa;
+    font-style: normal;
+    letter-spacing: 0.16em;
+  }
+  /* Solve-time number: was gradient-coral; now a clean cyan accent. */
+  .mockup-frame.kiosk .routing-hero-stats .num.coral {
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+    color: #BCF4FF;
+    font-style: italic;
+  }
+  .mockup-frame.kiosk .routing-hero-stats .num {
+    font-style: italic;
+    letter-spacing: -0.025em;
+  }
+  .mockup-frame.kiosk .race-label.quantum {
+    color: #BCF4FF;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+  .mockup-frame.kiosk .race-bar .bar-fill.quantum {
+    background: linear-gradient(90deg, #0891B2, #22d3ee);
+    box-shadow: 0 0 14px rgba(8,145,178,0.55);
+  }
+
+  /* — Kiosk #2 welcome block — "Welcome to the board" kicker, then
+     the agent name. Georgia italic for the name pulls it into the v4
+     family (already Georgia by inline style; we add italic + the
+     correct letterspacing). */
+  .mockup-frame.kiosk #strat-name {
+    font-style: italic;
+    letter-spacing: -0.025em;
+    color: #18181b;
+  }
+  .mockup-frame.kiosk .kicker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.18em;
+    color: #71717b;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+  }
+  .mockup-frame.kiosk .alloc-legend .chip strong {
+    color: #18181b;
+  }
+
+  /* — QR card — already uses cyan; tighten typography. */
+  .mockup-frame.kiosk .qr-card .qr-cap {
+    color: #52525b;
+  }
+
+  /* — Phone profile — the dark-themed personal profile card.
+     Switch every coral quantum-accent to cyan; keep coral on
+     P&L .change.down semantics. */
+  .mockup-frame.phone.dark .phone-name {
+    font-style: italic;
+    letter-spacing: -0.02em;
+  }
+  .mockup-frame.phone.dark .phone-handle {
+    letter-spacing: 0.06em;
+    color: #a1a1aa;
+  }
+  /* Rank pill: already cyan-ish; lock to v4 cyan + tightened mono. */
+  .mockup-frame.phone.dark .phone-rank-pill {
+    background: rgba(8,145,178,0.14);
+    border-color: rgba(8,145,178,0.45);
+    color: #BCF4FF;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .mockup-frame.phone.dark .phone-rank-pill .rank-num {
+    color: white;
+    font-weight: 700;
+  }
+
+  /* P&L block: Georgia italic on the big number; mono labels. */
+  .mockup-frame.phone.dark .phone-portfolio .pl-label {
+    color: #a1a1aa;
+    letter-spacing: 0.18em;
+  }
+  .mockup-frame.phone.dark .phone-portfolio .num {
+    font-style: italic;
+    letter-spacing: -0.025em;
+  }
+  .mockup-frame.phone.dark .phone-portfolio .change.up { color: #34d399; }
+  /* .change.down stays coral (loss semantics). */
+
+  /* — Phone routing card — was coral-bordered + coral pill + coral
+     QUANTUM chip + coral big-number. Each gets the cyan v4 treatment. */
+  .mockup-frame.phone.dark .phone-routing-card {
+    border-color: rgba(8,145,178,0.40);
+  }
+  .mockup-frame.phone.dark .phone-routing-card::before {
+    background: radial-gradient(circle at 100% 0%, rgba(8,145,178,0.20), transparent 60%);
+  }
+  .mockup-frame.phone.dark .phone-routing-pill {
+    color: #BCF4FF;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+  }
+  .mockup-frame.phone.dark .phone-routing-pill::before {
+    background: #0891B2;
+    box-shadow: 0 0 6px rgba(8,145,178,0.7);
+  }
+  .mockup-frame.phone.dark .phone-routing-status {
+    color: #a1a1aa;
+    letter-spacing: 0.14em;
+  }
+  .mockup-frame.phone.dark .phone-q-tag {
+    background: #0891B2;
+    box-shadow: 0 0 0.8cqh rgba(8,145,178,0.3);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .mockup-frame.phone.dark .phone-q-tag.classical {
+    background: #3f3f46;
+    box-shadow: none;
+  }
+  .mockup-frame.phone.dark .phone-routing-provider {
+    font-style: italic;
+    letter-spacing: -0.02em;
+  }
+  .mockup-frame.phone.dark .phone-routing-stats .num.big {
+    color: #BCF4FF;
+    font-style: italic;
+    letter-spacing: -0.02em;
+  }
+  .mockup-frame.phone.dark .phone-routing-stats .num.small {
+    color: #a1a1aa;
+    letter-spacing: 0.06em;
+  }
+
+  /* Phone race row inside routing card: cyan quantum bar. */
+  .mockup-frame.phone.dark .phone-race .race-label.quantum {
+    color: #BCF4FF;
+    letter-spacing: 0.08em;
+  }
+  .mockup-frame.phone.dark .phone-race .race-label.classical {
+    color: #a1a1aa;
+    letter-spacing: 0.08em;
+  }
+  .mockup-frame.phone.dark .phone-race .race-bar .bar-fill.quantum {
+    background: linear-gradient(90deg, #0891B2, #22d3ee);
+    box-shadow: 0 0 8px rgba(8,145,178,0.55);
+  }
+
+  /* Phone mini sliders — fill gradient was coral; switch to cyan so
+     the strategy is visually consistent with the cyan-as-quantum
+     story. Coral border on the knob → cyan ring. */
+  .mockup-frame.phone.dark .mini-slider .label {
+    color: #e4e4e7;
+  }
+  .mockup-frame.phone.dark .mini-slider .val {
+    color: #BCF4FF;
+    letter-spacing: 0.04em;
+  }
+  .mockup-frame.phone.dark .mini-slider .bar .fill {
+    background: linear-gradient(90deg, #0891B2, #22d3ee);
+    box-shadow: 0 0 8px rgba(8,145,178,0.45);
+  }
+  .mockup-frame.phone.dark .mini-slider .bar .fill::after {
+    border-color: #0891B2;
+  }
+  .mockup-frame.phone.dark .kicker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.18em;
+    color: #a1a1aa;
+    text-transform: uppercase;
+    font-size: 0.66rem;
+  }
+
+  /* Phone CTA "Re-optimize on Quip Network →" — keep as the
+     primary action button (gradient brand CTA via existing rule).
+     We just tighten the typography. */
+  .mockup-frame.phone.dark button.phone-cta,
+  .mockup-frame.phone.dark button.phone-cta:hover {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.005em;
+    font-weight: 600;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     Flip all dark surfaces to light so booth-TV / kiosk / phone /
+     "Why this works" card all read as a single brand-cohesive surface.
+     The `.dark` HTML classes are preserved so existing JS continues to
+     work; these overrides just paint them light.
+     ───────────────────────────────────────────────────────────── */
+
+  /* Phone mockup → light */
+  .mockup-frame.phone.dark { background: white; border-color: #dbdbde; }
+  .mockup-frame.phone.dark .screen { background: white; border-color: #dbdbde; color: #18181b; }
+  .mockup-frame.phone.dark .phone-screen { background: white; color: #18181b; }
+
+  .mockup-frame.phone.dark .phone-status-bar { color: #18181b; }
+  .mockup-frame.phone.dark .phone-status-bar .signal-bars span { background: #18181b; }
+  .mockup-frame.phone.dark .phone-status-bar .battery .body { border-color: #18181b; }
+  .mockup-frame.phone.dark .phone-status-bar .battery .body::after { background: #18181b; }
+  .mockup-frame.phone.dark .phone-status-bar .battery .nub { background: #18181b; }
+
+  .mockup-frame.phone.dark .phone-header { border-bottom-color: #ececef; }
+  .mockup-frame.phone.dark .phone-name { color: #18181b; }
+  .mockup-frame.phone.dark .phone-handle { color: #71717b; }
+  .mockup-frame.phone.dark .phone-rank-pill {
+    background: #f5f5f7;
+    color: #18181b;
+    border: 1px solid #ececef;
+  }
+  .mockup-frame.phone.dark .phone-rank-pill .rank-num { color: #0891B2; }
+
+  .mockup-frame.phone.dark .phone-portfolio .pl-label { color: #71717b; }
+  .mockup-frame.phone.dark .phone-portfolio .num { color: #18181b; }
+  .mockup-frame.phone.dark .phone-portfolio .sparkline { color: #0A832E; }
+  .mockup-frame.phone.dark .phone-portfolio .sparkline.down { color: #ff6467; }
+
+  .mockup-frame.phone.dark .phone-routing-card {
+    background: white;
+    border: 1px solid #dbdbde;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .mockup-frame.phone.dark .phone-routing-top { color: #71717b; }
+  .mockup-frame.phone.dark .phone-routing-status { color: #71717b; }
+  .mockup-frame.phone.dark .phone-routing-provider { color: #18181b; }
+  .mockup-frame.phone.dark .phone-routing-stats .num.small { color: #71717b; }
+  .mockup-frame.phone.dark .phone-race .race-bar { background: #ececef; }
+  .mockup-frame.phone.dark .phone-race .race-label.classical { color: #71717b; }
+
+  .mockup-frame.phone.dark .mini-slider { border-bottom-color: #ececef; }
+  .mockup-frame.phone.dark .mini-slider .label { color: #18181b; }
+  .mockup-frame.phone.dark .mini-slider .bar { background: #ececef; }
+  .mockup-frame.phone.dark .mini-slider .bar .fill::after {
+    background: white;
+    border: 2px solid #0891B2;
+  }
+
+  .mockup-frame.phone.dark .kicker { color: #71717b; }
+
+  /* "Why this works" card → light */
+  .card.dark {
+    background: white;
+    border: 1px solid #dbdbde;
+    color: #18181b;
+  }
+  .card.dark h3,
+  .card.dark h3[style*="color: white"] { color: #18181b !important; }
+  .card.dark p, .card.dark li, .card.dark ul, .card.dark ol { color: #27272a; }
+  .card.dark strong { color: #18181b; }
+  .card.dark em { color: #52525b; font-style: italic; }
+  .card.dark a { color: #0891B2; }
+
+  /* ─────────────────────────────────────────────────────────────
+     Final v4 alignment — eliminate remaining dark surfaces
+     ─────────────────────────────────────────────────────────────
+     Every mockup now reads as the v4 leaderboard style:
+       - White / off-white surfaces
+       - Annotation-style chrome (small mono uppercase on light bg)
+       - Cyan #0891B2 as the QPU accent (italic Georgia on numerals)
+       - Coral ONLY on .change.down for loss semantics
+     Scoped to .mockup-frame.kiosk and .mockup-frame.phone so the
+     v4 booth-frame mockups (.dir-quipsite.v4) are untouched.
+     ───────────────────────────────────────────────────────────── */
+
+  /* (1) Kiosk chrome bar → light annotation strip.
+     Replace the heavy black OS-title-bar feel with a thin
+     off-white strip carrying just uppercase mono. */
+  .mockup-frame.kiosk .chrome {
+    background: #fafafa !important;
+    color: #71717b !important;
+    border-bottom: 1px solid #ececef !important;
+    border-radius: var(--r-sm) var(--r-sm) 0 0;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+  /* Remove the heavy "Quip · QTW Booth" Georgia label. */
+  .mockup-frame.kiosk .chrome::before {
+    content: "Quip · QTW Booth" !important;
+    font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 0.66rem !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+    font-weight: 500 !important;
+    color: #71717b !important;
+  }
+  /* Net-status line — small mono zinc, with a tiny zinc dot
+     (not an animated live-LED). */
+  .mockup-frame.kiosk .chrome .net-status {
+    color: #71717b !important;
+    font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+    font-size: 0.66rem !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+  }
+  .mockup-frame.kiosk .chrome .net-status::before {
+    background: #a1a1aa !important;
+    box-shadow: none !important;
+    animation: none !important;
+    width: 5px !important;
+    height: 5px !important;
+  }
+
+  /* (2) Kiosk preview panel → white surface. */
+  .mockup-frame.kiosk .kiosk-preview {
+    background: white !important;
+    color: #18181b !important;
+    border: 1px solid #dbdbde !important;
+  }
+  /* Kill the radial coral/cyan glow on the preview card; the
+     white surface stands on its own. */
+  .mockup-frame.kiosk .kiosk-preview::before {
+    background: none !important;
+  }
+  /* Glyph canvas drops the cyan shadow on white — keep a thin
+     hairline so the artwork sits crisply. */
+  .mockup-frame.kiosk .kiosk-preview canvas {
+    box-shadow: 0 1px 0 #ececef, 0 0 0 1px #ececef !important;
+  }
+  /* Live-preview label → cyan dot + zinc-500 mono. */
+  .mockup-frame.kiosk .kiosk-preview .preview-label {
+    color: #71717b !important;
+    letter-spacing: 0.18em !important;
+  }
+  .mockup-frame.kiosk .kiosk-preview .preview-label::before {
+    background: #0891B2 !important;
+    box-shadow: none !important;
+  }
+  /* Preview name (Georgia) → dark zinc italic so it matches
+     the v4 leaderboard hero rows. */
+  .mockup-frame.kiosk .kiosk-preview .preview-name {
+    color: #18181b !important;
+    font-style: italic;
+  }
+  .mockup-frame.kiosk .kiosk-preview .preview-handle {
+    color: #71717b !important;
+  }
+  /* Preview status divider + chips on light bg. */
+  .mockup-frame.kiosk .kiosk-preview .preview-status {
+    border-top: 1px solid #ececef !important;
+  }
+  .mockup-frame.kiosk .kiosk-preview .prov-chip {
+    background: #f5f5f7 !important;
+    border: 1px solid #ececef !important;
+    color: #18181b !important;
+  }
+  /* Provider tag chips: QPU = cyan, CPU = zinc — already
+     cyan from earlier overrides, but tighten classical for
+     light bg. */
+  .mockup-frame.kiosk .kiosk-preview .prov-chip.classical .prov-tag {
+    background: #e4e4e7 !important;
+    color: #3f3f46 !important;
+  }
+
+  /* (3) Routing-hero card (kiosk #2) → white surface, cyan accents. */
+  .mockup-frame.kiosk .routing-hero {
+    background: white !important;
+    color: #18181b !important;
+    border: 1px solid #dbdbde !important;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02) !important;
+  }
+  .mockup-frame.kiosk .routing-hero::before {
+    background: none !important;
+  }
+  /* "ROUTED VIA QUIP NETWORK" pill: cyan text + cyan dot on white. */
+  .mockup-frame.kiosk .routing-pill {
+    color: #0891B2 !important;
+    letter-spacing: 0.18em !important;
+    font-weight: 700;
+  }
+  .mockup-frame.kiosk .routing-pill::before {
+    background: #0891B2 !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  .mockup-frame.kiosk .routing-time {
+    color: #71717b !important;
+  }
+  /* "★ Quantum" type-chip: cyan fill, white text. */
+  .mockup-frame.kiosk .routing-q-tag {
+    background: #0891B2 !important;
+    color: white !important;
+    box-shadow: none !important;
+  }
+  .mockup-frame.kiosk .routing-q-tag.classical {
+    background: #71717b !important;
+    color: white !important;
+  }
+  /* "D-Wave Advantage" name → italic Georgia, dark zinc. */
+  .mockup-frame.kiosk .routing-name {
+    color: #18181b !important;
+    font-style: italic;
+  }
+  .mockup-frame.kiosk .routing-name .qubit-meta {
+    color: #71717b !important;
+    font-style: normal;
+  }
+  /* Solve-time numeral → cyan italic Georgia. */
+  .mockup-frame.kiosk .routing-hero-stats .num {
+    color: #18181b !important;
+    font-style: italic;
+  }
+  .mockup-frame.kiosk .routing-hero-stats .num.coral {
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    color: #0891B2 !important;
+    font-style: italic;
+  }
+  .mockup-frame.kiosk .routing-hero-stats .sub {
+    color: #71717b !important;
+  }
+  /* Race row track + fills on the routing-hero. */
+  .mockup-frame.kiosk .routing-race {
+    background: #fafafa !important;
+    border: 1px solid #ececef !important;
+  }
+  .mockup-frame.kiosk .routing-race .race-bar {
+    background: #ececef !important;
+  }
+  .mockup-frame.kiosk .routing-race .race-bar .bar-fill.quantum {
+    background: linear-gradient(to right, #0891B2, #22d3ee) !important;
+    box-shadow: none !important;
+  }
+  .mockup-frame.kiosk .routing-race .race-bar .bar-fill.classical {
+    background: #71717b !important;
+  }
+  .mockup-frame.kiosk .routing-race .race-label.quantum {
+    color: #0891B2 !important;
+  }
+  .mockup-frame.kiosk .routing-race .race-label.classical {
+    color: #71717b !important;
+  }
+  .mockup-frame.kiosk .routing-race .race-time {
+    color: #18181b !important;
+  }
+
+  /* (4) Kiosk #1 sliders — replace black track-fill with cyan
+     gradient and put a cyan-ringed white knob on top. */
+  .mockup-frame.kiosk .slider {
+    background: #ececef !important;
+  }
+  .mockup-frame.kiosk .slider .track {
+    background: linear-gradient(to right, #0891B2, #22d3ee) !important;
+  }
+  .mockup-frame.kiosk .slider .knob {
+    background: white !important;
+    border: 2px solid #0891B2 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18) !important;
+  }
+
+  /* (5) CTAs — drop coral, switch to solid cyan to match v4. */
+  .mockup-frame.kiosk button.btn-launch.coral,
+  .mockup-frame.kiosk button.btn-launch {
+    background: #0891B2 !important;
+    color: white !important;
+  }
+  .mockup-frame.kiosk button.btn-launch.coral:hover,
+  .mockup-frame.kiosk button.btn-launch:hover {
+    background: #0E7490 !important;
+  }
+  .mockup-frame.phone.dark button.phone-cta {
+    background: #0891B2 !important;
+    color: white !important;
+  }
+  .mockup-frame.phone.dark button.phone-cta:hover {
+    background: #0E7490 !important;
+  }
+
+  /* Phone-side cleanup — the phone-routing-card is already
+     painted light by the earlier override block, but ensure
+     its inner accents follow the cyan-on-white rule. */
+  .mockup-frame.phone.dark .phone-routing-pill {
+    color: #0891B2 !important;
+  }
+  .mockup-frame.phone.dark .phone-routing-pill::before {
+    background: #0891B2 !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  .mockup-frame.phone.dark .phone-q-tag {
+    background: #0891B2 !important;
+    color: white !important;
+    box-shadow: none !important;
+  }
+  .mockup-frame.phone.dark .phone-q-tag.classical {
+    background: #71717b !important;
+    color: white !important;
+  }
+  .mockup-frame.phone.dark .phone-routing-stats .num.big {
+    color: #0891B2 !important;
+    font-style: italic;
+  }
+  .mockup-frame.phone.dark .phone-race .race-bar .bar-fill.quantum {
+    background: linear-gradient(to right, #0891B2, #22d3ee) !important;
+    box-shadow: none !important;
+  }
+  .mockup-frame.phone.dark .phone-race .race-label.quantum {
+    color: #0891B2 !important;
+  }
+  .mockup-frame.phone.dark .mini-slider .val {
+    color: #0891B2 !important;
+  }
+  .mockup-frame.phone.dark .mini-slider .bar .fill {
+    background: linear-gradient(to right, #0891B2, #22d3ee) !important;
+    box-shadow: none !important;
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     V4-NATIVE REBUILDS — three mocks rewritten from scratch in the
+     v4 design language (italic Georgia + JetBrains Mono uppercase
+     letterspaced + cyan #0891B2 + hairlines on white). Scoped via
+     `.kiosk-v4`, `.kiosk-welcome-v4`, `.phone-v4` so the v4
+     booth-frame mocks (.dir-quipsite.v4) remain untouched.
+
+     Type uses px-rather-than-cqh units because these surfaces
+     are reviewer-mockups embedded in normal page flow (not the
+     booth TV's container-query world).
+     ───────────────────────────────────────────────────────────── */
+
+  /* ─── Shared v4-mock primitives ─── */
+  .qs-v4-mock {
+    background: #fafafa;
+    color: #18181b;
+    font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .qs-v4-mock .v4m-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 22px;
+    border-bottom: 1px solid #dbdbde;
+    gap: 18px;
+    background: white;
+  }
+  .qs-v4-mock .v4m-mark {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .qs-v4-mock .v4m-mark .quip-wm {
+    color: #18181b;
+    height: 18px;
+    width: auto;
+  }
+  .qs-v4-mock .v4m-mark .v4m-nav-divider {
+    width: 1px;
+    height: 18px;
+    background: #dbdbde;
+  }
+  /* Quip.network canonical CTA-style label: dark box + white mono text, with
+     a separate thin dark bar floating outside the right edge. */
+  .qs-v4-mock .v4m-eyebrow {
+    position: relative;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: white;
+    background: #09090b;
+    padding: 5px 8px 4px;
+    margin-right: 10px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .qs-v4-mock .v4m-eyebrow::before { display: none; }
+  .qs-v4-mock .v4m-eyebrow::after {
+    content: '';
+    position: absolute;
+    left: calc(100% + 4px);
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: #09090b;
+  }
+  .qs-v4-mock .v4m-pill {
+    display: inline-flex;
+    align-items: stretch;
+    background: linear-gradient(to right, #FEF278, #FFDE53, #EEFF64, #BCF4FF, #E6D7FF);
+    padding: 7px 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #18181b;
+  }
+  .qs-v4-mock .v4m-hero {
+    padding: 20px 22px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 22px;
+    background: #fafafa;
+  }
+  .qs-v4-mock .v4m-hero h1 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 1.95rem;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    color: #18181b;
+  }
+  .qs-v4-mock .v4m-hero h1 .it {
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .qs-v4-mock .v4m-hero .v4m-hero-right {
+    text-align: right;
+  }
+  .qs-v4-mock .v4m-hero .v4m-hero-right .v4m-lbl {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .qs-v4-mock .v4m-hero .v4m-hero-right .v4m-stat {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .qs-v4-mock .v4m-hero .v4m-hero-right .v4m-stat.cyan { color: #0891B2; }
+
+  /* Eyebrow label used inside section heads */
+  .qs-v4-mock .v4m-section-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .qs-v4-mock .v4m-section-eyebrow.cyan-dot::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #0891B2;
+    display: inline-block;
+  }
+  .qs-v4-mock .v4m-section-eyebrow.cyan { color: #0891B2; }
+
+  /* Italic Georgia panel hero (e.g., "D-Wave Advantage.") */
+  .qs-v4-mock .v4m-panel-hero {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.35rem;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    color: #18181b;
+    margin-top: 4px;
+  }
+  /* Generated-glyph reveal at top of the Your Portfolio panel — first time the
+     player sees their identity. Sized small so it doesn't grow the panel past
+     the height of the other columns (kiosk laptop proportions stay 16:10). */
+  .kiosk-welcome-v4 .v4m-strat-glyph {
+    display: flex;
+    justify-content: center;
+    margin: 4px 0 6px;
+  }
+  .kiosk-welcome-v4 .v4m-strat-glyph canvas {
+    width: 88px;
+    height: 88px;
+    display: block;
+    box-shadow: 0 0 0 1px #ececef;
+    border-radius: 3px;
+  }
+  .qs-v4-mock .v4m-panel-hero .accent { color: #0891B2; }
+  .qs-v4-mock .v4m-panel-meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-top: 4px;
+  }
+
+  /* The v4-row pattern: hairline-divided rows on a white surface */
+  .qs-v4-mock .v4m-row {
+    display: grid;
+    align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .qs-v4-mock .v4m-row:last-child { border-bottom: none; }
+
+  /* The v4-slider row pattern */
+  .qs-v4-mock .v4m-slider {
+    padding: 11px 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .qs-v4-mock .v4m-slider:last-child { border-bottom: none; }
+  .qs-v4-mock .v4m-slider .v4m-slider-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .qs-v4-mock .v4m-slider .v4m-slider-label {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+  }
+  .qs-v4-mock .v4m-slider .v4m-slider-val {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.92rem;
+    letter-spacing: -0.01em;
+    color: #0891B2;
+  }
+  .qs-v4-mock .v4m-slider .v4m-slider-track {
+    position: relative;
+    height: 6px;
+    background: #ececef;
+    border-radius: 999px;
+  }
+  .qs-v4-mock .v4m-slider .v4m-slider-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(to right, #0891B2, #22d3ee);
+    border-radius: 999px;
+  }
+  .qs-v4-mock .v4m-slider .v4m-slider-knob {
+    position: absolute;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    transform: translateY(-50%);
+    background: white;
+    border: 2px solid #0891B2;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    pointer-events: none;
+  }
+  .qs-v4-mock .v4m-slider input[type=range].range-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .qs-v4-mock .v4m-slider .v4m-slider-shell {
+    position: relative;
+    padding: 10px 0;
+    margin: -10px 0;
+  }
+
+  /* Provider-row pattern (v4-pr equivalent on light) */
+  .qs-v4-mock .v4m-pr {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #f1f1f3;
+  }
+  .qs-v4-mock .v4m-pr:first-child { border-top: none; }
+  .qs-v4-mock .v4m-pr .v4m-tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    line-height: 1;
+    display: inline-block;
+  }
+  .qs-v4-mock .v4m-pr.q .v4m-tag {
+    background: #0891B2;
+    box-shadow: 0 0 8px rgba(8,145,178,0.25);
+  }
+  .qs-v4-mock .v4m-pr.c .v4m-tag { background: #3f3f46; }
+  .qs-v4-mock .v4m-pr .v4m-pr-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: #18181b;
+  }
+  .qs-v4-mock .v4m-pr .v4m-pr-meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+
+  /* Merged rail box (v4-mega equivalent — transparent so it floats
+     against the #fafafa screen, with hairline dividers between sections) */
+  .qs-v4-mock .v4m-mega {
+    background: white;
+    border: 1px solid #dbdbde;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .qs-v4-mock .v4m-mega .v4m-mega-section {
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+  }
+  .qs-v4-mock .v4m-mega .v4m-mega-section + .v4m-mega-section {
+    border-top: 1px solid #ececef;
+  }
+
+  /* ─── Mock A: kiosk-v4 (sign-up) ─── */
+  .kiosk-v4 {
+    min-height: 540px;
+  }
+  .kiosk-v4 .v4m-body {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr 0.85fr;
+    gap: 24px;
+    padding: 6px 22px 18px;
+    align-items: stretch;
+  }
+  /* Third column — indicative basket as a v4-mega rail (assets prominent) */
+  .kiosk-v4 .v4m-assets-rail .v4m-mega { height: 100%; }
+  .kiosk-v4 .v4m-asset-list { display: flex; flex-direction: column; }
+  .kiosk-v4 .v4m-asset {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 14px;
+    align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .kiosk-v4 .v4m-asset:last-child { border-bottom: none; }
+  .kiosk-v4 .v4m-asset-glyph {
+    width: 28px; height: 28px;
+    display: block;
+  }
+  .kiosk-v4 .v4m-asset-name {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #18181b;
+    text-transform: uppercase;
+  }
+  .kiosk-v4 .v4m-asset-change {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .kiosk-v4 .v4m-asset-change.up { color: #0A832E; }
+  .kiosk-v4 .v4m-asset-change.down { color: #ff6467; }
+  .kiosk-v4 .v4m-asset-change.flat { color: #71717b; }
+  .kiosk-v4 .v4m-asset-note {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    padding-top: 14px;
+  }
+  .kiosk-v4 .v4m-form-col {
+    border-top: 1px solid #18181b;
+    background: transparent;
+    padding-top: 0;
+  }
+  .kiosk-v4 .v4m-field {
+    padding: 12px 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .kiosk-v4 .v4m-field label {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-bottom: 6px;
+  }
+  .kiosk-v4 .v4m-field input.v4m-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+    padding: 0;
+  }
+  .kiosk-v4 .v4m-field input.v4m-input::placeholder {
+    color: #a1a1aa;
+    font-style: italic;
+  }
+  .kiosk-v4 .v4m-rail-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .kiosk-v4 .v4m-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 22px 18px 8px;
+  }
+  .kiosk-v4 .v4m-preview canvas {
+    display: block;
+    background: white;
+    box-shadow: 0 0 0 1px #ececef;
+  }
+  .kiosk-v4 .v4m-preview .v4m-preview-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.35rem;
+    letter-spacing: -0.025em;
+    color: #18181b;
+    line-height: 1;
+    margin-top: 12px;
+  }
+  .kiosk-v4 .v4m-preview .v4m-preview-handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-top: 4px;
+  }
+  /* Mystery-box placeholder — the agent pattern is hidden until launch.
+     A muted Quip butterfly mark sits inside a dashed frame as the brand-
+     consistent stand-in for the (not-yet-revealed) generated icon. */
+  .kiosk-v4 .v4m-preview-mystery-box {
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+    border: 1px dashed #d4d4d8;
+    border-radius: 4px;
+  }
+  .kiosk-v4 .v4m-preview-butterfly {
+    width: 96px;
+    height: 96px;
+    display: block;
+    color: #c4c4c8;
+  }
+  .kiosk-v4 .v4m-preview-mystery-caption {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    margin-top: 10px;
+  }
+  .kiosk-v4 .v4m-cta-bar {
+    padding: 0 22px 14px;
+  }
+  .kiosk-v4 .v4m-cta {
+    display: block;
+    width: 100%;
+    background: #0891B2;
+    color: white;
+    border: none;
+    padding: 14px 18px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .kiosk-v4 .v4m-cta:hover { background: #0E7490; }
+  .kiosk-v4 .v4m-cta .v4m-cta-arrow { font-family: Georgia, serif; font-style: italic; font-size: 1.1rem; }
+  .kiosk-v4 .v4m-cta-sub {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-top: 8px;
+  }
+  .kiosk-v4 .v4m-basket {
+    border-top: 1px solid #dbdbde;
+    padding: 12px 22px;
+    background: white;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .kiosk-v4 .v4m-basket-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .kiosk-v4 .v4m-basket-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .kiosk-v4 .v4m-tick {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #18181b;
+  }
+  .kiosk-v4 .v4m-tick .v4m-tick-glyph {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .kiosk-v4 .v4m-tick .v4m-tick-ticker {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .kiosk-v4 .v4m-tick .v4m-tick-change.up { color: #0A832E; }
+  .kiosk-v4 .v4m-tick .v4m-tick-change.down { color: #ff6467; }
+  .kiosk-v4 .v4m-tick .v4m-tick-change.flat { color: #71717b; }
+  .kiosk-v4 .v4m-basket-tail {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    margin-left: auto;
+  }
+
+  /* Step indicator on hero right */
+  .kiosk-v4 .v4m-step .v4m-step-count {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+    color: #18181b;
+  }
+  .kiosk-v4 .v4m-step .v4m-step-count .v4m-step-active { color: #0891B2; }
+
+  /* ─── Mock B: kiosk-welcome-v4 (post-routing) ─── */
+  .kiosk-welcome-v4 {
+    min-height: 540px;
+  }
+  .kiosk-welcome-v4 .v4m-body {
+    display: grid;
+    grid-template-columns: 3fr 2fr;       /* agent panel 60% / solver outcome 40% */
+    gap: 22px;
+    padding: 4px 22px 18px;
+    align-items: stretch;
+  }
+  /* Visual order: agent panel on the LEFT (col 1), solver outcome on the RIGHT
+     (col 2). The HTML keeps its source order; grid `order` swaps the layout. */
+  .kiosk-welcome-v4 .v4m-agent-panel { order: 1; }
+  .kiosk-welcome-v4 .v4m-main { order: 2; }
+  /* Combined agent panel — header (glyph + name + bankroll), 2-col strategy
+     + portfolio middle, QR footer. Replaces what used to be two separate
+     side rails so the kiosk strategy-returned page stays in proportion. */
+  .kiosk-welcome-v4 .v4m-agent-panel {
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .kiosk-welcome-v4 .v4m-agent-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #ececef;
+  }
+  .kiosk-welcome-v4 .v4m-agent-glyph {
+    width: 84px; height: 84px;
+    display: block;
+    box-shadow: 0 0 0 1px #ececef;
+    border-radius: 4px;
+  }
+  .kiosk-welcome-v4 .v4m-agent-ident {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .kiosk-welcome-v4 .v4m-agent-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.6rem;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    color: #18181b;
+  }
+  .kiosk-welcome-v4 .v4m-agent-handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .kiosk-welcome-v4 .v4m-agent-bankroll {
+    text-align: right;
+  }
+  .kiosk-welcome-v4 .v4m-agent-bankroll-lbl {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-bottom: 2px;
+  }
+  .kiosk-welcome-v4 .v4m-agent-bankroll-num {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    color: #18181b;
+  }
+  /* Sub-columns: strategy + portfolio side by side, separated by a
+     vertical hairline that mirrors the horizontal dividers above and
+     below the agent panel. */
+  .kiosk-welcome-v4 .v4m-agent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .kiosk-welcome-v4 .v4m-agent-col {
+    min-width: 0;
+    padding: 0 18px;
+  }
+  .kiosk-welcome-v4 .v4m-agent-col:first-child {
+    padding-left: 0;
+    border-right: 1px solid #ececef;
+  }
+  .kiosk-welcome-v4 .v4m-agent-col:last-child {
+    padding-right: 0;
+  }
+  /* QR footer */
+  .kiosk-welcome-v4 .v4m-agent-qr-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #ececef;
+  }
+  .kiosk-welcome-v4 .v4m-agent-qr {
+    width: 88px; height: 88px;
+    background: white;
+    box-shadow: 0 0 0 1px #ececef;
+  }
+  .kiosk-welcome-v4 .v4m-agent-qr-cap {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    color: #18181b;
+    margin-bottom: 4px;
+  }
+  .kiosk-welcome-v4 .v4m-agent-qr-sub {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  /* Strategy recap column — sits between the solver outcome and the portfolio */
+  .kiosk-welcome-v4 .v4m-strat-list {
+    display: flex; flex-direction: column;
+  }
+  .kiosk-welcome-v4 .v4m-strat-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 11px 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .kiosk-welcome-v4 .v4m-strat-row:last-child { border-bottom: none; }
+  .kiosk-welcome-v4 .v4m-strat-label {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+  }
+  .kiosk-welcome-v4 .v4m-strat-val {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    color: #0891B2;
+  }
+  .kiosk-welcome-v4 .v4m-main {
+    background: white;
+    border: 1px solid #dbdbde;
+    padding: 22px 22px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .kiosk-welcome-v4 .v4m-main .v4m-main-hero {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 2.6rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: #18181b;
+    margin: 8px 0 4px;
+  }
+  /* QPU/CPU type chip above the provider name on the kiosk welcome */
+  .kiosk-welcome-v4 .v4m-main .v4m-route-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: white;
+    background: #0891B2;          /* QPU = cyan */
+    padding: 4px 9px 3px;
+    border-radius: 3px;
+    line-height: 1;
+    margin-top: 10px;
+  }
+  .kiosk-welcome-v4 .v4m-main .v4m-route-tag.classical {
+    background: #18181b;          /* CPU = dark zinc */
+  }
+  .kiosk-welcome-v4 .v4m-main .v4m-main-hero .it {
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.04em;
+  }
+  .kiosk-welcome-v4 .v4m-main .v4m-main-hero .accent { color: #0891B2; }
+  .kiosk-welcome-v4 .v4m-stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin: 16px 0 16px;
+    align-items: baseline;
+  }
+  .kiosk-welcome-v4 .v4m-stat-row .v4m-stat-big {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 3.8rem;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: #18181b;
+  }
+  .kiosk-welcome-v4 .v4m-stat-row .v4m-stat-mid {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 2.2rem;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: #71717b;
+  }
+  .kiosk-welcome-v4 .v4m-stat-row .v4m-stat-lbl {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-top: 8px;
+  }
+  /* Race bar block within welcome main */
+  .kiosk-welcome-v4 .v4m-race {
+    border-top: 1px solid #ececef;
+    padding-top: 14px;
+  }
+  .kiosk-welcome-v4 .v4m-race-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 60px;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+  }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-bar {
+    height: 8px;
+    background: #ececef;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-bar .v4m-race-fill {
+    height: 100%;
+    background: #71717b;
+  }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-bar .v4m-race-fill.q {
+    background: linear-gradient(to right, #0891B2, #22d3ee);
+  }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-time {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Allocation stack */
+  .kiosk-welcome-v4 .v4m-alloc-stack {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #ececef;
+    margin: 14px 0 6px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-stack > span {
+    display: block;
+    height: 100%;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid #f1f1f3;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row:first-of-type { border-top: none; padding-top: 10px; }
+  .kiosk-welcome-v4 .v4m-alloc-row.v4m-alloc-total {
+    border-top: 1px solid #18181b;
+    margin-top: 4px;
+    padding-top: 10px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row.v4m-alloc-total .v4m-alloc-name {
+    color: #71717b;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row.v4m-alloc-total .v4m-alloc-pct {
+    color: #71717b;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row.v4m-alloc-total .v4m-alloc-usd {
+    color: #18181b;
+    font-weight: 700;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-icon {
+    width: 22px; height: 22px; display: block;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-name {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #18181b;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-pct {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-usd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    color: #71717b;
+    font-variant-numeric: tabular-nums;
+  }
+  /* QR card */
+  .kiosk-welcome-v4 .v4m-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .kiosk-welcome-v4 .v4m-qr canvas {
+    background: white;
+    box-shadow: 0 0 0 1px #ececef;
+  }
+  .kiosk-welcome-v4 .v4m-qr .v4m-qr-cap {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+    text-align: center;
+  }
+  .kiosk-welcome-v4 .v4m-qr .v4m-qr-sub {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+    text-align: center;
+  }
+
+  /* ─── Mock C: phone-v4 ─── */
+  .phone-v4 {
+    background: white;
+    color: #18181b;
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 14px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .phone-v4 .v4m-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: #18181b;
+    letter-spacing: 0.02em;
+  }
+  .phone-v4 .v4m-status .v4m-status-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .phone-v4 .v4m-status .v4m-bars { display: inline-flex; gap: 2px; align-items: end; }
+  .phone-v4 .v4m-status .v4m-bars span { width: 3px; background: #18181b; border-radius: 1px; }
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(1) { height: 4px; }
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(2) { height: 6px; }
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(3) { height: 8px; }
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(4) { height: 10px; }
+  .phone-v4 .v4m-status .v4m-battery {
+    width: 18px; height: 9px;
+    border: 1px solid #18181b;
+    border-radius: 2px;
+    position: relative;
+    display: inline-block;
+  }
+  .phone-v4 .v4m-status .v4m-battery::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: #18181b;
+    border-radius: 1px;
+  }
+  .phone-v4 .v4m-status .v4m-battery::before {
+    content: '';
+    position: absolute;
+    right: -3px; top: 2.5px;
+    width: 2px; height: 4px;
+    background: #18181b;
+    border-radius: 0 1px 1px 0;
+  }
+
+  .phone-v4 .v4m-phone-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ececef;
+  }
+  .phone-v4 .v4m-phone-head .v4m-phone-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.4rem;
+    letter-spacing: -0.025em;
+    color: #18181b;
+    line-height: 1;
+  }
+  .phone-v4 .v4m-phone-head .v4m-phone-handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-top: 4px;
+  }
+  .phone-v4 .v4m-phone-head .v4m-phone-rank {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f5f5f7;
+    border: 1px solid #ececef;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #18181b;
+    white-space: nowrap;
+  }
+  .phone-v4 .v4m-phone-head .v4m-phone-rank .v4m-rank-num {
+    color: #0891B2;
+    font-weight: 700;
+  }
+  .phone-v4 .v4m-phone-head canvas {
+    display: block;
+    background: white;
+    box-shadow: 0 0 0 1px #ececef;
+    align-self: center;
+    grid-row: 1 / 3;
+  }
+
+  .phone-v4 .v4m-pl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 12px;
+  }
+  .phone-v4 .v4m-pl .v4m-pl-num {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 2.4rem;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+  }
+  .phone-v4 .v4m-pl .v4m-pl-change {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-top: 6px;
+    color: #0A832E;
+    font-variant-numeric: tabular-nums;
+  }
+  .phone-v4 .v4m-pl .v4m-pl-change.down { color: #ff6467; }
+  .phone-v4 .v4m-pl svg.v4m-spark { width: 80px; height: 36px; color: #0A832E; }
+
+  /* Phone "mega" card — single bordered card, hairline interior */
+  .phone-v4 .v4m-phone-mega {
+    background: white;
+    border: 1px solid #dbdbde;
+    padding: 14px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .phone-v4 .v4m-phone-mega .v4m-phone-mega-hero {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    color: #18181b;
+    margin-top: 2px;
+    line-height: 1;
+  }
+  .phone-v4 .v4m-phone-mega .v4m-phone-mega-meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+
+  .phone-v4 .v4m-cta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0891B2;
+    color: white;
+    border: none;
+    padding: 13px 16px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .phone-v4 .v4m-cta:hover { background: #0E7490; }
+  .phone-v4 .v4m-cta .v4m-cta-arrow { font-family: Georgia, serif; font-style: italic; font-size: 1.05rem; }
+
+  /* Phone-frame outer mock override — keep the existing .mockup-frame.phone
+     dimensions but kill the dark surface so our new white-light phone-v4
+     reads cleanly. (Earlier override in the legacy-CSS block already
+     ensures the wrapping .screen is white; we just neutralize any
+     remaining padding-on-screen so phone-v4 owns the full canvas.) */
+  .mockup-frame.phone .screen .phone-v4 { display: flex; }
+
+  /* Phone race rows (used inside .v4m-phone-mega) */
+  .phone-v4 .v4m-race-row {
+    display: grid;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .phone-v4 .v4m-race-row .v4m-race-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .phone-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .phone-v4 .v4m-race-row .v4m-race-bar {
+    height: 6px;
+    background: #ececef;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .phone-v4 .v4m-race-row .v4m-race-bar .v4m-race-fill {
+    height: 100%;
+    background: #71717b;
+  }
+  .phone-v4 .v4m-race-row .v4m-race-bar .v4m-race-fill.q {
+    background: linear-gradient(to right, #0891B2, #22d3ee);
+  }
+  .phone-v4 .v4m-race-row .v4m-race-time {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.8rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Phone status dim a touch for the inactive bars */
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(1),
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(2) { background: #18181b; }
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(3) { background: #18181b; }
+  .phone-v4 .v4m-status .v4m-bars span:nth-child(4) { background: #a1a1aa; }
+
+  /* solving state on the welcome / phone-mega cards (used by JS during retune) */
+  .phone-v4 .v4m-phone-mega.solving { opacity: 0.7; }
+
+  /* Kiosk-v4: the form-col first field "loses" its top hairline border
+     so the column flush-aligns with the rail's top edge. */
+  .kiosk-v4 .v4m-form-col .v4m-field:first-child { padding-top: 14px; }
+
+  /* Make sure the kiosk preview canvas in the rail caps cleanly. */
+  .kiosk-v4 .v4m-mega .v4m-mega-section .v4m-preview canvas {
+    border-radius: 4px;
+  }
+
+  /* ============================================================
+     Booth TV · State A (welcome splash) and State C (spotlight)
+     -----------------------------------------------------------
+     These two mocks reuse the v4 leaderboard's outer chrome
+     (qs-nav / qs-body-v4 / qs-rail / v4-mega) but swap the
+     central .qs-table-area for a different composition.
+     Scoped to .state-a / .state-c so nothing leaks to State B.
+     ============================================================ */
+
+  /* ----- State A · welcome splash ----- */
+  .bigscreen.dir-quipsite.v4.state-a .qs-table-area {
+    border-top: 1px solid #18181b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2cqh 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .welcome-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6cqh;
+    text-align: center;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .welcome-glyph {
+    width: 22cqh;
+    height: 22cqh;
+    display: block;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .welcome-name {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 6.2cqh;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    color: #18181b;
+    margin-top: 0.4cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .welcome-handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.8cqh;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .welcome-caption {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 2.4cqh;
+    color: #18181b;
+    margin-top: 0.6cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .welcome-caption .it {
+    font-style: italic;
+    color: #0891B2;
+  }
+
+  /* State A · settings list (re-skinned v4-pr without the type chip) */
+  .bigscreen.dir-quipsite.v4.state-a .settings-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .settings-list .set-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 1cqw;
+    padding: 0.9cqh 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .settings-list .set-row + .set-row {
+    border-top: 1px solid #f1f1f3;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .settings-list .set-row .lbl {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 2.2cqh;
+    color: #52525b;
+    line-height: 1;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .settings-list .set-row .val {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 2.4cqh;
+    color: #0891B2;
+    line-height: 1;
+  }
+
+  /* State A · provider pair pill colors — keep QPU cyan and CPU zinc */
+  .bigscreen.dir-quipsite.v4.state-a .v4-mega .v4-pr.q .type {
+    background: #0891B2;
+    box-shadow: 0 0 0.8cqh rgba(8,145,178,0.3);
+  }
+  .bigscreen.dir-quipsite.v4.state-a .v4-mega .v4-pr.c .type {
+    background: #52525b;
+    box-shadow: none;
+  }
+  .bigscreen.dir-quipsite.v4.state-a .v4-mega .v4-pr .pct {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.5cqh;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+
+  /* ----- State C · spotlight ----- */
+  .bigscreen.dir-quipsite.v4.state-c .qs-hero-left .left .spot-handle {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.6cqh;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-top: 1cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .qs-table-area {
+    border-top: 1px solid #18181b;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .spot-stage {
+    flex: 1;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 2cqh;
+    padding: 2.4cqh 0 1.2cqh;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .spot-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2cqw;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .ss-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6cqh;
+    border-left: 1px solid #dbdbde;
+    padding-left: 1.4cqw;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .ss-cell:first-child {
+    border-left: 0;
+    padding-left: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .ss-lbl {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.3cqh;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .ss-val {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 5.4cqh;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .ss-val.ss-pl,
+  .bigscreen.dir-quipsite.v4.state-c .ss-val.ss-change {
+    color: #0A832E;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .ss-val.ss-change {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal;
+    font-size: 3.8cqh;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .spot-spark {
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .spot-spark svg {
+    width: 100%;
+    height: 100%;
+    min-height: 12cqh;
+    display: block;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .spot-lastsolve {
+    border-top: 1px solid #dbdbde;
+    padding-top: 1cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .spot-lastsolve .v4-pr.q .type {
+    background: #0891B2;
+    box-shadow: 0 0 0.8cqh rgba(8,145,178,0.3);
+  }
+
+  /* State C · rail: routing block + mini leaderboard */
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .spot-solve {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .solve-name {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 2.8cqh;
+    color: #18181b;
+    line-height: 1;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .solve-meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.4cqh;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5cqh;
+    margin-top: 0.4cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race-row {
+    display: grid;
+    grid-template-columns: 3cqw 1fr auto;
+    align-items: center;
+    gap: 0.8cqw;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race-lbl {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.2cqh;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: #71717b;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race-bar {
+    height: 0.8cqh;
+    background: #ececef;
+    border-radius: 999px;
+    overflow: hidden;
+    display: block;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race-bar .fill {
+    display: block;
+    height: 100%;
+    background: #0891B2;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race-row.c .race-bar .fill {
+    background: #71717b;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .race-time {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.5cqh;
+    font-weight: 600;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* State C · mini-leaderboard in the rail (no medals, smaller, with spotlit row) */
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb {
+    display: flex;
+    flex-direction: column;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row {
+    display: grid;
+    grid-template-columns: 4cqw 1fr auto;
+    align-items: center;
+    gap: 0.8cqw;
+    padding: 0.7cqh 0.4cqw;
+    border-bottom: 1px solid #f1f1f3;
+    font-size: 2cqh;
+    flex: 0 0 auto;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row:last-child {
+    border-bottom: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row .rank {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.5cqh;
+    font-weight: 600;
+    color: #71717b;
+    font-variant-numeric: tabular-nums;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row .name {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-size: 2cqh;
+    color: #18181b;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row .pnl {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.6cqh;
+    font-weight: 600;
+    color: #18181b;
+    font-variant-numeric: tabular-nums;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row.spotlit {
+    background: #f4f4f5;
+    border-radius: 4px;
+    padding-left: 0.8cqw;
+    padding-right: 0.8cqw;
+  }
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row.spotlit .rank,
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row.spotlit .name,
+  .bigscreen.dir-quipsite.v4.state-c .v4-mega .mini-lb .qs-row.spotlit .pnl {
+    color: #18181b;
+    font-weight: 700;
+  }
+
+  /* Wordmark flush to the screen's top-left corner — zero out the
+     mockup-frame's 8px bezel so the screen extends to the frame border. */
+  .mockup-frame.kiosk,
+  .mockup-frame.booth-frame,
+  .mockup-frame.phone {
+    padding: 0 !important;
+  }
+  .mockup-frame.phone { max-width: 360px; margin: 0 auto; }
+  .mockup-frame .screen { border: none; border-radius: var(--r-sm); }
+
+
+  /* ─────────────────────────────────────────────────────────
+     State D — Welcome & intro rotation
+     3-column body: intro panel + create-agent form + supported assets
+     Uses the v4 design system (Georgia italic display, JBM uppercase
+     labels, cyan QPU accents, white surfaces, hairline dividers).
+     ───────────────────────────────────────────────────────── */
+  .bigscreen.dir-quipsite.v4.state-d .state-d-body {
+    display: grid;
+    grid-template-columns: 1.15fr 1.2fr 0.85fr;
+    gap: 0;
+    padding: 2.4cqh 0 2.4cqh 0;
+    min-height: 0;
+    flex: 1;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.4cqh;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-bottom: 1.2cqh;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6cqw;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-eyebrow.cyan-dot::before {
+    content: '';
+    width: 0.7cqh;
+    height: 0.7cqh;
+    border-radius: 50%;
+    background: #0891B2;
+  }
+
+  /* Intro column */
+  .bigscreen.dir-quipsite.v4.state-d .state-d-intro {
+    padding: 0 2.4cqw 0 3cqw;
+    border-right: 1px solid #ececef;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-intro h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: normal;
+    font-size: 4.6cqh;
+    font-weight: 500;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    color: #18181b;
+    margin: 0 0 2.2cqh 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-intro h1 .it {
+    font-style: italic;
+    color: #18181b;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-intro p {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 2.6cqh;
+    line-height: 1.4;
+    color: #27272a;
+    margin: 0 0 2cqh 0;
+    max-width: 28ch;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-legend {
+    margin-top: auto;
+    padding-top: 2.4cqh;
+    border-top: 1px solid #dbdbde;
+    display: flex; flex-direction: column;
+    gap: 1.4cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdl-row {
+    display: flex;
+    align-items: center;
+    gap: 1.6cqw;
+  }
+  /* Rectangular box tag — matches the brand design system's box-style
+     category labels (vs. pill shapes). Soft tinted backgrounds with
+     darker text in the same hue family. */
+  .bigscreen.dir-quipsite.v4.state-d .sdl-tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.7cqh;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #0E7490;                /* REAL — dark cyan text */
+    background: #E0F2FE;           /* REAL — pale cyan tint */
+    padding: 0.7cqh 1.3cqw;
+    border-radius: 3px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 8cqw;
+    box-sizing: border-box;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdl-row.fake .sdl-tag {
+    color: #3F3F46;                /* FAKE — dark zinc text on pale zinc */
+    background: #F1F1F3;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdl-row.live .sdl-tag {
+    color: #15803D;                /* LIVE — dark green text on pale green */
+    background: #DCFCE7;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdl-val {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 2.9cqh;
+    line-height: 1.05;
+    color: #18181b;
+  }
+
+  /* Form column */
+  .bigscreen.dir-quipsite.v4.state-d .state-d-form {
+    padding: 0 2.4cqw;
+    border-right: 1px solid #ececef;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-form-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: normal;
+    font-size: 4cqh;
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #18181b;
+    margin: 0 0 2cqh 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-form-title .it {
+    font-style: italic;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-field {
+    padding: 1.4cqh 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-field label {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.5cqh;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #71717b;
+    margin-bottom: 0.8cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-input {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 2.8cqh;
+    letter-spacing: -0.01em;
+    color: #18181b;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-input-placeholder { color: #a1a1aa; }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-slider {
+    padding: 1.2cqh 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-slider-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.8cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-label {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 2.5cqh;
+    color: #18181b;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-val {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 2.4cqh;
+    color: #0891B2;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-track {
+    position: relative;
+    height: 0.7cqh;
+    background: #ececef;
+    border-radius: 999px;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: linear-gradient(to right, #0891B2, #22d3ee);
+    border-radius: 999px;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sdf-knob {
+    position: absolute;
+    top: 50%;
+    width: 1.6cqh; height: 1.6cqh;
+    margin-left: -0.8cqh;
+    background: white;
+    border: 0.3cqh solid #0891B2;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-cta {
+    margin-top: auto;
+    padding-top: 1.6cqh;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.3cqh;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0891B2;
+    font-weight: 700;
+  }
+
+  /* Assets column */
+  .bigscreen.dir-quipsite.v4.state-d .state-d-assets {
+    padding: 0 3cqw 0 2.4cqw;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list {
+    display: flex; flex-direction: column;
+    flex: 1;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sda-row {
+    display: grid;
+    grid-template-columns: 4cqh 1fr auto;
+    gap: 1.2cqw;
+    align-items: center;
+    padding: 1cqh 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sda-row:last-child { border-bottom: none; }
+  .bigscreen.dir-quipsite.v4.state-d .sda-glyph {
+    width: 3.6cqh; height: 3.6cqh;
+    display: block;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sda-ticker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.8cqh;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #18181b;
+    text-transform: uppercase;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sda-change {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.7cqh;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .sda-change.up { color: #0A832E; }
+  .bigscreen.dir-quipsite.v4.state-d .sda-change.down { color: #ff6467; }
+  .bigscreen.dir-quipsite.v4.state-d .sda-change.flat { color: #71717b; }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-tail {
+    padding-top: 1.2cqh;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.1cqh;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+  }
+

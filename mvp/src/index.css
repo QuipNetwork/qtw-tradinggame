@@ -1,0 +1,3 @@
+/* Reset only — the v4 design styles come from shared-design/v4-mocks.css */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif; color: #18181b; background: #ffffff; }

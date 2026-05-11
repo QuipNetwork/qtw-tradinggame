@@ -1,0 +1,189 @@
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams, Navigate } from 'react-router-dom';
+import type { AgentConfig, RoutingResult } from '../../api';
+import { getAgent, requestOptimization } from '../../api';
+import { renderGlyph, renderFakeQR, strHash, pickStyle } from '../../utils/glyph';
+import { computeWeights, labelFor, slidersToArray } from '../../utils/strategy';
+
+const BANKROLL = 10000;
+
+const ASSET_GLYPH_IDS = ['crypto-btc', 'crypto-eth', 'crypto-sol', 'crypto-usdc'] as const;
+const ASSET_TICKERS = ['BTC', 'ETH', 'SOL', 'USDC'] as const;
+const ASSET_GRADIENTS = [
+  'linear-gradient(135deg, #f7931a, #ffb347)',
+  'linear-gradient(135deg, #627eea, #8aa2f9)',
+  'linear-gradient(135deg, #14F195, #9945FF)',
+  'linear-gradient(135deg, #2775ca, #4f9ddc)',
+] as const;
+
+export default function KioskWelcome() {
+  const [params] = useSearchParams();
+  const agentId = params.get('agent');
+  const [agent, setAgent] = useState<AgentConfig | null>(null);
+  const [result, setResult] = useState<RoutingResult | null>(null);
+  const glyphRef = useRef<HTMLCanvasElement>(null);
+  const qrRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!agentId) return;
+    (async () => {
+      const a = await getAgent(agentId);
+      setAgent(a);
+
+      const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
+      if (cachedRaw) {
+        try { setResult(JSON.parse(cachedRaw)); return; } catch { /* fall through */ }
+      }
+      const r = await requestOptimization(agentId);
+      setResult(r);
+    })();
+  }, [agentId]);
+
+  useEffect(() => {
+    if (!agent || !glyphRef.current) return;
+    const seed = strHash(agent.name);
+    const style = pickStyle(seed);
+    renderGlyph(glyphRef.current, Object.assign({
+      seed,
+      p1: agent.sliders.tradingActivity / 100,
+      p2: agent.sliders.riskPreference / 100,
+      p3: agent.sliders.tradeSize / 100,
+      p4: agent.sliders.holdingStyle / 100,
+      p5: agent.sliders.diversification / 100,
+      cell: 6,
+    }, style));
+  }, [agent]);
+
+  useEffect(() => {
+    if (!agent || !qrRef.current) return;
+    renderFakeQR(qrRef.current, 'qtw.quip.network/p/' + agent.name + (agent.handle ?? ''));
+  }, [agent]);
+
+  if (!agentId) return <Navigate to="/kiosk" replace />;
+  if (!agent) return null;
+
+  const sliders = slidersToArray(agent.sliders).map(v => v / 100) as [number, number, number, number, number];
+  const w = computeWeights(...sliders);
+  const allocPcts = [w[0], w[1], w[2], w[4]]; // BTC, ETH, SOL, USDC (reserve)
+
+  const isQpu = result?.providerType === 'QPU';
+  const solveTime = result?.solveTime ?? 0.42;
+  const classicalTime = result ? Math.max(solveTime * result.vsClassical, solveTime + 0.1) : 5.88;
+  const qBarPct = isQpu ? Math.max(4, (solveTime / classicalTime) * 100) : 100;
+  const cBarPct = isQpu ? 100 : Math.max(4, (classicalTime / solveTime) * 100);
+
+  return (
+    <div className="qs-v4-mock kiosk-welcome-v4">
+
+      <div className="v4m-nav">
+        <div className="v4m-mark">
+          <svg className="quip-wm"><use href="#quip-wm" /></svg>
+          <div className="v4m-nav-divider"></div>
+          <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
+        </div>
+        <span className="v4m-pill">Live · Sign-up · Day 1</span>
+      </div>
+
+      <div className="v4m-hero">
+        <h1>Welcome to <span className="it">the competition.</span></h1>
+      </div>
+
+      <div className="v4m-body">
+
+        <section className="v4m-main">
+          <div style={{ marginBottom: 4 }}>
+            <span className="v4m-section-eyebrow cyan-dot cyan">Routed via Quip Network · Solved Just Now</span>
+          </div>
+
+          <span className="v4m-route-tag">{result?.providerType ?? 'QPU'}</span>
+          <div className="v4m-main-hero">
+            {result?.provider ?? 'D-Wave'} <span className="it accent">Advantage.</span>
+          </div>
+          <div className="v4m-panel-meta" style={{ marginTop: 6 }}></div>
+
+          <div className="v4m-stat-row">
+            <div>
+              <div className="v4m-stat-big" style={{ color: '#0891B2' }}>{solveTime.toFixed(2)}s</div>
+              <span className="v4m-stat-lbl">Solve Time</span>
+            </div>
+            <div>
+              <div className="v4m-stat-mid">{result?.vsClassical ?? 14}×</div>
+              <span className="v4m-stat-lbl">Vs Classical</span>
+            </div>
+          </div>
+
+          <div className="v4m-race">
+            <div className="v4m-race-row">
+              <span className="v4m-race-label q">{(result?.provider ?? 'D-Wave').split(' ')[0]} · QPU</span>
+              <div className="v4m-race-bar"><div className="v4m-race-fill q" style={{ width: `${qBarPct}%` }}></div></div>
+              <span className="v4m-race-time">{(isQpu ? solveTime : classicalTime).toFixed(2)}s</span>
+            </div>
+            <div className="v4m-race-row">
+              <span className="v4m-race-label">Classical baseline</span>
+              <div className="v4m-race-bar"><div className="v4m-race-fill" style={{ width: `${cBarPct}%` }}></div></div>
+              <span className="v4m-race-time">{(isQpu ? classicalTime : solveTime).toFixed(2)}s</span>
+            </div>
+          </div>
+        </section>
+
+        <aside className="v4m-mega v4m-agent-panel">
+
+          <div className="v4m-agent-header">
+            <canvas ref={glyphRef} className="v4m-agent-glyph" width={220} height={220} aria-label="Your generated agent glyph"></canvas>
+            <div className="v4m-agent-ident">
+              <div className="v4m-agent-name">{agent.name}.</div>
+              <div className="v4m-agent-handle">{agent.handle}</div>
+            </div>
+            <div className="v4m-agent-bankroll">
+              <div className="v4m-agent-bankroll-lbl">Bankroll</div>
+              <div className="v4m-agent-bankroll-num">${BANKROLL.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div className="v4m-agent-grid">
+
+            <div className="v4m-agent-col">
+              <span className="v4m-section-eyebrow">Your strategy</span>
+              <div className="v4m-strat-list">
+                <div className="v4m-strat-row"><span className="v4m-strat-label">Trading activity</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.tradingActivity)}</span></div>
+                <div className="v4m-strat-row"><span className="v4m-strat-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
+                <div className="v4m-strat-row"><span className="v4m-strat-label">Trade size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.tradeSize)}</span></div>
+                <div className="v4m-strat-row"><span className="v4m-strat-label">Holding style</span><span className="v4m-strat-val">{labelFor(3, agent.sliders.holdingStyle)}</span></div>
+                <div className="v4m-strat-row"><span className="v4m-strat-label">Diversification</span><span className="v4m-strat-val">{labelFor(4, agent.sliders.diversification)}</span></div>
+              </div>
+            </div>
+
+            <div className="v4m-agent-col">
+              <span className="v4m-section-eyebrow">Your portfolio</span>
+              <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
+                {allocPcts.map((pct, i) => (
+                  <span key={i} style={{ width: `${(pct * 100).toFixed(2)}%`, background: ASSET_GRADIENTS[i] }}></span>
+                ))}
+              </div>
+
+              {ASSET_TICKERS.map((ticker, i) => (
+                <div className="v4m-alloc-row" key={ticker}>
+                  <svg className="v4m-alloc-icon" viewBox="0 0 32 32"><use href={`#${ASSET_GLYPH_IDS[i]}`} /></svg>
+                  <span className="v4m-alloc-name">{ticker}</span>
+                  <span className="v4m-alloc-pct">{(allocPcts[i] * 100).toFixed(1)}%</span>
+                  <span className="v4m-alloc-usd">${Math.round(allocPcts[i] * BANKROLL).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+
+          <div className="v4m-agent-qr-row">
+            <canvas ref={qrRef} className="v4m-agent-qr" width={160} height={160}></canvas>
+            <div className="v4m-agent-qr-text">
+              <div className="v4m-agent-qr-cap">Scan to open your profile.</div>
+              <div className="v4m-agent-qr-sub">Live P&amp;L · Retune anytime</div>
+            </div>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
+  );
+}

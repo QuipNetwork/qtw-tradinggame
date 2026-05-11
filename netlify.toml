@@ -1,0 +1,10 @@
+[build]
+  base = "mvp/"
+  publish = "dist/"
+  command = "npm install && npm run build"
+
+# SPA fallback so deep links like /p/:agentId resolve to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
