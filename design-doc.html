@@ -160,7 +160,7 @@
 
   <p class="small" style="margin-top: 14px;">Click any thumbnail to enlarge. Press <kbd style="font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.78rem; padding: 1px 5px; border: 1px solid var(--zinc-300); border-radius: 3px; background: var(--zinc-100);">Esc</kbd> to close.</p>
   <div class="gallery" style="margin-top: 14px;">
-    <button class="thumb" data-img="reference-files/IMG_3898 2.png" data-cap="Sign-up kiosk · Base. Single ASUS laptop, single screen, simple stand. The hardware story is forgiving — we don't need bespoke kiosks.">
+    <button class="thumb" data-img="reference-files/IMG_3898 2.png" data-cap="Sign-up kiosk · Base. Single ASUS laptop, single screen, simple stand.">
       <img src="reference-files/IMG_3898 2.png" alt="Base sign-up kiosk laptop" loading="lazy">
       <div class="cap">Sign-up kiosk</div>
     </button>
@@ -1498,7 +1498,7 @@
 <section id="api">
   <div class="kicker">09 · API contract</div>
   <h2>Front-end ↔ back-end interface</h2>
-  <p class="lede">The MVP code (<code>mvp/src/api/</code>) ships a complete TypeScript contract with a working mock implementation. To go live, the back-end team implements the same four functions against a real service — the UI never has to change.</p>
+  <p class="lede">The TypeScript contract lives in <code>mvp/src/api/</code> with a mock implementation behind it. To wire a real backend, implement the same four functions; the UI imports only the contract surface.</p>
 
   <div class="card" style="margin-top: 24px;">
     <h3 style="margin-bottom: 8px;">The four operations</h3>
@@ -1517,7 +1517,7 @@
       <li><code>mvp/src/api/mocks.ts</code> — current implementation (random provider win, seeded leaderboard, <code>localStorage</code> persistence, simulated subscription).</li>
       <li><code>mvp/src/api/index.ts</code> — single re-export point. <strong>The UI imports only from here.</strong></li>
     </ul>
-    <p style="margin-top: 12px; margin-bottom: 0;">To swap in a real backend: implement <code>mvp/src/api/real.ts</code> matching the types, then change <code>index.ts</code> to re-export from <code>./real</code>. No UI files need to change.</p>
+    <p style="margin-top: 12px; margin-bottom: 0;">To swap in a real backend: implement <code>mvp/src/api/real.ts</code> matching the types, then change <code>index.ts</code> to re-export from <code>./real</code>.</p>
   </div>
 </section>
 
@@ -1525,7 +1525,7 @@
 <section id="hardware">
   <div class="kicker">10 · Hardware &amp; venue</div>
   <h2>What we'll have onsite</h2>
-  <p class="lede">The activation runs on two devices plus the booth TV. No bespoke kiosks, no on-prem servers, no extra networking gear — the entire footprint fits in a backpack.</p>
+  <p class="lede">The activation runs on two devices plus the booth TV.</p>
 
   <div class="grid-2" style="margin-top: 24px;">
     <div class="card">
@@ -1541,14 +1541,14 @@
       <ul style="margin-left: 18px; margin-top: 8px;">
         <li><strong>Big screen</strong> — venue-provided TV. Final resolution TBD; <code>/tv</code> is built responsive so 1080p and 4K both render cleanly.</li>
         <li><strong>Primary network</strong> — venue Wi-Fi (assumed adequate).</li>
-        <li><strong>Backup network</strong> — cellular hotspot. Worth pre-testing on the kiosk + TV driver before doors open.</li>
+        <li><strong>Backup network</strong> — cellular hotspot.</li>
       </ul>
     </div>
   </div>
 
   <div class="card muted" style="margin-top: 18px;">
     <h3 style="margin-bottom: 8px;">Players' phones</h3>
-    <p style="margin-bottom: 0;">Each attendee's own phone serves as their profile surface — scanned in via the kiosk-generated QR. No hardware on our side.</p>
+    <p style="margin-bottom: 0;">Each attendee's own phone serves as their profile surface, accessed via the kiosk-generated QR.</p>
   </div>
 </section>
 
