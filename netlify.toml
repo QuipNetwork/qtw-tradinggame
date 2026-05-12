@@ -2,6 +2,12 @@
   base = "mvp/"
   publish = "dist/"
   command = "npm install && npm run build"
+  # Force a build on every push. Netlify's default change-detection is
+  # scoped to `base`, so commits that only touch files outside `mvp/`
+  # (e.g. design-doc.html, shared-design/*) get auto-skipped. Our build
+  # output pulls those in via symlinks in mvp/public/, so we always
+  # need to rebuild. `exit 1` from the ignore command = "do not skip".
+  ignore = "exit 1"
 
 # SPA fallback so deep links like /p/:agentId resolve to index.html
 [[redirects]]
