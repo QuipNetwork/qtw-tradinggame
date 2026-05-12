@@ -42,5 +42,4 @@ The design doc has the full picture. Key sections for a building team:
 - **Section 08 · Architecture** — component overview, data flow, retune loop
 - **Section 09 · API contract** — the four functions the back-end implements (`submitAgent`, `getAgent`, `requestOptimization`, `subscribeAgent`) and where they live in code
 - **Section 10 · Hardware & venue** — what we'll have onsite
-- **Section 11 · Acceptance criteria** — what "done" means
-- **Section 13 · Open questions** — TBDs with owning group on each
+- **Section 12 · Open questions** — TBDs with owning group on each

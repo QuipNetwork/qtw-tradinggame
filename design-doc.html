@@ -102,9 +102,8 @@
       <li><a href="#arch"><span class="num">08</span>Arch</a></li>
       <li><a href="#api"><span class="num">09</span>API</a></li>
       <li><a href="#hardware"><span class="num">10</span>Hardware</a></li>
-      <li><a href="#acceptance"><span class="num">11</span>Acceptance</a></li>
-      <li><a href="#playground"><span class="num">12</span>Playground</a></li>
-      <li><a href="#tbd"><span class="num">13</span>TBDs</a></li>
+      <li><a href="#playground"><span class="num">11</span>Playground</a></li>
+      <li><a href="#tbd"><span class="num">12</span>TBDs</a></li>
     </ul>
   </div>
 </nav>
@@ -1553,27 +1552,9 @@
   </div>
 </section>
 
-<!-- ================================================ ACCEPTANCE -->
-<section id="acceptance">
-  <div class="kicker">11 · Acceptance criteria</div>
-  <h2>What "MVP done" means</h2>
-  <p class="lede">This is a live demo of our routing network, so the bar is "feels fast and never visibly breaks" rather than "scales to thousands." Concurrent traffic at a booth is low; perceived responsiveness is the win.</p>
-
-  <div class="card" style="margin-top: 24px;">
-    <h3 style="margin-bottom: 8px;">Must-pass before opening day</h3>
-    <ul style="margin-left: 18px; margin-top: 12px;">
-      <li><strong>Routing latency feels live.</strong> Each kiosk launch and slider retune returns a routing result inside ~3 seconds end-to-end, with provider badge + solve time visible.</li>
-      <li><strong>No visible failure modes in the happy path.</strong> Sign-up → confirmation → QR → phone profile completes without errors on a fresh device.</li>
-      <li><strong>Big-screen rotation runs for a full conference day unattended.</strong> No memory leak, no stuck state, no crashed tab. The D-interrupt fires within a few seconds of a new sign-up.</li>
-      <li><strong>Phone retunes propagate.</strong> A slider drag on the phone triggers a new routing job and the new portfolio appears on the phone and in any leaderboard entry within a few seconds.</li>
-      <li><strong>Provider provenance is correct.</strong> Every UI that shows a strategy also shows which provider solved it — never blank, never wrong.</li>
-    </ul>
-  </div>
-</section>
-
 <!-- ================================================ PLAYGROUND -->
 <section id="playground">
-  <div class="kicker">12 · Playground</div>
+  <div class="kicker">11 · Playground</div>
   <h2>Glyph generator</h2>
   <p class="lede">Enter a name, adjust the sliders, and click <strong>Generate glyph</strong>. The mapping below documents which inputs drive which visual properties.</p>
 
@@ -1657,7 +1638,7 @@
 
 <!-- ================================================ TBDs -->
 <section id="tbd">
-  <div class="kicker">13 · Open questions</div>
+  <div class="kicker">12 · Open questions</div>
   <h2>What still needs to be decided</h2>
 
   <div style="display: flex; gap: 14px; align-items: center; margin-top: 18px; margin-bottom: 8px; flex-wrap: wrap;">
