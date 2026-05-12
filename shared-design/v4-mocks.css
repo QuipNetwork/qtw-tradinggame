@@ -5286,3 +5286,24 @@
     color: #a1a1aa;
   }
 
+  /* ─── Mobile: scale the kiosk-laptop mockups proportionally ───
+     The kiosk-v4 and kiosk-welcome-v4 mocks are laid out at a
+     ~1100×620 "designed" size. On narrow viewports we keep that
+     internal layout intact (so the preview still reads as a kiosk
+     laptop) but scale the whole inner block to fit the screen via
+     container queries. Booth-TV mockups already scale this way
+     via aspect-ratio + cq units. */
+  @media (max-width: 720px) {
+    .mockup-frame.kiosk { container-type: inline-size; }
+    .mockup-frame.kiosk .screen {
+      overflow: hidden;
+      height: calc(640 * 100cqw / 1100 * 1px);
+    }
+    .mockup-frame.kiosk .screen > .qs-v4-mock {
+      width: 1100px;
+      height: 640px;
+      transform-origin: top left;
+      transform: scale(calc(100cqw / 1100));
+    }
+  }
+
