@@ -1,0 +1,196 @@
+QTW 2026 TRADING GAME — V0 IMPLEMENTATION NOTES
+=================================================
+
+Purpose: capture what's deliberately deferred in the V0 implementation
+and the reasoning behind it. Read this before starting any work on V1.
+
+Last updated: 2026-05-26
+
+-------------------------------------------------------------------
+ESTIMATION WINDOWS (fixed on our end — important)
+-------------------------------------------------------------------
+
+Covariance Σ:
+  - Window: 30 days × 24 hours = 720 hourly observations
+  - Source: prices/history.py cache
+  - NOT slider-controlled. Refresh cadence handled by orchestration/scheduler.py.
+
+Returns μ:
+  - Window: user's τ-window hourly returns (Holding Style slider)
+  - τ range: ~24h to 720h (1 day to 30 days)
+  - Recomputed per solve.
+
+The "t" index in r_{i,t} = P_{i,t}/P_{i,t-1} - 1 is the hourly time index,
+running over whichever window is being computed (τ for μ, 720 for Σ).
+
+-------------------------------------------------------------------
+V0 DEFERRED — Turnover penalty
+-------------------------------------------------------------------
+
+Decision: λ_t = 0 in V0. Turnover penalty is OFF for both first solve and retune.
+
+First solve:
+  - w_ref = 0 (decision Q2 — zero, not equal-weight 1/N)
+  - Penalty term λ_t · ‖w - 0‖² is moot because λ_t = 0 in V0
+  - In V1, if λ_t > 0, the penalty becomes λ_t · ‖w‖² on first solve
+    — that pushes the optimizer toward smaller-magnitude positions overall,
+    which is a weird behavior. Likely we either (a) keep λ_t = 0 on first
+    solve even in V1, or (b) use w_ref = 1/N on first solve only. TBD.
+
+Retune (V1 will use):
+  - w_ref = w_prev (current holdings vector, after drift)
+  - Penalty term λ_t · ‖w_new - w_prev‖² discourages large reallocations
+  - Slider-driven: high Trading Activity slider → low λ_t (free to move)
+                   low Trading Activity slider → high λ_t (stay put)
+
+-------------------------------------------------------------------
+V0 DEFERRED — Transaction fee
+-------------------------------------------------------------------
+
+Decision: NO explicit fee in V0. The retune branch is value-neutral —
+holdings are liquidated and rebought at spot to match w_new, with no
+deduction from bankroll.
+
+V1 will add:
+  fee = c · ½ · Σ |w_new_i - w_prev_i| · V
+
+  where c ≈ 0.3% (or 5-10 bps) and V is the current portfolio value
+  immediately before the retune.
+
+The fee is subtracted from bankroll on every retune. User sees
+displayed P&L drop by `fee` instantly.
+
+-------------------------------------------------------------------
+WHY TURNOVER PENALTY ALONE IS QUESTIONABLE — confirming the user's intuition
+-------------------------------------------------------------------
+
+The user noted: "no fee implemented for transaction but there is the
+turnover penalty which (my thoughtprocess) will only mean something
+if fee is integrated right?"
+
+This is correct. Here's the full reasoning:
+
+1. The QUBO turnover penalty `λ_t · ‖w_new - w_prev‖²` shapes the
+   optimizer's CHOICE of w_new. It says: "don't move far unless the
+   expected return improvement justifies it."
+
+2. The explicit fee `c · ½Σ|Δwᵢ| · V` is what the USER SEES — it's
+   deducted from their displayed bankroll on every retune.
+
+3. Without (2), the user has no economic feedback for moving. The
+   optimizer is "secretly" being conservative for reasons the user
+   can't perceive. The Trading Activity slider becomes invisible.
+
+4. Without (1), the optimizer recommends teleporting to the new optimum
+   every time, even for tiny edges, and the user pays the fee for it.
+   The fee then becomes pure friction with no offsetting optimizer logic.
+
+5. Together: the optimizer balances expected gain vs penalty (internal),
+   AND the user pays a real fee on the resulting trades (external).
+   The slider then meaningfully controls "how much friction am I willing
+   to tolerate to chase new optima?"
+
+CONCLUSION: penalty and fee must ship together in V1. V0 ships neither.
+
+-------------------------------------------------------------------
+V0 SCOPE — what IS implemented
+-------------------------------------------------------------------
+
+In scope for booth day:
+  [x] Full QP/MIQP/QUBO pipeline (mean-variance objective)
+  [x] 3-solver race (D-Wave + SA + Gurobi)
+  [x] First-feasible-wins quality bar (decision Q6 — feasibility only)
+  [x] First solve: allocate $10K bankroll by w_new
+  [x] Retune: liquidate + rebuy to match w_new (value-neutral, no fee)
+  [x] MTM loop: live prices × holdings → P&L → leaderboard
+  [x] 15-asset crypto basket from CoinGecko hourly OHLCV
+  [x] Live spot prices from CoinGecko or similar
+  [x] Persistence (agents, jobs audit log, leaderboard)
+  [x] WebSocket push for subscribeAgent
+
+Out of scope for V0:
+  [ ] λ_t > 0 turnover penalty in QUBO (decision: V1)
+  [ ] Transaction fee deducted on retune (decision: V1)
+  [ ] Per-asset MTM drift in AgentUpdate (rollup-only for V0)
+  [ ] Cached Gurobi reference for quality-bar ε checks (feasibility only)
+  [ ] TV event bus for State D / new-agent splash (timer-faked for V0)
+  [ ] Slider numeric range tuning beyond defaults (empirical pass needed)
+
+-------------------------------------------------------------------
+V0 SOLVER NOTES
+-------------------------------------------------------------------
+
+Gurobi:
+  - Local install only. NOT deployed to production. License/IP concerns.
+  - Two roles: (a) one of three racing solvers under the "CPU" label,
+    (b) offline oracle for validating QUBO penalty weights and verifying
+    that D-Wave/SA solutions are within ε of optimal.
+  - Native MIQP input — no QUBO encoding needed for Gurobi.
+
+D-Wave Advantage:
+  - 60 binary vars at b=4, 15 assets — well within Advantage capacity.
+  - Hyperparameters to sweep before booth:
+      * chain_strength (auto-tune via Ocean SDK is fine for V0 start)
+      * annealing_time (default 20 μs; can extend to 100+ μs)
+      * num_reads (start 1000)
+      * anneal_schedule (default fine for V0)
+
+Simulated Annealing (via dwave-neal):
+  - Same QUBO as D-Wave. Apples-to-apples race.
+  - Hyperparameters: cooling schedule (geometric), β-range, num_sweeps, num_reads.
+
+Race rules:
+  - All solvers get the same problem (Gurobi: MIQP; D-Wave/SA: QUBO).
+  - Per-solver deadline (~1-2s).
+  - First solver to return a feasible solution wins.
+  - Feasibility: |Σwᵢ - 1| < ε_sum, 0 ≤ wᵢ ≤ w_max + ε_box, |{wᵢ > 0}| = K
+  - vsClassical = winner_solve_time / runner_up_classical_solve_time
+
+-------------------------------------------------------------------
+MARKET DATA STRATEGY
+-------------------------------------------------------------------
+
+Unit tests (math correctness):
+  - Synthetic μ, Σ with known properties (correlated Gaussian returns).
+  - Verify QP solution against scipy.optimize closed form.
+  - Verify QUBO solution against Gurobi MIQP solution within ε.
+
+Integration / demo (booth day):
+  - Live crypto via CoinGecko hourly OHLCV.
+  - 15 tickers × 720 hourly observations × 30 days = well within free tier.
+  - Reasons to prefer crypto over stocks:
+      * 24/7 markets — stocks close 4pm + weekends; booth runs across timezones
+      * Higher volatility → punchier P&L animations on TV
+      * Product brands as crypto trading; testing with stocks risks
+        scaling/unit bugs at switchover (cents vs dollars, lot sizes)
+  - CoinGecko fallback: Binance public API (also free, hourly OHLCV).
+
+The optimizer is opaque to ticker semantics — it only sees μ and Σ. So
+we can develop end-to-end with synthetic data and swap in live crypto
+last without changing any math.
+
+-------------------------------------------------------------------
+QUBO ENCODING — hyperparameters that need empirical tuning
+-------------------------------------------------------------------
+
+These need to be locked before booth. Plan a dedicated tuning day.
+
+Discretization:
+  - b = 4 bits per asset (16 levels, ~6% granularity at w_max = 0.5)
+  - Adjust to b = 5 if cardinality solutions are too lumpy
+
+Penalty weights:
+  - λ_sum, λ_K ≈ 10 × max(|Σᵢⱼ|, |μᵢ|) in the QUBO
+  - Validate via Gurobi: if Gurobi finds infeasible "solutions" at these
+    penalties, raise them
+  - Too high = drowns out objective; too low = violates constraints
+
+D-Wave-specific:
+  - Chain strength: auto-tune first, then manually tune if chain-break
+    rate exceeds 5%
+  - Annealing time: longer = better quality but lower throughput
+  - Number of reads: 1000 typical, can reduce if response time matters more
+
+-------------------------------------------------------------------
+END
+-------------------------------------------------------------------
