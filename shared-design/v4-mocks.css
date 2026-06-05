@@ -4371,6 +4371,27 @@
     .kiosk-v4 .v4m-selector-btn { padding: 11px 0; }
   }
 
+  /* ─── doc-stage: render a kiosk mock inside a true 1024×768 iPad canvas,
+     scaled to fit the design-doc column. The doc's script sets the scale
+     transform and the stage height (width / 1024 × 768). ─── */
+  .doc-stage {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  .doc-stage-canvas {
+    width: 1024px;
+    height: 768px;
+    transform-origin: top left;
+    display: flex;
+    flex-direction: column;
+  }
+  .doc-stage-canvas > .qs-v4-mock {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   /* ─── Mock B: kiosk-welcome-v4 (post-routing) ─── */
   .kiosk-welcome-v4 {
     min-height: 540px;

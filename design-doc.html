@@ -263,7 +263,9 @@
   <div class="mockup-frame kiosk">
     <div class="chrome"><span class="net-status">Quip Network · Online</span></div>
     <div class="screen" style="padding: 0;">
-      <div class="qs-v4-mock kiosk-v4">
+      <!-- doc-stage: true 9.7" iPad canvas (1024×768) scaled to the doc column -->
+      <div class="doc-stage"><div class="doc-stage-canvas">
+      <div class="qs-v4-mock kiosk-v4 app-fit">
 
         <!-- v4 nav: wordmark + eyebrow + gradient pill -->
         <div class="v4m-nav">
@@ -474,6 +476,7 @@
         </div>
 
       </div>
+      </div></div>
     </div>
   </div>
 
@@ -483,6 +486,8 @@
   <div class="mockup-frame kiosk">
     <div class="chrome"><span class="net-status">Quip Network · Routed</span></div>
     <div class="screen" style="padding: 0;">
+      <!-- doc-stage: true 9.7" iPad canvas (1024×768) scaled to the doc column -->
+      <div class="doc-stage"><div class="doc-stage-canvas">
       <div class="qs-v4-mock kiosk-welcome-v4" id="kiosk-routing-hero">
 
         <!-- v4 nav -->
@@ -621,6 +626,7 @@
         </div>
 
       </div>
+      </div></div>
     </div>
   </div>
 
@@ -1883,6 +1889,19 @@
     const i = Math.min(labels.length - 1, Math.floor(val / 20));
     return labels[i];
   }
+
+  // ─── Scale the kiosk doc-stages to true iPad proportions (1024×768) ───
+  function fitDocStages() {
+    document.querySelectorAll('.doc-stage').forEach(stage => {
+      const canvas = stage.querySelector('.doc-stage-canvas');
+      if (!canvas) return;
+      const s = stage.clientWidth / 1024;
+      canvas.style.transform = 'scale(' + s + ')';
+      stage.style.height = Math.round(768 * s) + 'px';
+    });
+  }
+  fitDocStages();
+  window.addEventListener('resize', fitDocStages);
 
   // ─── Kiosk sign-up (live form) ───
   const kioskName = document.getElementById('kiosk-name');
