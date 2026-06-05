@@ -13,11 +13,27 @@ export type AgentConfig = {
   name: string;
   handle?: string;
   sliders: SliderValues;
+  assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)
 };
 
 export type ProviderType = 'QPU' | 'CPU';
 
-export type AssetTicker = 'BTC' | 'ETH' | 'SOL' | 'USDC';
+export type AssetClass = 'crypto' | 'stock';
+
+// The full 25-asset tradable universe: 14 crypto + 11 stocks.
+export type AssetTicker =
+  // crypto
+  | 'BTC' | 'ETH' | 'BNB' | 'USDC' | 'XRP' | 'SOL' | 'HYPE'
+  | 'DOGE' | 'USDT' | 'ZEC' | 'ALGO' | 'STRK' | 'FIL' | 'RENDER'
+  // stocks
+  | 'IONQ' | 'QBTS' | 'RGTI' | 'QUBT' | 'QNT' | 'SAF'
+  | 'INDI' | 'BTQ' | 'LAES' | 'ARQQ' | 'SPCX';
+
+export type AssetInfo = {
+  ticker: AssetTicker;
+  name: string;
+  class: AssetClass;
+};
 
 export type PortfolioEntry = {
   ticker: AssetTicker;

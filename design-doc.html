@@ -257,8 +257,8 @@
   <p class="lede">Three surfaces, shown in order: the kiosk sign-up screen, the post-launch confirmation, and the personal phone profile.</p>
 
   <h3 style="margin-top: 36px; margin-bottom: 8px;">Kiosk · Sign-up &amp; tune</h3>
-  <p class="small" style="margin-bottom: 6px;">Single-page laptop kiosk. The user enters an agent name, adjusts five strategy sliders, and submits. The panel on the right previews the generative glyph used as the agent's identity on the leaderboard.</p>
-  <p class="small" style="margin-bottom: 12px; color: var(--zinc-500);"><span class="interactive-tag">Live</span> &nbsp;Type a name and drag the sliders below; the preview panel updates in real time.</p>
+  <p class="small" style="margin-bottom: 6px;">Single-page laptop kiosk. The user picks their tradable basket from the 25-asset universe (14 crypto + 11 stocks), enters an agent name, adjusts five strategy sliders, and submits. The panel on the right previews the generative glyph used as the agent's identity on the leaderboard.</p>
+  <p class="small" style="margin-bottom: 12px; color: var(--zinc-500);"><span class="interactive-tag">Live</span> &nbsp;Toggle assets (All / None / Auto-pick), type a name and drag the sliders below; the panels update in real time.</p>
 
   <div class="mockup-frame kiosk">
     <div class="chrome"><span class="net-status">Quip Network · Online</span></div>
@@ -280,26 +280,67 @@
           <h1>Create your <span class="it">trading agent.</span></h1>
         </div>
 
-        <!-- 2-column body: form rows + preview rail -->
-        <div class="v4m-body">
+        <!-- Selector-top body: basket + slider band (left), identity rail (right) -->
+        <div class="v4m-body selector-top">
 
-          <div class="v4m-form-col">
-            <!-- Player name -->
-            <div class="v4m-field">
-              <label for="kiosk-name">Player name</label>
-              <input class="v4m-input" id="kiosk-name" type="text" value="Lattice Theory" />
-            </div>
-            <!-- X handle -->
-            <div class="v4m-field">
-              <label for="kiosk-handle">X handle (optional)</label>
-              <input class="v4m-input" id="kiosk-handle" type="text" placeholder="@yourhandle" />
+          <div class="v4m-main-col">
+
+          <!-- Asset selector — the player's tradable basket (14 crypto + 11 stocks) -->
+          <div class="v4m-mega v4m-selector-mega" aria-label="Asset selector">
+              <div class="v4m-mega-section v4m-selector-section">
+                <div class="v4m-selector-head">
+                  <span class="v4m-section-eyebrow cyan-dot">Your basket</span>
+                  <span class="v4m-selector-count" id="kiosk-basket-count">25/25</span>
+                </div>
+                <div class="v4m-selector-actions">
+                  <button type="button" class="v4m-selector-btn" data-basket-action="all">All</button>
+                  <button type="button" class="v4m-selector-btn" data-basket-action="none">None</button>
+                  <button type="button" class="v4m-selector-btn accent" data-basket-action="auto">Auto-pick</button>
+                </div>
+                <div class="v4m-pick-list" id="kiosk-pick-list">
+                  <div class="v4m-pick-group-label">Crypto &middot; 14</div>
+                  <div class="v4m-pick-grid">
+                    <button type="button" class="v4m-tile crypto on" data-pick="BTC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">BTC</span><span class="v4m-tile-name">Bitcoin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="ETH" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ETH</span><span class="v4m-tile-name">Ethereum</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="BNB" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">BNB</span><span class="v4m-tile-name">BNB</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="USDC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">USDC</span><span class="v4m-tile-name">USD Coin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="XRP" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">XRP</span><span class="v4m-tile-name">XRP</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="SOL" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">SOL</span><span class="v4m-tile-name">Solana</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="HYPE" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">HYPE</span><span class="v4m-tile-name">Hyperliquid</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="DOGE" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">DOGE</span><span class="v4m-tile-name">Dogecoin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="USDT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">USDT</span><span class="v4m-tile-name">Tether</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="ZEC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ZEC</span><span class="v4m-tile-name">Zcash</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="ALGO" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ALGO</span><span class="v4m-tile-name">Algorand</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="STRK" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">STRK</span><span class="v4m-tile-name">Starknet</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="FIL" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">FIL</span><span class="v4m-tile-name">Filecoin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="RENDER" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">RENDER</span><span class="v4m-tile-name">Render</span></button>
+                  </div>
+                  <div class="v4m-pick-group-label">Stocks &middot; 11</div>
+                  <div class="v4m-pick-grid">
+                    <button type="button" class="v4m-tile stock on" data-pick="IONQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">IONQ</span><span class="v4m-tile-name">IonQ</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="QBTS" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">QBTS</span><span class="v4m-tile-name">D-Wave Quantum</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="RGTI" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">RGTI</span><span class="v4m-tile-name">Rigetti Computing</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="QUBT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">QUBT</span><span class="v4m-tile-name">Quantum Computing</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="QNT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">QNT</span><span class="v4m-tile-name">Quantinuum</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="SAF" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">SAF</span><span class="v4m-tile-name">Safran</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="INDI" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">INDI</span><span class="v4m-tile-name">indie Semiconductor</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="BTQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">BTQ</span><span class="v4m-tile-name">BTQ Technologies</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="LAES" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">LAES</span><span class="v4m-tile-name">SEALSQ</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="ARQQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ARQQ</span><span class="v4m-tile-name">Arqit Quantum</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="SPCX" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">SPCX</span><span class="v4m-tile-name">SpaceX</span></button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- 5 strategy sliders, leaderboard-row cadence -->
+          <!-- 5 strategy sliders — horizontal band beneath the basket -->
+          <div class="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
+            <div class="v4m-mega-section">
+              <div class="v4m-sliders-row">
+
             <div class="v4m-slider">
               <div class="v4m-slider-top">
                 <span class="v4m-slider-label">Trading activity</span>
-                <span class="v4m-slider-val" data-kiosk-label="0">High</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -308,11 +349,13 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="0" min="0" max="100" value="70" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="0">High</span>
+              </div>
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
                 <span class="v4m-slider-label">Risk preference</span>
-                <span class="v4m-slider-val" data-kiosk-label="1">Aggressive</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -321,11 +364,13 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="1" min="0" max="100" value="78" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="1">Aggressive</span>
+              </div>
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
                 <span class="v4m-slider-label">Trade size</span>
-                <span class="v4m-slider-val" data-kiosk-label="2">Medium</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -334,11 +379,13 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="2" min="0" max="100" value="50" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="2">Medium</span>
+              </div>
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
                 <span class="v4m-slider-label">Holding style</span>
-                <span class="v4m-slider-val" data-kiosk-label="3">Patient</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -347,11 +394,13 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="3" min="0" max="100" value="30" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="3">Patient</span>
+              </div>
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
                 <span class="v4m-slider-label">Diversification</span>
-                <span class="v4m-slider-val" data-kiosk-label="4">Balanced</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -360,12 +409,30 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="4" min="0" max="100" value="55" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="4">Balanced</span>
+              </div>
+            </div>
+
+              </div>
             </div>
           </div>
 
-          <!-- v4-mega rail: agent identity (pattern hidden until launch) -->
+          </div>
+
+          <!-- v4-mega rail: agent identity (name + handle beside the preview) -->
           <aside class="v4m-rail-col" aria-label="Your agent">
             <div class="v4m-mega">
+              <div class="v4m-mega-section">
+                <div class="v4m-field">
+                  <label for="kiosk-name">Player name</label>
+                  <input class="v4m-input" id="kiosk-name" type="text" value="Lattice Theory" />
+                </div>
+                <div class="v4m-field">
+                  <label for="kiosk-handle">X handle (optional)</label>
+                  <input class="v4m-input" id="kiosk-handle" type="text" placeholder="@yourhandle" />
+                </div>
+              </div>
               <div class="v4m-mega-section">
                 <span class="v4m-section-eyebrow cyan-dot">Your Agent</span>
                 <div class="v4m-preview v4m-preview-mystery">
@@ -395,24 +462,6 @@
             </div>
           </aside>
 
-          <!-- v4-mega rail: indicative basket (assets traded) -->
-          <aside class="v4m-rail-col v4m-assets-rail" aria-label="Supported assets">
-            <div class="v4m-mega">
-              <div class="v4m-mega-section">
-                <span class="v4m-section-eyebrow cyan-dot">Supported assets</span>
-                <div class="v4m-asset-list">
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-btc"/></svg><span class="v4m-asset-name">BTC</span><span class="v4m-asset-change up">+2.1%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-eth"/></svg><span class="v4m-asset-name">ETH</span><span class="v4m-asset-change up">+1.4%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-sol"/></svg><span class="v4m-asset-name">SOL</span><span class="v4m-asset-change up">+3.0%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-link"/></svg><span class="v4m-asset-name">LINK</span><span class="v4m-asset-change down">−0.6%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-uni"/></svg><span class="v4m-asset-name">UNI</span><span class="v4m-asset-change up">+0.3%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-usdc"/></svg><span class="v4m-asset-name">USDC</span><span class="v4m-asset-change flat">±0.0%</span></div>
-                </div>
-                <div class="v4m-asset-note">Final basket TBD</div>
-              </div>
-            </div>
-          </aside>
-
         </div>
 
         <!-- CTA strip -->
@@ -421,7 +470,7 @@
             <span>Create your agent</span>
             <span class="v4m-cta-arrow">→</span>
           </button>
-          <div class="v4m-cta-sub">Your unique identity is revealed once you launch &middot; ~1 second to first job</div>
+          <div class="v4m-cta-sub" id="kiosk-cta-sub">25 assets in basket &middot; Your unique identity is revealed once you launch &middot; ~1 second to first job</div>
         </div>
 
       </div>
@@ -1896,6 +1945,52 @@
   if (kioskHandleInput) kioskHandleInput.addEventListener('input', kioskUpdatePreviewText);
   kioskUpdatePreviewText();
   kioskRenderGlyph();
+
+  // ─── Kiosk asset selector (the player's tradable basket) ───
+  // Toggle any of the 25 assets; All / None / Auto-pick bulk actions.
+  // Auto-pick is a coin flip per asset (never returns an empty basket).
+  const kioskPicks = Array.from(document.querySelectorAll('#kiosk-pick-list .v4m-tile'));
+  const kioskBasketCount = document.getElementById('kiosk-basket-count');
+  const kioskCtaSub = document.getElementById('kiosk-cta-sub');
+  const kioskLaunchBtn = document.getElementById('kiosk-launch');
+
+  function kioskSetPick(el, on) {
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  function kioskUpdateBasket() {
+    const n = kioskPicks.filter(p => p.classList.contains('on')).length;
+    if (kioskBasketCount) kioskBasketCount.textContent = n + '/' + kioskPicks.length;
+    if (kioskLaunchBtn) kioskLaunchBtn.disabled = n === 0;
+    if (kioskCtaSub) {
+      kioskCtaSub.textContent = n === 0
+        ? 'Select at least one asset to launch'
+        : n + ' asset' + (n === 1 ? '' : 's') + ' in basket · Your unique identity is revealed once you launch · ~1 second to first job';
+    }
+  }
+  kioskPicks.forEach(p => {
+    p.addEventListener('click', () => {
+      kioskSetPick(p, !p.classList.contains('on'));
+      kioskUpdateBasket();
+    });
+  });
+  document.querySelectorAll('[data-basket-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.basketAction;
+      if (action === 'all') {
+        kioskPicks.forEach(p => kioskSetPick(p, true));
+      } else if (action === 'none') {
+        kioskPicks.forEach(p => kioskSetPick(p, false));
+      } else if (action === 'auto') {
+        kioskPicks.forEach(p => kioskSetPick(p, Math.random() < 0.5));
+        if (!kioskPicks.some(p => p.classList.contains('on'))) {
+          kioskSetPick(kioskPicks[Math.floor(Math.random() * kioskPicks.length)], true);
+        }
+      }
+      kioskUpdateBasket();
+    });
+  });
+  kioskUpdateBasket();
 
   // ─── Compute portfolio weights from the 5 sliders (deterministic) ───
   function computeWeights(p1, p2, p3, p4, p5) {

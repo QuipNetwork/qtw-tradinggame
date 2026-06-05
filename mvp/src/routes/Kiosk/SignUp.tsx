@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitAgent, requestOptimization } from '../../api';
-import type { SliderValues } from '../../api';
+import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS } from '../../api';
+import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
+import KioskStage from './Stage';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number; labels: [string, string, string, string, string] }> = [
   { key: 'tradingActivity',  label: 'Trading activity',  initial: 70, labels: ['Idle', 'Quiet', 'Moderate', 'High', 'Manic'] },
@@ -26,6 +27,7 @@ export default function KioskSignUp() {
   const [name, setName] = useState('Lattice Theory');
   const [handle, setHandle] = useState('');
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
+  const [selected, setSelected] = useState<Set<AssetTicker>>(new Set(ASSETS.map(a => a.ticker)));
   const [busy, setBusy] = useState(false);
 
   const previewName = (name.trim() || 'Player');
@@ -41,8 +43,34 @@ export default function KioskSignUp() {
     });
   }
 
+  function toggleAsset(ticker: AssetTicker) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker);
+      else next.add(ticker);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(ASSETS.map(a => a.ticker)));
+  }
+
+  function selectNone() {
+    setSelected(new Set());
+  }
+
+  // Auto-pick: a coin flip per asset builds a random basket (never empty).
+  function autoPick() {
+    const picked = ASSETS.filter(() => Math.random() < 0.5).map(a => a.ticker);
+    if (picked.length === 0) {
+      picked.push(ASSETS[Math.floor(Math.random() * ASSETS.length)].ticker);
+    }
+    setSelected(new Set(picked));
+  }
+
   async function launch() {
-    if (busy) return;
+    if (busy || selected.size === 0) return;
     setBusy(true);
     const sliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
@@ -52,14 +80,33 @@ export default function KioskSignUp() {
       name: previewName,
       handle: previewHandle,
       sliders: sliderValues,
+      assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
     });
     const result = await requestOptimization(agentId);
     sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
     navigate(`/kiosk/welcome?agent=${agentId}`);
   }
 
+  function renderAssetTile(asset: AssetInfo) {
+    const on = selected.has(asset.ticker);
+    return (
+      <button
+        type="button"
+        className={`v4m-tile ${asset.class}${on ? ' on' : ''}`}
+        key={asset.ticker}
+        onClick={() => toggleAsset(asset.ticker)}
+        aria-pressed={on}
+      >
+        <span className="v4m-tile-check" aria-hidden="true">✓</span>
+        <span className="v4m-tile-ticker">{asset.ticker}</span>
+        <span className="v4m-tile-name">{asset.name}</span>
+      </button>
+    );
+  }
+
   return (
-    <div className="qs-v4-mock kiosk-v4">
+    <KioskStage>
+    <div className="qs-v4-mock kiosk-v4 app-fit">
 
       <div className="v4m-nav">
         <div className="v4m-mark">
@@ -74,57 +121,88 @@ export default function KioskSignUp() {
         <h1>Create your <span className="it">trading agent.</span></h1>
       </div>
 
-      <div className="v4m-body">
+      <div className="v4m-body selector-top">
 
-        <div className="v4m-form-col">
-          <div className="v4m-field">
-            <label htmlFor="kiosk-name">Player name</label>
-            <input
-              className="v4m-input"
-              id="kiosk-name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-          </div>
-          <div className="v4m-field">
-            <label htmlFor="kiosk-handle">X handle (optional)</label>
-            <input
-              className="v4m-input"
-              id="kiosk-handle"
-              type="text"
-              placeholder="@yourhandle"
-              value={handle}
-              onChange={e => setHandle(e.target.value)}
-            />
-          </div>
+        <div className="v4m-main-col">
 
-          {SLIDER_DEFS.map((def, i) => (
-            <div className="v4m-slider" key={def.key}>
-              <div className="v4m-slider-top">
-                <span className="v4m-slider-label">{def.label}</span>
-                <span className="v4m-slider-val">{labelFor(sliders[i], def.labels)}</span>
+          <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
+            <div className="v4m-mega-section v4m-selector-section">
+              <div className="v4m-selector-head">
+                <span className="v4m-section-eyebrow cyan-dot">Your basket</span>
+                <span className="v4m-selector-count">{selected.size}/{ASSETS.length}</span>
               </div>
-              <div className="v4m-slider-shell">
-                <div className="v4m-slider-track">
-                  <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
-                  <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
-                </div>
-                <input
-                  type="range"
-                  className="range-overlay"
-                  min={0}
-                  max={100}
-                  value={sliders[i]}
-                  onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
-                />
+              <div className="v4m-selector-actions">
+                <button type="button" className="v4m-selector-btn" onClick={selectAll}>All</button>
+                <button type="button" className="v4m-selector-btn" onClick={selectNone}>None</button>
+                <button type="button" className="v4m-selector-btn accent" onClick={autoPick}>Auto-pick</button>
+              </div>
+              <div className="v4m-pick-list">
+                <div className="v4m-pick-group-label">Crypto · {CRYPTO_ASSETS.length}</div>
+                <div className="v4m-pick-grid">{CRYPTO_ASSETS.map(renderAssetTile)}</div>
+                <div className="v4m-pick-group-label">Stocks · {STOCK_ASSETS.length}</div>
+                <div className="v4m-pick-grid">{STOCK_ASSETS.map(renderAssetTile)}</div>
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
+            <div className="v4m-mega-section">
+              <div className="v4m-sliders-row">
+                {SLIDER_DEFS.map((def, i) => (
+                  <div className="v4m-slider" key={def.key}>
+                    <div className="v4m-slider-top">
+                      <span className="v4m-slider-label">{def.label}</span>
+                    </div>
+                    <div className="v4m-slider-shell">
+                      <div className="v4m-slider-track">
+                        <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
+                        <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+                      </div>
+                      <input
+                        type="range"
+                        className="range-overlay"
+                        min={0}
+                        max={100}
+                        value={sliders[i]}
+                        onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
+                      />
+                    </div>
+                    <div className="v4m-slider-bottom">
+                      <span className="v4m-slider-val">{labelFor(sliders[i], def.labels)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <aside className="v4m-rail-col" aria-label="Your agent">
           <div className="v4m-mega">
+            <div className="v4m-mega-section">
+              <div className="v4m-field">
+                <label htmlFor="kiosk-name">Player name</label>
+                <input
+                  className="v4m-input"
+                  id="kiosk-name"
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                />
+              </div>
+              <div className="v4m-field">
+                <label htmlFor="kiosk-handle">X handle (optional)</label>
+                <input
+                  className="v4m-input"
+                  id="kiosk-handle"
+                  type="text"
+                  placeholder="@yourhandle"
+                  value={handle}
+                  onChange={e => setHandle(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="v4m-mega-section">
               <span className="v4m-section-eyebrow cyan-dot">Your Agent</span>
               <div className="v4m-preview v4m-preview-mystery">
@@ -154,33 +232,21 @@ export default function KioskSignUp() {
           </div>
         </aside>
 
-        <aside className="v4m-rail-col v4m-assets-rail" aria-label="Supported assets">
-          <div className="v4m-mega">
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow cyan-dot">Supported assets</span>
-              <div className="v4m-asset-list">
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-btc" /></svg><span className="v4m-asset-name">BTC</span><span className="v4m-asset-change up">+2.1%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-eth" /></svg><span className="v4m-asset-name">ETH</span><span className="v4m-asset-change up">+1.4%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-sol" /></svg><span className="v4m-asset-name">SOL</span><span className="v4m-asset-change up">+3.0%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-link" /></svg><span className="v4m-asset-name">LINK</span><span className="v4m-asset-change down">−0.6%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-uni" /></svg><span className="v4m-asset-name">UNI</span><span className="v4m-asset-change up">+0.3%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-usdc" /></svg><span className="v4m-asset-name">USDC</span><span className="v4m-asset-change flat">±0.0%</span></div>
-              </div>
-              <div className="v4m-asset-note">Final basket TBD</div>
-            </div>
-          </div>
-        </aside>
-
       </div>
 
       <div className="v4m-cta-bar">
-        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy}>
+        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0}>
           <span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
-        <div className="v4m-cta-sub">Your unique identity is revealed once you launch · ~1 second to first job</div>
+        <div className="v4m-cta-sub">
+          {selected.size === 0
+            ? 'Select at least one asset to launch'
+            : `${selected.size} asset${selected.size === 1 ? '' : 's'} in basket · Your unique identity is revealed once you launch · ~1 second to first job`}
+        </div>
       </div>
 
     </div>
+    </KioskStage>
   );
 }

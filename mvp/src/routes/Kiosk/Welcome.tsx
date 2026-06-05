@@ -4,6 +4,7 @@ import type { AgentConfig, RoutingResult } from '../../api';
 import { getAgent, requestOptimization } from '../../api';
 import { renderGlyph, renderFakeQR, strHash, pickStyle } from '../../utils/glyph';
 import { computeWeights, labelFor, slidersToArray } from '../../utils/strategy';
+import KioskStage from './Stage';
 
 const BANKROLL = 10000;
 
@@ -73,6 +74,7 @@ export default function KioskWelcome() {
   const cBarPct = isQpu ? 100 : Math.max(4, (classicalTime / solveTime) * 100);
 
   return (
+    <KioskStage>
     <div className="qs-v4-mock kiosk-welcome-v4">
 
       <div className="v4m-nav">
@@ -185,5 +187,6 @@ export default function KioskWelcome() {
 
       </div>
     </div>
+    </KioskStage>
   );
 }
