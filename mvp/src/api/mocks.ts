@@ -43,10 +43,12 @@ const TOP_10: LeaderboardEntry[] = [
 const SEEDED_AGENTS: Record<string, AgentConfig> = {
   a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { tradingActivity: 95, riskPreference: 95, tradeSize: 85 } },
   a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { tradingActivity: 80, riskPreference: 85, tradeSize: 70 } },
-  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60 } },
+  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60 },
+         assets: ['XRP', 'ALGO', 'IONQ', 'QNT', 'SAF', 'ARQQ'] },
   a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50 } },
   a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65 } },
-  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50 } },
+  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50 },
+         assets: ['BTC', 'ETH', 'SOL', 'HYPE', 'DOGE', 'FIL', 'RENDER', 'IONQ', 'QBTS', 'RGTI', 'LAES', 'SPCX'] },
   a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40 } },
   a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45 } },
   a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40 } },
@@ -121,11 +123,11 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
 }
 
 // Builds the optimizer's "answer" from the agent's selected basket: up to
-// four holdings, picked deterministically per agent (same agent → same
+// ten holdings, picked deterministically per agent (same agent → same
 // portfolio on re-render), weighted descending. Agents without a stored
 // basket (older/seeded entries) fall back to the demo basket.
 const FALLBACK_BASKET: AssetTicker[] = ['BTC', 'ETH', 'SOL', 'USDC'];
-const ALLOC_WEIGHTS = [42, 28, 22, 8];
+const ALLOC_WEIGHTS = [26, 18, 13, 10, 8, 7, 6, 5, 4, 3];
 
 function portfolioFor(agentId: string, assets?: AssetTicker[]): PortfolioEntry[] {
   const basket = assets && assets.length ? assets : FALLBACK_BASKET;

@@ -131,25 +131,22 @@ export default function KioskWelcome() {
             </div>
           </div>
 
-          <div className="v4m-agent-grid">
+          {/* Strategy recap — compact horizontal strip (3 sliders) */}
+          <div className="v4m-strat-strip">
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Trading activity</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.tradingActivity)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Trade size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.tradeSize)}</span></div>
+          </div>
 
-            <div className="v4m-agent-col">
-              <span className="v4m-section-eyebrow">Your strategy</span>
-              <div className="v4m-strat-list">
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Trading activity</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.tradingActivity)}</span></div>
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Trade size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.tradeSize)}</span></div>
-              </div>
+          {/* Portfolio — full width; holdings flow into two columns */}
+          <div className="v4m-portfolio-block">
+            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}</span>
+            <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
+              {portfolio.map(entry => (
+                <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
+              ))}
             </div>
-
-            <div className="v4m-agent-col">
-              <span className="v4m-section-eyebrow">Your portfolio</span>
-              <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
-                {portfolio.map(entry => (
-                  <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
-                ))}
-              </div>
-
+            <div className="v4m-alloc-grid">
               {portfolio.map(entry => (
                 <div className="v4m-alloc-row" key={entry.ticker}>
                   <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
@@ -159,7 +156,6 @@ export default function KioskWelcome() {
                 </div>
               ))}
             </div>
-
           </div>
 
           <div className="v4m-agent-qr-row">

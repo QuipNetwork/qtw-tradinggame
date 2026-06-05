@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS } from '../../api';
+import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
 import KioskStage from './Stage';
 
@@ -98,6 +98,7 @@ export default function KioskSignUp() {
         aria-pressed={on}
       >
         <span className="v4m-tile-check" aria-hidden="true">✓</span>
+        <img className="v4m-tile-icon" src={assetIconSrc(asset.ticker)} alt="" loading="lazy" />
         <span className="v4m-tile-ticker">{asset.ticker}</span>
         <span className="v4m-tile-name">{asset.name}</span>
       </button>

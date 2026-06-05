@@ -4009,7 +4009,7 @@
   .kiosk-v4 .v4m-tile {
     position: relative;
     min-width: 0;        /* long asset names must not blow out the grid */
-    min-height: 76px;
+    min-height: 80px;
     overflow: hidden;
     border: 1px solid #e4e4e7;
     background: #f6f6f7;
@@ -4017,10 +4017,25 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 7px 5px 10px;
+    gap: 2px;
+    padding: 6px 5px 8px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+  }
+  /* Brand icon — dimmed to grayscale when the asset is not selected, so
+     the selected basket pops in full color and reads at a glance. */
+  .kiosk-v4 .v4m-tile .v4m-tile-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    border-radius: 6px;
+    filter: grayscale(1);
+    opacity: 0.45;
+    transition: filter 0.12s ease, opacity 0.12s ease;
+  }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-icon {
+    filter: none;
+    opacity: 1;
   }
   .kiosk-v4 .v4m-tile .v4m-tile-ticker {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -4336,15 +4351,18 @@
     min-height: 0;
   }
   .kiosk-v4.app-fit .v4m-nav { padding: 10px 18px; }
-  .kiosk-v4.app-fit .v4m-hero { padding: 12px 18px 10px; }
-  .kiosk-v4.app-fit .v4m-hero h1 { font-size: 1.5rem; }
+  .kiosk-v4.app-fit .v4m-hero { padding: 9px 18px 7px; }
+  .kiosk-v4.app-fit .v4m-hero h1 { font-size: 1.4rem; }
   .kiosk-v4.app-fit .v4m-body.selector-top {
-    gap: 14px;
-    padding: 4px 18px 12px;
+    gap: 12px;
+    padding: 2px 18px 10px;
   }
-  .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 14px; }
-  .kiosk-v4.app-fit .v4m-selector-actions { padding: 10px 0; }
-  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 10px 0 5px; }
+  .kiosk-v4.app-fit .v4m-main-col { gap: 12px; }
+  .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 12px 14px; }
+  .kiosk-v4.app-fit .v4m-selector-actions { padding: 8px 0; }
+  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 8px 0 4px; }
+  .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
+  .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-bottom { margin-top: 6px; }
   .kiosk-v4.app-fit .v4m-field { padding: 8px 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:last-child { padding-bottom: 0; }
@@ -4551,6 +4569,51 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #71717b;
+  }
+  /* Strategy recap strip — three slider values in a row above the portfolio */
+  .kiosk-welcome-v4 .v4m-strat-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    padding: 2px 0 12px;
+    border-bottom: 1px solid #ececef;
+    margin-bottom: 14px;
+  }
+  .kiosk-welcome-v4 .v4m-strat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .kiosk-welcome-v4 .v4m-strat-strip-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Portfolio block — full width; holdings flow into two columns */
+  .kiosk-welcome-v4 .v4m-portfolio-block {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 28px;
+    align-content: start;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row {
+    border-top: 1px solid #f1f1f3;
+    padding: 7px 0;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row:nth-child(-n+2) {
+    border-top: none;
   }
   /* Strategy recap column — sits between the solver outcome and the portfolio */
   .kiosk-welcome-v4 .v4m-strat-list {
@@ -5614,6 +5677,27 @@
     text-transform: uppercase;
     color: #a1a1aa;
   }
+  /* All-25 variant — the full universe in a compact two-column grid */
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2.2cqw;
+    align-content: start;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-row {
+    grid-template-columns: 3cqh 1fr auto;
+    gap: 0.8cqw;
+    padding: 0.62cqh 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-glyph {
+    width: 2.7cqh;
+    height: 2.7cqh;
+    object-fit: contain;
+    border-radius: 0.5cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-ticker { font-size: 1.45cqh; }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-change { font-size: 1.35cqh; }
 
   /* ─── Mobile: scale the kiosk-laptop mockups proportionally ───
      The kiosk-v4 and kiosk-welcome-v4 mocks are laid out at a

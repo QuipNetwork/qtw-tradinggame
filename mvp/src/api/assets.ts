@@ -13,7 +13,7 @@ export const ASSETS: AssetInfo[] = [
   { ticker: 'BNB',    name: 'BNB',                 class: 'crypto', icon: 'bnb.svg',    color: '#F3BA2F' },
   { ticker: 'USDC',   name: 'USD Coin',            class: 'crypto', icon: 'usdc.svg',   color: '#2775CA' },
   { ticker: 'XRP',    name: 'XRP',                 class: 'crypto', icon: 'xrp.svg',    color: '#23292F' },
-  { ticker: 'SOL',    name: 'Solana',              class: 'crypto', icon: 'sol.svg',    color: '#14F195' },
+  { ticker: 'SOL',    name: 'Solana',              class: 'crypto', icon: 'sol.png',    color: '#9945FF' },
   { ticker: 'HYPE',   name: 'Hyperliquid',         class: 'crypto', icon: 'hype.png',   color: '#4FD1B5' },
   { ticker: 'DOGE',   name: 'Dogecoin',            class: 'crypto', icon: 'doge.svg',   color: '#C2A633' },
   { ticker: 'USDT',   name: 'Tether',              class: 'crypto', icon: 'usdt.svg',   color: '#26A17B' },

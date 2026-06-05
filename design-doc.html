@@ -202,7 +202,7 @@
       <rect x="0" y="40" width="200" height="140" rx="8" fill="white" stroke="#e4e4e7"/>
       <text x="14" y="62" font-size="11" font-family="JetBrains Mono, monospace" fill="#71717a">STEP 01 · BOOTH</text>
       <text x="14" y="92" font-size="15" font-weight="600" fill="#09090b">Sign up</text>
-      <text x="14" y="112" font-size="12" fill="#52525b">Name + (optional) X handle</text>
+      <text x="14" y="112" font-size="12" fill="#52525b">Name + email</text>
       <text x="14" y="128" font-size="12" fill="#52525b">at the kiosk laptop</text>
       <text x="14" y="160" font-size="11" fill="#a1a1aa">~20 sec</text>
 
@@ -303,34 +303,34 @@
                 <div class="v4m-pick-list" id="kiosk-pick-list">
                   <div class="v4m-pick-group-label">Crypto &middot; 14</div>
                   <div class="v4m-pick-grid">
-                    <button type="button" class="v4m-tile crypto on" data-pick="BTC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">BTC</span><span class="v4m-tile-name">Bitcoin</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="ETH" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ETH</span><span class="v4m-tile-name">Ethereum</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="BNB" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">BNB</span><span class="v4m-tile-name">BNB</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="USDC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">USDC</span><span class="v4m-tile-name">USD Coin</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="XRP" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">XRP</span><span class="v4m-tile-name">XRP</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="SOL" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">SOL</span><span class="v4m-tile-name">Solana</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="HYPE" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">HYPE</span><span class="v4m-tile-name">Hyperliquid</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="DOGE" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">DOGE</span><span class="v4m-tile-name">Dogecoin</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="USDT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">USDT</span><span class="v4m-tile-name">Tether</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="ZEC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ZEC</span><span class="v4m-tile-name">Zcash</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="ALGO" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ALGO</span><span class="v4m-tile-name">Algorand</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="STRK" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">STRK</span><span class="v4m-tile-name">Starknet</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="FIL" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">FIL</span><span class="v4m-tile-name">Filecoin</span></button>
-                    <button type="button" class="v4m-tile crypto on" data-pick="RENDER" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">RENDER</span><span class="v4m-tile-name">Render</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="BTC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/btc.svg" alt=""><span class="v4m-tile-ticker">BTC</span><span class="v4m-tile-name">Bitcoin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="ETH" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/eth.svg" alt=""><span class="v4m-tile-ticker">ETH</span><span class="v4m-tile-name">Ethereum</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="BNB" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/bnb.svg" alt=""><span class="v4m-tile-ticker">BNB</span><span class="v4m-tile-name">BNB</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="USDC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/usdc.svg" alt=""><span class="v4m-tile-ticker">USDC</span><span class="v4m-tile-name">USD Coin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="XRP" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/xrp.svg" alt=""><span class="v4m-tile-ticker">XRP</span><span class="v4m-tile-name">XRP</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="SOL" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/sol.png" alt=""><span class="v4m-tile-ticker">SOL</span><span class="v4m-tile-name">Solana</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="HYPE" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/hype.png" alt=""><span class="v4m-tile-ticker">HYPE</span><span class="v4m-tile-name">Hyperliquid</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="DOGE" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/doge.svg" alt=""><span class="v4m-tile-ticker">DOGE</span><span class="v4m-tile-name">Dogecoin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="USDT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/usdt.svg" alt=""><span class="v4m-tile-ticker">USDT</span><span class="v4m-tile-name">Tether</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="ZEC" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/zec.svg" alt=""><span class="v4m-tile-ticker">ZEC</span><span class="v4m-tile-name">Zcash</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="ALGO" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/algo.svg" alt=""><span class="v4m-tile-ticker">ALGO</span><span class="v4m-tile-name">Algorand</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="STRK" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/strk.png" alt=""><span class="v4m-tile-ticker">STRK</span><span class="v4m-tile-name">Starknet</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="FIL" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/fil.svg" alt=""><span class="v4m-tile-ticker">FIL</span><span class="v4m-tile-name">Filecoin</span></button>
+                    <button type="button" class="v4m-tile crypto on" data-pick="RENDER" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/render.png" alt=""><span class="v4m-tile-ticker">RENDER</span><span class="v4m-tile-name">Render</span></button>
                   </div>
                   <div class="v4m-pick-group-label">Stocks &middot; 11</div>
                   <div class="v4m-pick-grid">
-                    <button type="button" class="v4m-tile stock on" data-pick="IONQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">IONQ</span><span class="v4m-tile-name">IonQ</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="QBTS" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">QBTS</span><span class="v4m-tile-name">D-Wave Quantum</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="RGTI" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">RGTI</span><span class="v4m-tile-name">Rigetti Computing</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="QUBT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">QUBT</span><span class="v4m-tile-name">Quantum Computing</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="QNT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">QNT</span><span class="v4m-tile-name">Quantinuum</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="SAF" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">SAF</span><span class="v4m-tile-name">Safran</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="INDI" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">INDI</span><span class="v4m-tile-name">indie Semiconductor</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="BTQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">BTQ</span><span class="v4m-tile-name">BTQ Technologies</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="LAES" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">LAES</span><span class="v4m-tile-name">SEALSQ</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="ARQQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">ARQQ</span><span class="v4m-tile-name">Arqit Quantum</span></button>
-                    <button type="button" class="v4m-tile stock on" data-pick="SPCX" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><span class="v4m-tile-ticker">SPCX</span><span class="v4m-tile-name">SpaceX</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="IONQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/ionq.png" alt=""><span class="v4m-tile-ticker">IONQ</span><span class="v4m-tile-name">IonQ</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="QBTS" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/qbts.png" alt=""><span class="v4m-tile-ticker">QBTS</span><span class="v4m-tile-name">D-Wave Quantum</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="RGTI" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/rgti.png" alt=""><span class="v4m-tile-ticker">RGTI</span><span class="v4m-tile-name">Rigetti Computing</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="QUBT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/qubt.png" alt=""><span class="v4m-tile-ticker">QUBT</span><span class="v4m-tile-name">Quantum Computing</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="QNT" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/qnt.png" alt=""><span class="v4m-tile-ticker">QNT</span><span class="v4m-tile-name">Quantinuum</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="SAF" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/saf.png" alt=""><span class="v4m-tile-ticker">SAF</span><span class="v4m-tile-name">Safran</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="INDI" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/indi.png" alt=""><span class="v4m-tile-ticker">INDI</span><span class="v4m-tile-name">indie Semiconductor</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="BTQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/btq.png" alt=""><span class="v4m-tile-ticker">BTQ</span><span class="v4m-tile-name">BTQ Technologies</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="LAES" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/laes.png" alt=""><span class="v4m-tile-ticker">LAES</span><span class="v4m-tile-name">SEALSQ</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="ARQQ" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/arqq.png" alt=""><span class="v4m-tile-ticker">ARQQ</span><span class="v4m-tile-name">Arqit Quantum</span></button>
+                    <button type="button" class="v4m-tile stock on" data-pick="SPCX" aria-pressed="true"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/spcx.png" alt=""><span class="v4m-tile-ticker">SPCX</span><span class="v4m-tile-name">SpaceX</span></button>
                   </div>
                 </div>
               </div>
@@ -532,27 +532,22 @@
               </div>
             </div>
 
-            <!-- Sub-columns: strategy (left) + portfolio (right) -->
-            <div class="v4m-agent-grid">
+            <!-- Strategy recap — compact strip; the portfolio gets the full card width -->
+            <div class="v4m-strat-strip">
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Trading activity</span><span class="v4m-strat-val">High</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Trade size</span><span class="v4m-strat-val">Medium</span></div>
+            </div>
 
-              <div class="v4m-agent-col">
-                <span class="v4m-section-eyebrow">Your strategy</span>
-                <div class="v4m-strat-list">
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Trading activity</span><span class="v4m-strat-val">High</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Trade size</span><span class="v4m-strat-val">Medium</span></div>
-                </div>
+            <div class="v4m-portfolio-block">
+              <span class="v4m-section-eyebrow">Your portfolio</span>
+              <div class="v4m-alloc-stack" style="margin-top: 10px;">
+                <span data-strat-bar="0" style="width: 42%; background: #F7931A;"></span>
+                <span data-strat-bar="1" style="width: 28%; background: #627EEA;"></span>
+                <span data-strat-bar="2" style="width: 22%; background: #9945FF;"></span>
+                <span data-strat-bar="3" style="width: 8%; background: #2775CA;"></span>
               </div>
-
-              <div class="v4m-agent-col">
-                <span class="v4m-section-eyebrow">Your portfolio</span>
-                <div class="v4m-alloc-stack" style="margin-top: 10px;">
-                  <span data-strat-bar="0" style="width: 42%; background: linear-gradient(135deg, #f7931a, #ffb347);"></span>
-                  <span data-strat-bar="1" style="width: 28%; background: linear-gradient(135deg, #627eea, #8aa2f9);"></span>
-                  <span data-strat-bar="2" style="width: 22%; background: linear-gradient(135deg, #14F195, #9945FF);"></span>
-                  <span data-strat-bar="3" style="width: 8%; background: linear-gradient(135deg, #2775ca, #4f9ddc);"></span>
-                </div>
-
+              <div class="v4m-alloc-grid">
                 <div class="v4m-alloc-row">
                   <img class="v4m-alloc-icon" src="shared-design/asset-icons/btc.svg" alt="">
                   <span class="v4m-alloc-name">BTC</span>
@@ -566,7 +561,7 @@
                   <span class="v4m-alloc-usd" data-strat-dollar="1">$2,800</span>
                 </div>
                 <div class="v4m-alloc-row">
-                  <img class="v4m-alloc-icon" src="shared-design/asset-icons/sol.svg" alt="">
+                  <img class="v4m-alloc-icon" src="shared-design/asset-icons/sol.png" alt="">
                   <span class="v4m-alloc-name">SOL</span>
                   <span class="v4m-alloc-pct" data-strat-pct="2">22.0%</span>
                   <span class="v4m-alloc-usd" data-strat-dollar="2">$2,200</span>
@@ -578,7 +573,6 @@
                   <span class="v4m-alloc-usd" data-strat-dollar="3">$800</span>
                 </div>
               </div>
-
             </div>
 
             <!-- Footer: QR code + scan caption -->
@@ -741,7 +735,7 @@
     <div class="icon-card"><img src="shared-design/asset-icons/bnb.svg" alt="BNB icon"><div class="icon-card-ticker">BNB</div><div class="icon-card-name">BNB</div></div>
     <div class="icon-card"><img src="shared-design/asset-icons/usdc.svg" alt="USDC icon"><div class="icon-card-ticker">USDC</div><div class="icon-card-name">USD Coin</div></div>
     <div class="icon-card"><img src="shared-design/asset-icons/xrp.svg" alt="XRP icon"><div class="icon-card-ticker">XRP</div><div class="icon-card-name">XRP</div></div>
-    <div class="icon-card"><img src="shared-design/asset-icons/sol.svg" alt="SOL icon"><div class="icon-card-ticker">SOL</div><div class="icon-card-name">Solana</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/sol.png" alt="SOL icon"><div class="icon-card-ticker">SOL</div><div class="icon-card-name">Solana</div></div>
     <div class="icon-card"><img src="shared-design/asset-icons/hype.png" alt="HYPE icon"><div class="icon-card-ticker">HYPE</div><div class="icon-card-name">Hyperliquid</div></div>
     <div class="icon-card"><img src="shared-design/asset-icons/doge.svg" alt="DOGE icon"><div class="icon-card-ticker">DOGE</div><div class="icon-card-name">Dogecoin</div></div>
     <div class="icon-card"><img src="shared-design/asset-icons/usdt.svg" alt="USDT icon"><div class="icon-card-ticker">USDT</div><div class="icon-card-name">Tether</div></div>
@@ -1182,8 +1176,8 @@
               <div class="sdf-input sdf-input-placeholder">Your name</div>
             </div>
             <div class="sdf-field">
-              <label>X handle (optional)</label>
-              <div class="sdf-input sdf-input-placeholder">Your handle</div>
+              <label>Email (required)</label>
+              <div class="sdf-input sdf-input-placeholder">you@example.com</div>
             </div>
 
             <div class="sdf-slider">
@@ -1203,16 +1197,35 @@
 
           <!-- Supported assets column -->
           <div class="state-d-assets">
-            <div class="state-d-eyebrow cyan-dot">Supported assets</div>
-            <div class="state-d-asset-list">
-              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/btc.svg" alt=""><span class="sda-ticker">BTC</span><span class="sda-change up">+2.1%</span></div>
-              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/eth.svg" alt=""><span class="sda-ticker">ETH</span><span class="sda-change up">+1.4%</span></div>
-              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/sol.svg" alt=""><span class="sda-ticker">SOL</span><span class="sda-change up">+3.0%</span></div>
-              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/hype.png" alt=""><span class="sda-ticker">HYPE</span><span class="sda-change down">&minus;0.6%</span></div>
-              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/ionq.png" alt=""><span class="sda-ticker">IONQ</span><span class="sda-change up">+1.8%</span></div>
-              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qbts.png" alt=""><span class="sda-ticker">QBTS</span><span class="sda-change up">+0.9%</span></div>
+            <div class="state-d-eyebrow cyan-dot">Supported assets &middot; 25</div>
+            <div class="state-d-asset-list all">
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/btc.svg" alt=""><span class="sda-ticker">BTC</span><span class="sda-change up">+0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/eth.svg" alt=""><span class="sda-ticker">ETH</span><span class="sda-change up">+2.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/bnb.svg" alt=""><span class="sda-ticker">BNB</span><span class="sda-change up">+0.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/usdc.svg" alt=""><span class="sda-ticker">USDC</span><span class="sda-change down">&minus;1.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/xrp.svg" alt=""><span class="sda-ticker">XRP</span><span class="sda-change down">&minus;0.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/sol.png" alt=""><span class="sda-ticker">SOL</span><span class="sda-change up">+3.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/hype.png" alt=""><span class="sda-ticker">HYPE</span><span class="sda-change down">&minus;2.5%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/doge.svg" alt=""><span class="sda-ticker">DOGE</span><span class="sda-change down">&minus;0.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/usdt.svg" alt=""><span class="sda-ticker">USDT</span><span class="sda-change up">+0.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/zec.svg" alt=""><span class="sda-ticker">ZEC</span><span class="sda-change down">&minus;2.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/algo.svg" alt=""><span class="sda-ticker">ALGO</span><span class="sda-change down">&minus;1.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/strk.png" alt=""><span class="sda-ticker">STRK</span><span class="sda-change up">+0.5%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/fil.svg" alt=""><span class="sda-ticker">FIL</span><span class="sda-change down">&minus;2.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/render.png" alt=""><span class="sda-ticker">RENDER</span><span class="sda-change up">+2.3%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/ionq.png" alt=""><span class="sda-ticker">IONQ</span><span class="sda-change down">&minus;2.4%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qbts.png" alt=""><span class="sda-ticker">QBTS</span><span class="sda-change down">&minus;0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/rgti.png" alt=""><span class="sda-ticker">RGTI</span><span class="sda-change down">&minus;0.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qubt.png" alt=""><span class="sda-ticker">QUBT</span><span class="sda-change up">+0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qnt.png" alt=""><span class="sda-ticker">QNT</span><span class="sda-change down">&minus;2.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/saf.png" alt=""><span class="sda-ticker">SAF</span><span class="sda-change up">+1.9%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/indi.png" alt=""><span class="sda-ticker">INDI</span><span class="sda-change down">&minus;2.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/btq.png" alt=""><span class="sda-ticker">BTQ</span><span class="sda-change up">+2.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/laes.png" alt=""><span class="sda-ticker">LAES</span><span class="sda-change down">&minus;2.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/arqq.png" alt=""><span class="sda-ticker">ARQQ</span><span class="sda-change up">+2.3%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/spcx.png" alt=""><span class="sda-ticker">SPCX</span><span class="sda-change down">&minus;2.1%</span></div>
             </div>
-            <div class="state-d-asset-tail">+ 19 more &middot; 14 crypto + 11 stocks</div>
+            <div class="state-d-asset-tail">14 crypto &middot; 11 stocks &middot; pick your basket at the kiosk</div>
           </div>
 
         </div>
