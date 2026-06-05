@@ -61,7 +61,7 @@ export default function KioskWelcome() {
 
   return (
     <KioskStage>
-    <div className="qs-v4-mock kiosk-welcome-v4">
+    <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
 
       <div className="v4m-nav">
         <div className="v4m-mark">
@@ -146,7 +146,9 @@ export default function KioskWelcome() {
                 <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
               ))}
             </div>
-            <div className="v4m-alloc-grid">
+            {/* >12 holdings switches to the dense three-column grid so even a
+                full 25-asset basket fits the iPad canvas */}
+            <div className={`v4m-alloc-grid${portfolio.length > 12 ? ' dense' : ''}`}>
               {portfolio.map(entry => (
                 <div className="v4m-alloc-row" key={entry.ticker}>
                   <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />

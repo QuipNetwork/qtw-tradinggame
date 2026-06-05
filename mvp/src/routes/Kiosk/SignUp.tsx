@@ -129,7 +129,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow cyan-dot">Your basket</span>
+                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your basket</span>
                 <span className="v4m-selector-count">{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
@@ -148,6 +148,9 @@ export default function KioskSignUp() {
 
           <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
             <div className="v4m-mega-section">
+              <div className="v4m-sliders-head">
+                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
+              </div>
               <div className="v4m-sliders-row">
                 {SLIDER_DEFS.map((def, i) => (
                   <div className="v4m-slider" key={def.key}>
@@ -179,9 +182,11 @@ export default function KioskSignUp() {
 
         </div>
 
-        <aside className="v4m-rail-col" aria-label="Your agent">
+        <aside className="v4m-rail-col" aria-label="Your details and agent">
+          {/* Step 3 — player details, its own card */}
           <div className="v4m-mega">
             <div className="v4m-mega-section">
+              <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
               <div className="v4m-field">
                 <label htmlFor="kiosk-name">Player name</label>
                 <input
@@ -206,6 +211,10 @@ export default function KioskSignUp() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Agent preview + routing — separate card */}
+          <div className="v4m-mega">
             <div className="v4m-mega-section">
               <span className="v4m-section-eyebrow cyan-dot">Your Agent</span>
               <div className="v4m-preview v4m-preview-mystery">
@@ -239,7 +248,7 @@ export default function KioskSignUp() {
 
       <div className="v4m-cta-bar">
         <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0 || !emailValid}>
-          <span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
+          <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
         <div className="v4m-cta-sub">

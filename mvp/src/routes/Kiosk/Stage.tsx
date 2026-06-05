@@ -27,7 +27,7 @@ export default function KioskStage({ children }: { children: ReactNode }) {
 
   return (
     <div className="kiosk-stage-viewport">
-      <div className="kiosk-stage" style={{ transform: `scale(${scale})` }}>
+      <div className="kiosk-stage" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
         {children}
       </div>
     </div>

@@ -3941,8 +3941,46 @@
   }
   .kiosk-v4 .v4m-selector-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
+  }
+  /* Numbered step chips — ① basket ② sliders ③ details ④ create */
+  .kiosk-v4 .v4m-step-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #0891B2;
+    color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .kiosk-v4 .v4m-section-eyebrow.eyebrow-step {
+    display: inline-flex;
+    align-items: center;
+  }
+  .kiosk-v4 .v4m-sliders-head {
+    margin-bottom: 10px;
+  }
+  .kiosk-v4 .v4m-rail-col {
+    gap: 14px;
+  }
+  .kiosk-v4 .v4m-cta .v4m-cta-label {
+    display: inline-flex;
+    align-items: center;
+  }
+  .kiosk-v4 .v4m-cta .v4m-step-chip.cta {
+    background: white;
+    color: #0891B2;
+  }
+  .kiosk-v4 .v4m-cta:disabled .v4m-step-chip.cta {
+    color: #71717b;
   }
   .kiosk-v4 .v4m-selector-count {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -4358,11 +4396,15 @@
     padding: 2px 18px 10px;
   }
   .kiosk-v4.app-fit .v4m-main-col { gap: 12px; }
-  .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 12px 14px; }
-  .kiosk-v4.app-fit .v4m-selector-actions { padding: 8px 0; }
-  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 8px 0 4px; }
+  .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 10px 14px; }
+  .kiosk-v4.app-fit .v4m-selector-actions { padding: 6px 0; }
+  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 5px 0 3px; }
+  .kiosk-v4.app-fit .v4m-tile { min-height: 72px; padding: 5px 5px 7px; }
+  .kiosk-v4.app-fit .v4m-tile .v4m-tile-name { font-size: 0.6rem; }
+  .kiosk-v4.app-fit .v4m-sliders-head { margin-bottom: 6px; }
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-bottom { margin-top: 6px; }
+  .kiosk-v4.app-fit .v4m-rail-col { gap: 12px; }
   .kiosk-v4.app-fit .v4m-field { padding: 8px 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:last-child { padding-bottom: 0; }
@@ -4374,6 +4416,46 @@
   .kiosk-v4.app-fit .v4m-cta-bar { padding: 0 18px 10px; }
   .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
   .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
+
+  /* ─── App mode for the strategy-return screen — compact chrome so a
+     full 25-holding portfolio + QR fit the 1024×768 stage. ─── */
+  .kiosk-welcome-v4.app-fit {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-nav { padding: 10px 18px; }
+  .kiosk-welcome-v4.app-fit .v4m-hero { padding: 10px 18px 8px; }
+  .kiosk-welcome-v4.app-fit .v4m-hero h1 { font-size: 1.5rem; }
+  .kiosk-welcome-v4.app-fit .v4m-body {
+    flex: 1;
+    min-height: 0;
+    gap: 16px;
+    padding: 2px 18px 12px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-panel {
+    padding: 16px 18px;
+    gap: 12px;
+    min-height: 0;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-header {
+    gap: 14px;
+    padding-bottom: 12px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-strat-strip {
+    padding: 0 0 10px;
+    margin-bottom: 10px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
+    padding-top: 12px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-qr {
+    width: 76px;
+    height: 76px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-main {
+    padding: 18px 18px 16px;
+  }
 
   /* ─── Touch ergonomics (tablet / coarse pointer) ─── */
   @media (pointer: coarse) {
@@ -4615,6 +4697,27 @@
   .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row:nth-child(-n+2) {
     border-top: none;
   }
+  /* Dense variant (>12 holdings, up to the full 25): three columns,
+     compact rows, smaller marks — the whole universe fits the canvas. */
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense {
+    grid-template-columns: 1fr 1fr 1fr;
+    column-gap: 20px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-row {
+    grid-template-columns: auto 1fr auto auto;
+    gap: 7px;
+    padding: 4.5px 0;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-row:nth-child(-n+3) {
+    border-top: none;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-name { font-size: 0.7rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-pct { font-size: 0.7rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-usd { font-size: 0.66rem; }
   /* Strategy recap column — sits between the solver outcome and the portfolio */
   .kiosk-welcome-v4 .v4m-strat-list {
     display: flex; flex-direction: column;

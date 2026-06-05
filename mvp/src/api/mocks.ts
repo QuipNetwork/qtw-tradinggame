@@ -47,8 +47,10 @@ const SEEDED_AGENTS: Record<string, AgentConfig> = {
          assets: ['XRP', 'ALGO', 'IONQ', 'QNT', 'SAF', 'ARQQ'] },
   a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50 } },
   a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65 } },
+  // a06 selects the ENTIRE 25-asset universe — the worst-case portfolio demo.
   a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50 },
-         assets: ['BTC', 'ETH', 'SOL', 'HYPE', 'DOGE', 'FIL', 'RENDER', 'IONQ', 'QBTS', 'RGTI', 'LAES', 'SPCX'] },
+         assets: ['BTC', 'ETH', 'BNB', 'USDC', 'XRP', 'SOL', 'HYPE', 'DOGE', 'USDT', 'ZEC', 'ALGO', 'STRK', 'FIL', 'RENDER',
+                  'IONQ', 'QBTS', 'RGTI', 'QUBT', 'QNT', 'SAF', 'INDI', 'BTQ', 'LAES', 'ARQQ', 'SPCX'] },
   a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40 } },
   a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45 } },
   a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40 } },
@@ -122,12 +124,12 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
   return () => clearInterval(interval);
 }
 
-// Builds the optimizer's "answer" from the agent's selected basket: up to
-// ten holdings, picked deterministically per agent (same agent → same
-// portfolio on re-render), weighted descending. Agents without a stored
+// Builds the optimizer's "answer" from the agent's selected basket. EVERY
+// selected asset gets an allocation (a 25-asset basket yields 25 holdings),
+// weighted by exponential decay over a deterministic per-agent ordering
+// (same agent → same portfolio on re-render). Agents without a stored
 // basket (older/seeded entries) fall back to the demo basket.
 const FALLBACK_BASKET: AssetTicker[] = ['BTC', 'ETH', 'SOL', 'USDC'];
-const ALLOC_WEIGHTS = [26, 18, 13, 10, 8, 7, 6, 5, 4, 3];
 
 function portfolioFor(agentId: string, assets?: AssetTicker[]): PortfolioEntry[] {
   const basket = assets && assets.length ? assets : FALLBACK_BASKET;
@@ -139,14 +141,18 @@ function portfolioFor(agentId: string, assets?: AssetTicker[]): PortfolioEntry[]
     for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0;
     return r;
   };
-  const shuffled = [...basket].sort((a, b) => rank(a) - rank(b));
-  const picks = shuffled.slice(0, Math.min(ALLOC_WEIGHTS.length, shuffled.length));
-  const weights = ALLOC_WEIGHTS.slice(0, picks.length);
-  const total = weights.reduce((a, b) => a + b, 0);
+  const ordered = [...basket].sort((a, b) => rank(a) - rank(b));
+  // Exponential decay, normalized to 100%; gentler decay for big baskets so
+  // the tail holdings stay visible (≥ ~1%).
+  const decay = ordered.length > 10 ? 0.93 : 0.78;
+  const raw = ordered.map((_, i) => Math.pow(decay, i));
+  const total = raw.reduce((a, b) => a + b, 0);
   let pctLeft = 100;
-  return picks.map((ticker, i) => {
-    const pct = i === picks.length - 1 ? pctLeft : Math.round((weights[i] / total) * 100);
+  return ordered.map((ticker, i) => {
+    const pct = i === ordered.length - 1
+      ? Math.round(pctLeft * 10) / 10
+      : Math.round((raw[i] / total) * 1000) / 10;
     pctLeft -= pct;
-    return { ticker, pct, usd: pct * 100 };
+    return { ticker, pct, usd: Math.round(pct * 100) };
   });
 }

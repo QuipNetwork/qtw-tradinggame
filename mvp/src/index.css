@@ -7,16 +7,17 @@ body { margin: 0; font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
 .kiosk-stage-viewport {
   position: fixed;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
   background: #fafafa;
 }
+/* Centered via the transform itself (translate(-50%,-50%) + scale set
+   inline by KioskStage) — immune to any flex/display interference. */
 .kiosk-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   width: 1024px;
   height: 768px;
-  flex: 0 0 auto;
   transform-origin: center center;
 }
 .kiosk-stage > .qs-v4-mock {
