@@ -96,14 +96,15 @@
       <li><a href="#inspiration"><span class="num">02</span>Refs</a></li>
       <li><a href="#flow"><span class="num">03</span>Flow</a></li>
       <li><a href="#mockups"><span class="num">04</span>Mockups</a></li>
-      <li><a href="#bigscreen"><span class="num">05</span>Big screen</a></li>
-      <li><a href="#scope"><span class="num">06</span>Scope</a></li>
-      <li><a href="#params"><span class="num">07</span>Sliders</a></li>
-      <li><a href="#arch"><span class="num">08</span>Arch</a></li>
-      <li><a href="#api"><span class="num">09</span>API</a></li>
-      <li><a href="#hardware"><span class="num">10</span>Hardware</a></li>
-      <li><a href="#playground"><span class="num">11</span>Playground</a></li>
-      <li><a href="#tbd"><span class="num">12</span>TBDs</a></li>
+      <li><a href="#assets"><span class="num">05</span>Assets</a></li>
+      <li><a href="#bigscreen"><span class="num">06</span>Big screen</a></li>
+      <li><a href="#scope"><span class="num">07</span>Scope</a></li>
+      <li><a href="#params"><span class="num">08</span>Sliders</a></li>
+      <li><a href="#arch"><span class="num">09</span>Arch</a></li>
+      <li><a href="#api"><span class="num">10</span>API</a></li>
+      <li><a href="#hardware"><span class="num">11</span>Hardware</a></li>
+      <li><a href="#playground"><span class="num">12</span>Playground</a></li>
+      <li><a href="#tbd"><span class="num">13</span>TBDs</a></li>
     </ul>
   </div>
 </nav>
@@ -134,8 +135,8 @@
   <h2>What we're building</h2>
   <div class="grid-2">
     <div>
-      <p class="lede">Attendees walk up to a kiosk, name an agent, set five strategy sliders, and submit. That submission is the competition entry. We're building a similar activation to <a href="#inspiration">Base + Coinbase at Consensys Miami</a> — see the reference screens below for context.</p>
-      <p>The five sliders parameterize a <strong>portfolio optimization problem</strong>. The server dispatches the job to Quip Network, which routes it to available providers — D-Wave (quantum) and one or more classical solvers. The first provider to return a valid optimum wins the job, and that solution becomes the agent's portfolio until the next retune.</p>
+      <p class="lede">Attendees walk up to a kiosk, name an agent, pick their asset basket, set three strategy sliders, and submit. That submission is the competition entry. We're building a similar activation to <a href="#inspiration">Base + Coinbase at Consensys Miami</a> — see the reference screens below for context.</p>
+      <p>The basket and sliders parameterize a <strong>portfolio optimization problem</strong>. The server dispatches the job to Quip Network, which routes it to available providers — D-Wave (quantum) and one or more classical solvers. The first provider to return a valid optimum wins the job, and that solution becomes the agent's portfolio until the next retune.</p>
       <p>Each attendee receives a <strong>QR-coded profile URL</strong> for use on their phone for the duration of the conference. The phone profile shows live P&amp;L and lets the user adjust sliders; every adjustment triggers a new optimization through Quip Network.</p>
     </div>
 
@@ -164,7 +165,7 @@
       <img src="reference-files/IMG_3898 2.png" alt="Base sign-up kiosk laptop" loading="lazy">
       <div class="cap">Sign-up kiosk</div>
     </button>
-    <button class="thumb" data-img="reference-files/IMG_3898 1.png" data-cap="Sign-up TV output · Base. The kiosk's sign-up flow mirrored on a screen behind the booth — sliders, persona prompt, supported-assets sidebar. Our equivalent uses the same 5 sliders but Quip-branded styling and a generative glyph in place of the cartoon avatar.">
+    <button class="thumb" data-img="reference-files/IMG_3898 1.png" data-cap="Sign-up TV output · Base. The kiosk's sign-up flow mirrored on a screen behind the booth — sliders, persona prompt, supported-assets sidebar. Our equivalent uses a basket selector + 3 sliders with Quip-branded styling and a generative glyph in place of the cartoon avatar.">
       <img src="reference-files/IMG_3898 1.png" alt="Base sign-up flow on a TV output" loading="lazy">
       <div class="cap">Sign-up TV output</div>
     </button>
@@ -211,9 +212,9 @@
       <!-- 2 -->
       <rect x="232" y="40" width="200" height="140" rx="8" fill="white" stroke="#e4e4e7"/>
       <text x="246" y="62" font-size="11" font-family="JetBrains Mono, monospace" fill="#71717a">STEP 02 · BOOTH</text>
-      <text x="246" y="92" font-size="15" font-weight="600" fill="#09090b">Tune 5 sliders</text>
-      <text x="246" y="112" font-size="12" fill="#52525b">Activity, Risk, Size,</text>
-      <text x="246" y="128" font-size="12" fill="#52525b">Holding, Diversification</text>
+      <text x="246" y="92" font-size="15" font-weight="600" fill="#09090b">Pick basket, tune sliders</text>
+      <text x="246" y="112" font-size="12" fill="#52525b">25 assets · Activity,</text>
+      <text x="246" y="128" font-size="12" fill="#52525b">Risk, Trade size</text>
       <text x="246" y="160" font-size="11" fill="#a1a1aa">~30 sec</text>
 
       <line x1="440" y1="110" x2="458" y2="110" stroke="#ff6467" stroke-width="2" marker-end="url(#arrow)"/>
@@ -257,7 +258,7 @@
   <p class="lede">Three surfaces, shown in order: the kiosk sign-up screen, the post-launch confirmation, and the personal phone profile.</p>
 
   <h3 style="margin-top: 36px; margin-bottom: 8px;">Kiosk · Sign-up &amp; tune</h3>
-  <p class="small" style="margin-bottom: 6px;">Single-page laptop kiosk. The user picks their tradable basket from the 25-asset universe (14 crypto + 11 stocks), enters an agent name, adjusts five strategy sliders, and submits. The panel on the right previews the generative glyph used as the agent's identity on the leaderboard.</p>
+  <p class="small" style="margin-bottom: 6px;">Single-page iPad kiosk (9.7", 1024×768). The user picks their tradable basket from the 25-asset universe (14 crypto + 11 stocks), enters an agent name and email, adjusts three strategy sliders, and submits. The panel on the right previews the generative glyph used as the agent's identity on the leaderboard.</p>
   <p class="small" style="margin-bottom: 12px; color: var(--zinc-500);"><span class="interactive-tag">Live</span> &nbsp;Toggle assets (All / None / Auto-pick), type a name and drag the sliders below; the panels update in real time.</p>
 
   <div class="mockup-frame kiosk">
@@ -385,36 +386,6 @@
                 <span class="v4m-slider-val" data-kiosk-label="2">Medium</span>
               </div>
             </div>
-            <div class="v4m-slider">
-              <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Holding style</span>
-              </div>
-              <div class="v4m-slider-shell">
-                <div class="v4m-slider-track">
-                  <div class="v4m-slider-fill" data-kiosk-track="3" style="width: 30%"></div>
-                  <div class="v4m-slider-knob" data-kiosk-knob="3" style="left: 30%"></div>
-                </div>
-                <input type="range" class="range-overlay" data-kiosk="3" min="0" max="100" value="30" />
-              </div>
-              <div class="v4m-slider-bottom">
-                <span class="v4m-slider-val" data-kiosk-label="3">Patient</span>
-              </div>
-            </div>
-            <div class="v4m-slider">
-              <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Diversification</span>
-              </div>
-              <div class="v4m-slider-shell">
-                <div class="v4m-slider-track">
-                  <div class="v4m-slider-fill" data-kiosk-track="4" style="width: 55%"></div>
-                  <div class="v4m-slider-knob" data-kiosk-knob="4" style="left: 55%"></div>
-                </div>
-                <input type="range" class="range-overlay" data-kiosk="4" min="0" max="100" value="55" />
-              </div>
-              <div class="v4m-slider-bottom">
-                <span class="v4m-slider-val" data-kiosk-label="4">Balanced</span>
-              </div>
-            </div>
 
               </div>
             </div>
@@ -431,8 +402,8 @@
                   <input class="v4m-input" id="kiosk-name" type="text" value="Lattice Theory" />
                 </div>
                 <div class="v4m-field">
-                  <label for="kiosk-handle">X handle (optional)</label>
-                  <input class="v4m-input" id="kiosk-handle" type="text" placeholder="@yourhandle" />
+                  <label for="kiosk-email">Email (required)</label>
+                  <input class="v4m-input" id="kiosk-email" type="email" placeholder="you@example.com" />
                 </div>
               </div>
               <div class="v4m-mega-section">
@@ -570,8 +541,6 @@
                   <div class="v4m-strat-row"><span class="v4m-strat-label">Trading activity</span><span class="v4m-strat-val">High</span></div>
                   <div class="v4m-strat-row"><span class="v4m-strat-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
                   <div class="v4m-strat-row"><span class="v4m-strat-label">Trade size</span><span class="v4m-strat-val">Medium</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Holding style</span><span class="v4m-strat-val">Patient</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Diversification</span><span class="v4m-strat-val">Balanced</span></div>
                 </div>
               </div>
 
@@ -585,25 +554,25 @@
                 </div>
 
                 <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-btc"/></svg>
+                  <img class="v4m-alloc-icon" src="shared-design/asset-icons/btc.svg" alt="">
                   <span class="v4m-alloc-name">BTC</span>
                   <span class="v4m-alloc-pct" data-strat-pct="0">42.0%</span>
                   <span class="v4m-alloc-usd" data-strat-dollar="0">$4,200</span>
                 </div>
                 <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-eth"/></svg>
+                  <img class="v4m-alloc-icon" src="shared-design/asset-icons/eth.svg" alt="">
                   <span class="v4m-alloc-name">ETH</span>
                   <span class="v4m-alloc-pct" data-strat-pct="1">28.0%</span>
                   <span class="v4m-alloc-usd" data-strat-dollar="1">$2,800</span>
                 </div>
                 <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-sol"/></svg>
+                  <img class="v4m-alloc-icon" src="shared-design/asset-icons/sol.svg" alt="">
                   <span class="v4m-alloc-name">SOL</span>
                   <span class="v4m-alloc-pct" data-strat-pct="2">22.0%</span>
                   <span class="v4m-alloc-usd" data-strat-dollar="2">$2,200</span>
                 </div>
                 <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-usdc"/></svg>
+                  <img class="v4m-alloc-icon" src="shared-design/asset-icons/usdc.svg" alt="">
                   <span class="v4m-alloc-name">USDC</span>
                   <span class="v4m-alloc-pct" data-strat-pct="3">8.0%</span>
                   <span class="v4m-alloc-usd" data-strat-dollar="3">$800</span>
@@ -742,26 +711,6 @@
               <input type="range" class="range-overlay" data-phone="2" min="0" max="100" value="50" />
             </div>
           </div>
-          <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Holding style</span><span class="v4m-slider-val" data-phone-label="3">Patient</span></div>
-            <div class="v4m-slider-shell">
-              <div class="v4m-slider-track">
-                <div class="v4m-slider-fill" data-phone-fill="3" style="width: 30%"></div>
-                <div class="v4m-slider-knob" style="left: 30%"></div>
-              </div>
-              <input type="range" class="range-overlay" data-phone="3" min="0" max="100" value="30" />
-            </div>
-          </div>
-          <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Diversification</span><span class="v4m-slider-val" data-phone-label="4">Balanced</span></div>
-            <div class="v4m-slider-shell">
-              <div class="v4m-slider-track">
-                <div class="v4m-slider-fill" data-phone-fill="4" style="width: 55%"></div>
-                <div class="v4m-slider-knob" style="left: 55%"></div>
-              </div>
-              <input type="range" class="range-overlay" data-phone="4" min="0" max="100" value="55" />
-            </div>
-          </div>
         </div>
 
         <!-- CTA -->
@@ -779,9 +728,51 @@
   </div>
 </section>
 
+<!-- ================================================ ASSET ICONS -->
+<section id="assets">
+  <div class="kicker">05 · Asset icons</div>
+  <h2>The 25-asset universe</h2>
+  <p class="lede">Icon audit for every tradable asset — 14 crypto + 11 stocks. Crypto marks come from the <a href="https://github.com/spothq/cryptocurrency-icons">cryptocurrency-icons</a> set (CoinGecko for the newer tokens); stock marks are each company's favicon / brand avatar. Review and flag any to swap before they ship in the portfolio views.</p>
+
+  <h3 style="margin: 24px 0 10px;">Crypto · 14</h3>
+  <div class="icon-audit">
+    <div class="icon-card"><img src="shared-design/asset-icons/btc.svg" alt="BTC icon"><div class="icon-card-ticker">BTC</div><div class="icon-card-name">Bitcoin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/eth.svg" alt="ETH icon"><div class="icon-card-ticker">ETH</div><div class="icon-card-name">Ethereum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/bnb.svg" alt="BNB icon"><div class="icon-card-ticker">BNB</div><div class="icon-card-name">BNB</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/usdc.svg" alt="USDC icon"><div class="icon-card-ticker">USDC</div><div class="icon-card-name">USD Coin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/xrp.svg" alt="XRP icon"><div class="icon-card-ticker">XRP</div><div class="icon-card-name">XRP</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/sol.svg" alt="SOL icon"><div class="icon-card-ticker">SOL</div><div class="icon-card-name">Solana</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/hype.png" alt="HYPE icon"><div class="icon-card-ticker">HYPE</div><div class="icon-card-name">Hyperliquid</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/doge.svg" alt="DOGE icon"><div class="icon-card-ticker">DOGE</div><div class="icon-card-name">Dogecoin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/usdt.svg" alt="USDT icon"><div class="icon-card-ticker">USDT</div><div class="icon-card-name">Tether</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/zec.svg" alt="ZEC icon"><div class="icon-card-ticker">ZEC</div><div class="icon-card-name">Zcash</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/algo.svg" alt="ALGO icon"><div class="icon-card-ticker">ALGO</div><div class="icon-card-name">Algorand</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/strk.png" alt="STRK icon"><div class="icon-card-ticker">STRK</div><div class="icon-card-name">Starknet</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/fil.svg" alt="FIL icon"><div class="icon-card-ticker">FIL</div><div class="icon-card-name">Filecoin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/render.png" alt="RENDER icon"><div class="icon-card-ticker">RENDER</div><div class="icon-card-name">Render</div></div>
+  </div>
+
+  <h3 style="margin: 28px 0 10px;">Stocks · 11</h3>
+  <div class="icon-audit">
+    <div class="icon-card"><img src="shared-design/asset-icons/ionq.png" alt="IONQ icon"><div class="icon-card-ticker">IONQ</div><div class="icon-card-name">IonQ</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/qbts.png" alt="QBTS icon"><div class="icon-card-ticker">QBTS</div><div class="icon-card-name">D-Wave Quantum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/rgti.png" alt="RGTI icon"><div class="icon-card-ticker">RGTI</div><div class="icon-card-name">Rigetti Computing</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/qubt.png" alt="QUBT icon"><div class="icon-card-ticker">QUBT</div><div class="icon-card-name">Quantum Computing</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/qnt.png" alt="QNT icon"><div class="icon-card-ticker">QNT</div><div class="icon-card-name">Quantinuum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/saf.png" alt="SAF icon"><div class="icon-card-ticker">SAF</div><div class="icon-card-name">Safran</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/indi.png" alt="INDI icon"><div class="icon-card-ticker">INDI</div><div class="icon-card-name">indie Semiconductor</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/btq.png" alt="BTQ icon"><div class="icon-card-ticker">BTQ</div><div class="icon-card-name">BTQ Technologies</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/laes.png" alt="LAES icon"><div class="icon-card-ticker">LAES</div><div class="icon-card-name">SEALSQ</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/arqq.png" alt="ARQQ icon"><div class="icon-card-ticker">ARQQ</div><div class="icon-card-name">Arqit Quantum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/spcx.png" alt="SPCX icon"><div class="icon-card-ticker">SPCX</div><div class="icon-card-name">SpaceX</div></div>
+  </div>
+
+  <p class="small" style="margin-top: 16px; color: var(--zinc-500);">Sources — crypto SVGs: spothq/cryptocurrency-icons (jsDelivr); HYPE / STRK / RENDER: CoinGecko asset images; stocks: Google favicon service (128px) for IONQ, RGTI, QUBT, QNT, INDI, BTQ, LAES, ARQQ; X/Twitter brand avatars for QBTS (D-Wave), SAF (Safran), SPCX (SpaceX). All marks are property of their respective owners — event display use.</p>
+</section>
+
 <!-- ================================================ BIGSCREEN -->
 <section id="bigscreen">
-  <div class="kicker">05 · Big-screen behavior</div>
+  <div class="kicker">06 · Big-screen behavior</div>
   <h2>Booth TV rotation</h2>
   <p class="lede">The booth TV has four states. <strong>State A</strong> (top-10 leaderboard) is the default view and reappears between every other state. <strong>State B</strong> spotlights and <strong>state C</strong> intros rotate on a timer. <strong>State D</strong> (new-agent welcome) interrupts the rotation whenever a kiosk submits a new agent.</p>
   <p class="small" style="margin-top: -8px; margin-bottom: 18px; color: var(--coral);">Strategy adjustments do <strong>not</strong> trigger a big-screen change. The screen reacts only to new signups, not to ongoing retunes.</p>
@@ -1207,14 +1198,6 @@
               <div class="sdf-slider-top"><span class="sdf-label">Trade size</span><span class="sdf-val">Medium</span></div>
               <div class="sdf-track"><div class="sdf-fill" style="width: 50%"></div><div class="sdf-knob" style="left: 50%"></div></div>
             </div>
-            <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Holding style</span><span class="sdf-val">Patient</span></div>
-              <div class="sdf-track"><div class="sdf-fill" style="width: 30%"></div><div class="sdf-knob" style="left: 30%"></div></div>
-            </div>
-            <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Diversification</span><span class="sdf-val">Balanced</span></div>
-              <div class="sdf-track"><div class="sdf-fill" style="width: 55%"></div><div class="sdf-knob" style="left: 55%"></div></div>
-            </div>
 
           </div>
 
@@ -1222,14 +1205,14 @@
           <div class="state-d-assets">
             <div class="state-d-eyebrow cyan-dot">Supported assets</div>
             <div class="state-d-asset-list">
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-btc"/></svg><span class="sda-ticker">BTC</span><span class="sda-change up">+2.1%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-eth"/></svg><span class="sda-ticker">ETH</span><span class="sda-change up">+1.4%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-sol"/></svg><span class="sda-ticker">SOL</span><span class="sda-change up">+3.0%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-link"/></svg><span class="sda-ticker">LINK</span><span class="sda-change down">&minus;0.6%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-uni"/></svg><span class="sda-ticker">UNI</span><span class="sda-change up">+0.3%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-usdc"/></svg><span class="sda-ticker">USDC</span><span class="sda-change flat">&plusmn;0.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/btc.svg" alt=""><span class="sda-ticker">BTC</span><span class="sda-change up">+2.1%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/eth.svg" alt=""><span class="sda-ticker">ETH</span><span class="sda-change up">+1.4%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/sol.svg" alt=""><span class="sda-ticker">SOL</span><span class="sda-change up">+3.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/hype.png" alt=""><span class="sda-ticker">HYPE</span><span class="sda-change down">&minus;0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/ionq.png" alt=""><span class="sda-ticker">IONQ</span><span class="sda-change up">+1.8%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qbts.png" alt=""><span class="sda-ticker">QBTS</span><span class="sda-change up">+0.9%</span></div>
             </div>
-            <div class="state-d-asset-tail">Final basket TBD</div>
+            <div class="state-d-asset-tail">+ 19 more &middot; 14 crypto + 11 stocks</div>
           </div>
 
         </div>
@@ -1316,7 +1299,7 @@
 
 <!-- ================================================ SCOPE -->
 <section id="scope">
-  <div class="kicker">06 · MVP scope &amp; stretch</div>
+  <div class="kicker">07 · MVP scope &amp; stretch</div>
   <h2>MVP scope and stretch items</h2>
 
   <div class="grid-2" style="margin-top: 24px;">
@@ -1324,7 +1307,7 @@
       <span class="pill">MVP — required for QTW</span>
       <h3 style="margin-top: 12px;">Minimum required for the demo</h3>
       <ul>
-        <li>Kiosk sign-up: name, X handle, 5 sliders, optional notes, supported-asset preview</li>
+        <li>Kiosk sign-up: name, email, 25-asset basket selector, 3 sliders</li>
         <li>Quip Network routing job on launch + on every slider re-tune</li>
         <li>Provider-provenance badge wherever a strategy is shown (kiosk return, phone, big-screen)</li>
         <li>Personal phone profile via QR-coded secret URL — live P&amp;L + retune</li>
@@ -1353,13 +1336,13 @@
 
   <div class="card muted" style="margin-top: 24px;">
     <h3 style="margin-bottom: 8px;">Explicitly out of scope for v1</h3>
-    <p style="margin-bottom: 0;">LLM trash-talk trollbox · LLM-generated agent personas / backstories · cartoon avatars (we use generative glyphs instead) · in-app trading UI beyond the 5 sliders · real-money custody · cross-conference persistence (tournament resets each event).</p>
+    <p style="margin-bottom: 0;">LLM trash-talk trollbox · LLM-generated agent personas / backstories · cartoon avatars (we use generative glyphs instead) · in-app trading UI beyond the basket + 3 sliders · real-money custody · cross-conference persistence (tournament resets each event).</p>
   </div>
 </section>
 
 <!-- ================================================ PARAMS -->
 <section id="params">
-  <div class="kicker">07 · Slider → optimization mapping</div>
+  <div class="kicker">08 · Slider → optimization mapping</div>
   <h2>How the five sliders map to optimization parameters</h2>
   <p class="lede">Slider labels follow Base's wording (kept for accessibility to non-quant visitors). Each slider maps to a real parameter in the optimization problem dispatched to Quip.</p>
 
@@ -1392,17 +1375,11 @@
           <td style="padding: 12px 8px;"><code>max_weight w_max</code></td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">Per-asset upper bound. Higher → bolder bets allowed.</td>
         </tr>
-        <tr style="border-bottom: 1px solid var(--zinc-200);">
-          <td style="padding: 12px 8px; font-weight: 500;">Holding Style</td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Diamond hands vs. quick exits.</td>
-          <td style="padding: 12px 8px;"><code>momentum window τ</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Shifts the lookback used to compute expected returns. Patient = longer τ; restless = shorter.</td>
-        </tr>
         <tr>
-          <td style="padding: 12px 8px; font-weight: 500;">Diversification</td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Spread bets vs. concentrate.</td>
-          <td style="padding: 12px 8px;"><code>cardinality K</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Min number of non-zero positions. This is the integrality constraint that makes the problem natively QUBO-shaped.</td>
+          <td style="padding: 12px 8px; font-weight: 500;">Asset basket</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Which of the 25 assets the agent may trade.</td>
+          <td style="padding: 12px 8px;"><code>universe U</code></td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Restricts the optimization to the player's selected assets. Replaces the old holding-style and diversification sliders — basket size is the diversification choice, made explicitly.</td>
         </tr>
       </tbody>
     </table>
@@ -1413,7 +1390,7 @@
 
 <!-- ================================================ ARCHITECTURE -->
 <section id="arch">
-  <div class="kicker">08 · Architecture sketch</div>
+  <div class="kicker">09 · Architecture sketch</div>
   <h2>Component overview</h2>
 
   <div class="arch-diagram" style="margin-top: 24px;">
@@ -1549,7 +1526,7 @@
 
 <!-- ================================================ API CONTRACT -->
 <section id="api">
-  <div class="kicker">09 · API contract</div>
+  <div class="kicker">10 · API contract</div>
   <h2>Front-end ↔ back-end interface</h2>
   <p class="lede">The TypeScript contract lives in <code>mvp/src/api/</code> with a mock implementation behind it. To wire a real backend, implement the same four functions; the UI imports only the contract surface.</p>
 
@@ -1576,7 +1553,7 @@
 
 <!-- ================================================ HARDWARE & VENUE -->
 <section id="hardware">
-  <div class="kicker">10 · Hardware &amp; venue</div>
+  <div class="kicker">11 · Hardware &amp; venue</div>
   <h2>What we'll have onsite</h2>
   <p class="lede">The activation runs on two devices plus the booth TV.</p>
 
@@ -1607,7 +1584,7 @@
 
 <!-- ================================================ PLAYGROUND -->
 <section id="playground">
-  <div class="kicker">11 · Playground</div>
+  <div class="kicker">12 · Playground</div>
   <h2>Glyph generator</h2>
   <p class="lede">Enter a name, adjust the sliders, and click <strong>Generate glyph</strong>. The mapping below documents which inputs drive which visual properties.</p>
 
@@ -1691,7 +1668,7 @@
 
 <!-- ================================================ TBDs -->
 <section id="tbd">
-  <div class="kicker">12 · Open questions</div>
+  <div class="kicker">13 · Open questions</div>
   <h2>What still needs to be decided</h2>
 
   <div style="display: flex; gap: 14px; align-items: center; margin-top: 18px; margin-bottom: 8px; flex-wrap: wrap;">
@@ -1876,13 +1853,12 @@
     });
   }
 
-  // ─── Slider label sets ───
+  // ─── Slider label sets (3 sliders — holding style and diversification
+  // were dropped; the basket selection expresses those directly) ───
   const SLIDER_LABELS = [
     ['Minimal', 'Low', 'Medium', 'High', 'Extreme'],
     ['Conservative', 'Defensive', 'Balanced', 'Aggressive', 'Speculative'],
-    ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'],
-    ['Restless', 'Quick', 'Balanced', 'Patient', 'Diamond'],
-    ['Concentrated', 'Focused', 'Balanced', 'Spread', 'Wide']
+    ['Tiny', 'Small', 'Medium', 'Large', 'Heavy']
   ];
   function labelFor(idx, val) {
     const labels = SLIDER_LABELS[idx];
@@ -1910,7 +1886,6 @@
     (a, b) => parseInt(a.dataset.kiosk, 10) - parseInt(b.dataset.kiosk, 10)
   );
 
-  const kioskHandleInput = document.getElementById('kiosk-handle');
   const kioskPreviewName = document.getElementById('kiosk-preview-name');
   const kioskPreviewHandle = document.getElementById('kiosk-preview-handle');
 
@@ -1932,18 +1907,12 @@
     if (kioskPreviewName) {
       kioskPreviewName.textContent = (kioskName.value || 'Player').trim() || 'Player';
     }
-    if (kioskPreviewHandle && kioskHandleInput) {
-      const h = (kioskHandleInput.value || '').trim();
-      if (h) {
-        kioskPreviewHandle.textContent = h.startsWith('@') ? h : '@' + h;
-      } else {
-        // No handle entered → derive one from the player name (e.g.
-        // "Lattice Theory" → "@latticetheory"). Keeps the preview personal
-        // as soon as the player starts typing their name.
-        const name = (kioskName && kioskName.value || 'Player').trim() || 'Player';
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
-        kioskPreviewHandle.textContent = '@' + (slug || 'player');
-      }
+    if (kioskPreviewHandle) {
+      // Display handle derives from the player name (e.g. "Lattice Theory"
+      // → "@latticetheory"). The email field is for contact, not display.
+      const name = (kioskName && kioskName.value || 'Player').trim() || 'Player';
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+      kioskPreviewHandle.textContent = '@' + (slug || 'player');
     }
   }
 
@@ -1961,7 +1930,6 @@
     });
   });
   if (kioskName) kioskName.addEventListener('input', () => { kioskUpdatePreviewText(); kioskRenderGlyph(); });
-  if (kioskHandleInput) kioskHandleInput.addEventListener('input', kioskUpdatePreviewText);
   kioskUpdatePreviewText();
   kioskRenderGlyph();
 
@@ -2013,12 +1981,12 @@
 
   // ─── Compute portfolio weights from the 5 sliders (deterministic) ───
   function computeWeights(p1, p2, p3, p4, p5) {
-    // p2 = risk; p5 = diversification. Higher risk - higher diversification = more concentration.
-    const concentration = Math.max(0, p2 - p5 * 0.5);
+    // p2 = risk. Higher risk = more concentrated in the top holdings.
+    const concentration = p2 * 0.6;
     const top    = 0.30 + concentration * 0.40;
-    const second = top * (0.65 + p5 * 0.15);
-    const third  = top * (0.40 + p5 * 0.20);
-    const fourth = top * (0.20 + p5 * 0.20);
+    const second = top * 0.72;
+    const third  = top * 0.50;
+    const fourth = top * 0.30;
     const sum = top + second + third + fourth;
     // p1 = activity → less activity → more reserve (cash buffer)
     const reserve = Math.max(0.05, Math.min(0.25, 0.12 - p1 * 0.06 + (1 - p2) * 0.10));
@@ -2032,13 +2000,12 @@
   const stratHandleLine = document.getElementById('strat-handle-line');
   const qrGlyphEl = document.getElementById('qr-glyph');
   const stratHero = document.getElementById('kiosk-routing-hero');
-  const kioskHandle = document.getElementById('kiosk-handle');
 
   function applyKioskInputsToStrategyReturn() {
     if (!kioskName || !stratName) return;
     const name = (kioskName.value || 'Player').trim() || 'Player';
-    const handleRaw = (kioskHandle && kioskHandle.value || '').trim();
-    const handle = handleRaw ? (handleRaw.startsWith('@') ? handleRaw : '@' + handleRaw) : '@anon';
+    // Display handle is derived from the player name (email is not shown).
+    const handle = '@' + (name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'player');
 
     stratName.textContent = name;
     if (stratHandleLine) {
@@ -2052,7 +2019,7 @@
 
     // Update portfolio weights from current slider values.
     const vals = kioskRanges.map(r => parseInt(r.value, 10) / 100);
-    const w = computeWeights(vals[0], vals[1], vals[2], vals[3], vals[4]);
+    const w = computeWeights(vals[0], vals[1], vals[2]);
     const bankroll = 10000;
     for (let i = 0; i < 4; i++) {
       const pctEl = document.querySelector(`[data-strat-pct="${i}"]`);
@@ -2447,7 +2414,7 @@
     'linear-gradient(135deg, #ff007a, #ff5da2)',  // UNI
     'linear-gradient(135deg, #2775ca, #4f9ddc)'   // USDC
   ];
-  const ASSET_TICKERS = ['BTC', 'ETH', 'SOL', 'LINK', 'UNI'];
+  const ASSET_TICKERS = ['BTC', 'ETH', 'SOL', 'HYPE', 'IONQ'];
 
   function holdingsForAgent(agent) {
     const seed = agent.seed;

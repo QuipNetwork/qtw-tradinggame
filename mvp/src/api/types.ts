@@ -1,17 +1,18 @@
 // API contract for the Quip Network QTW 2026 trading-competition MVP.
 // Engineers wire a real backend by implementing these signatures (see api/index.ts).
 
+// Three strategy sliders. Holding style and diversification were dropped —
+// the player now expresses those choices directly by picking their basket.
 export type SliderValues = {
   tradingActivity: number;    // 0–100
   riskPreference: number;
   tradeSize: number;
-  holdingStyle: number;
-  diversification: number;
 };
 
 export type AgentConfig = {
   name: string;
-  handle?: string;
+  handle?: string;              // display handle, auto-derived from the player name
+  email?: string;               // required at sign-up; optional here for seeded demo agents
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)
 };
@@ -33,6 +34,8 @@ export type AssetInfo = {
   ticker: AssetTicker;
   name: string;
   class: AssetClass;
+  icon: string;        // filename in shared-design/asset-icons/
+  color: string;       // mark color, used in the allocation bar
 };
 
 export type PortfolioEntry = {

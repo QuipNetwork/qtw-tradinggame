@@ -3,14 +3,12 @@ import { useParams } from 'react-router-dom';
 import type { AgentConfig, AgentUpdate, RoutingResult, SliderValues } from '../../api';
 import { getAgent, requestOptimization, subscribeAgent } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
-import { labelFor, slidersToArray } from '../../utils/strategy';
+import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'tradingActivity', label: 'Trading activity' },
   { key: 'riskPreference',  label: 'Risk preference' },
   { key: 'tradeSize',       label: 'Trade size' },
-  { key: 'holdingStyle',    label: 'Holding style' },
-  { key: 'diversification', label: 'Diversification' },
 ];
 
 export default function PhoneProfile() {
@@ -48,11 +46,7 @@ export default function PhoneProfile() {
     const style = pickStyle(seed);
     renderGlyph(glyphRef.current, Object.assign({
       seed,
-      p1: agent.sliders.tradingActivity / 100,
-      p2: agent.sliders.riskPreference / 100,
-      p3: agent.sliders.tradeSize / 100,
-      p4: agent.sliders.holdingStyle / 100,
-      p5: agent.sliders.diversification / 100,
+      ...glyphParams(agent.sliders),
       cell: 3,
     }, style));
   }, [agent]);

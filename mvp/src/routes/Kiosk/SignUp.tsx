@@ -8,9 +8,9 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: numb
   { key: 'tradingActivity',  label: 'Trading activity',  initial: 70, labels: ['Idle', 'Quiet', 'Moderate', 'High', 'Manic'] },
   { key: 'riskPreference',   label: 'Risk preference',   initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
   { key: 'tradeSize',        label: 'Trade size',        initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
-  { key: 'holdingStyle',     label: 'Holding style',     initial: 30, labels: ['Restless', 'Quick', 'Balanced', 'Patient', 'Diamond'] },
-  { key: 'diversification',  label: 'Diversification',   initial: 55, labels: ['Concentrated', 'Focused', 'Balanced', 'Spread', 'Wide'] },
 ];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function labelFor(value: number, labels: readonly string[]): string {
   const i = Math.min(labels.length - 1, Math.floor(value / 20));
@@ -25,15 +25,14 @@ function handleFromName(name: string): string {
 export default function KioskSignUp() {
   const navigate = useNavigate();
   const [name, setName] = useState('Lattice Theory');
-  const [handle, setHandle] = useState('');
+  const [email, setEmail] = useState('');
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
   const [selected, setSelected] = useState<Set<AssetTicker>>(new Set(ASSETS.map(a => a.ticker)));
   const [busy, setBusy] = useState(false);
 
   const previewName = (name.trim() || 'Player');
-  const previewHandle = handle.trim()
-    ? (handle.trim().startsWith('@') ? handle.trim() : '@' + handle.trim())
-    : handleFromName(previewName);
+  const previewHandle = handleFromName(previewName);
+  const emailValid = EMAIL_RE.test(email.trim());
 
   function updateSlider(i: number, v: number) {
     setSliders(prev => {
@@ -70,7 +69,7 @@ export default function KioskSignUp() {
   }
 
   async function launch() {
-    if (busy || selected.size === 0) return;
+    if (busy || selected.size === 0 || !emailValid) return;
     setBusy(true);
     const sliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
@@ -79,6 +78,7 @@ export default function KioskSignUp() {
     const { agentId } = await submitAgent({
       name: previewName,
       handle: previewHandle,
+      email: email.trim(),
       sliders: sliderValues,
       assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
     });
@@ -192,14 +192,16 @@ export default function KioskSignUp() {
                 />
               </div>
               <div className="v4m-field">
-                <label htmlFor="kiosk-handle">X handle (optional)</label>
+                <label htmlFor="kiosk-email">Email (required)</label>
                 <input
                   className="v4m-input"
-                  id="kiosk-handle"
-                  type="text"
-                  placeholder="@yourhandle"
-                  value={handle}
-                  onChange={e => setHandle(e.target.value)}
+                  id="kiosk-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                 />
               </div>
             </div>
@@ -235,14 +237,16 @@ export default function KioskSignUp() {
       </div>
 
       <div className="v4m-cta-bar">
-        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0}>
+        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0 || !emailValid}>
           <span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
         <div className="v4m-cta-sub">
           {selected.size === 0
             ? 'Select at least one asset to launch'
-            : `${selected.size} asset${selected.size === 1 ? '' : 's'} in basket · Your unique identity is revealed once you launch · ~1 second to first job`}
+            : !emailValid
+              ? 'Enter your email to launch'
+              : `${selected.size} asset${selected.size === 1 ? '' : 's'} in basket · Your unique identity is revealed once you launch · ~1 second to first job`}
         </div>
       </div>
 

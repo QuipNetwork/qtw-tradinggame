@@ -5,7 +5,9 @@
 import type {
   AgentConfig,
   AgentUpdate,
+  AssetTicker,
   LeaderboardEntry,
+  PortfolioEntry,
   RoutingResult,
 } from './types';
 
@@ -39,16 +41,16 @@ const TOP_10: LeaderboardEntry[] = [
 // (e.g. /kiosk/welcome?agent=a06, /p/a06) render without needing the kiosk
 // form to have created the agent in this browser's localStorage.
 const SEEDED_AGENTS: Record<string, AgentConfig> = {
-  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { tradingActivity: 95, riskPreference: 95, tradeSize: 85, holdingStyle: 10, diversification: 20 } },
-  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { tradingActivity: 80, riskPreference: 85, tradeSize: 70, holdingStyle: 20, diversification: 30 } },
-  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60, holdingStyle: 35, diversification: 45 } },
-  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50, holdingStyle: 45, diversification: 55 } },
-  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65, holdingStyle: 40, diversification: 50 } },
-  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50, holdingStyle: 30, diversification: 55 } },
-  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40, holdingStyle: 60, diversification: 65 } },
-  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45, holdingStyle: 55, diversification: 70 } },
-  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40, holdingStyle: 70, diversification: 60 } },
-  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { tradingActivity: 25, riskPreference: 30, tradeSize: 30, holdingStyle: 80, diversification: 75 } },
+  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { tradingActivity: 95, riskPreference: 95, tradeSize: 85 } },
+  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { tradingActivity: 80, riskPreference: 85, tradeSize: 70 } },
+  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60 } },
+  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50 } },
+  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65 } },
+  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50 } },
+  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40 } },
+  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45 } },
+  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40 } },
+  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { tradingActivity: 25, riskPreference: 30, tradeSize: 30 } },
 };
 
 function uuid(): string {
@@ -74,7 +76,9 @@ export async function getAgent(agentId: string): Promise<AgentConfig | null> {
   return SEEDED_AGENTS[agentId] ?? null;
 }
 
-export async function requestOptimization(_agentId: string): Promise<RoutingResult> {
+export async function requestOptimization(agentId: string): Promise<RoutingResult> {
+  const agent = await getAgent(agentId);
+  const portfolio = portfolioFor(agentId, agent?.assets);
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
@@ -84,7 +88,7 @@ export async function requestOptimization(_agentId: string): Promise<RoutingResu
       providerType: 'QPU' as const,
       solveTime: qpu,
       vsClassical: Math.round((classical / qpu) * 10) / 10,
-      portfolio: defaultPortfolio(),
+      portfolio,
     });
   }
   const c = CLASSICAL_PROVIDERS[Math.floor(Math.random() * CLASSICAL_PROVIDERS.length)];
@@ -95,7 +99,7 @@ export async function requestOptimization(_agentId: string): Promise<RoutingResu
     providerType: 'CPU' as const,
     solveTime: cpu,
     vsClassical: Math.round((qpu / cpu) * 10) / 10,
-    portfolio: defaultPortfolio(),
+    portfolio,
   });
 }
 
@@ -116,11 +120,31 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
   return () => clearInterval(interval);
 }
 
-function defaultPortfolio() {
-  return [
-    { ticker: 'BTC' as const,  pct: 42, usd: 4200 },
-    { ticker: 'ETH' as const,  pct: 28, usd: 2800 },
-    { ticker: 'SOL' as const,  pct: 22, usd: 2200 },
-    { ticker: 'USDC' as const, pct: 8,  usd:  800 },
-  ];
+// Builds the optimizer's "answer" from the agent's selected basket: up to
+// four holdings, picked deterministically per agent (same agent → same
+// portfolio on re-render), weighted descending. Agents without a stored
+// basket (older/seeded entries) fall back to the demo basket.
+const FALLBACK_BASKET: AssetTicker[] = ['BTC', 'ETH', 'SOL', 'USDC'];
+const ALLOC_WEIGHTS = [42, 28, 22, 8];
+
+function portfolioFor(agentId: string, assets?: AssetTicker[]): PortfolioEntry[] {
+  const basket = assets && assets.length ? assets : FALLBACK_BASKET;
+  // Deterministic shuffle seeded by agentId.
+  let h = 0;
+  for (let i = 0; i < agentId.length; i++) h = (h * 31 + agentId.charCodeAt(i)) >>> 0;
+  const rank = (t: string) => {
+    let r = h;
+    for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0;
+    return r;
+  };
+  const shuffled = [...basket].sort((a, b) => rank(a) - rank(b));
+  const picks = shuffled.slice(0, Math.min(ALLOC_WEIGHTS.length, shuffled.length));
+  const weights = ALLOC_WEIGHTS.slice(0, picks.length);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let pctLeft = 100;
+  return picks.map((ticker, i) => {
+    const pct = i === picks.length - 1 ? pctLeft : Math.round((weights[i] / total) * 100);
+    pctLeft -= pct;
+    return { ticker, pct, usd: pct * 100 };
+  });
 }

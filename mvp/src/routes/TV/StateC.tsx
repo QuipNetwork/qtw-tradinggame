@@ -2,17 +2,16 @@ const SLIDERS = [
   { label: 'Trading activity', val: 'High',       pct: 70 },
   { label: 'Risk preference',  val: 'Aggressive', pct: 78 },
   { label: 'Trade size',       val: 'Medium',     pct: 50 },
-  { label: 'Holding style',    val: 'Patient',    pct: 30 },
-  { label: 'Diversification',  val: 'Balanced',   pct: 55 },
 ];
 
+// Representative slice of the 25-asset universe (14 crypto + 11 stocks).
 const ASSETS = [
-  { id: 'crypto-btc',  ticker: 'BTC',  change: '+2.1%',  cls: 'up' },
-  { id: 'crypto-eth',  ticker: 'ETH',  change: '+1.4%',  cls: 'up' },
-  { id: 'crypto-sol',  ticker: 'SOL',  change: '+3.0%',  cls: 'up' },
-  { id: 'crypto-link', ticker: 'LINK', change: '−0.6%',  cls: 'down' },
-  { id: 'crypto-uni',  ticker: 'UNI',  change: '+0.3%',  cls: 'up' },
-  { id: 'crypto-usdc', ticker: 'USDC', change: '±0.0%',  cls: 'flat' },
+  { icon: 'btc.svg',  ticker: 'BTC',  change: '+2.1%', cls: 'up' },
+  { icon: 'eth.svg',  ticker: 'ETH',  change: '+1.4%', cls: 'up' },
+  { icon: 'sol.svg',  ticker: 'SOL',  change: '+3.0%', cls: 'up' },
+  { icon: 'hype.png', ticker: 'HYPE', change: '−0.6%', cls: 'down' },
+  { icon: 'ionq.png', ticker: 'IONQ', change: '+1.8%', cls: 'up' },
+  { icon: 'qbts.png', ticker: 'QBTS', change: '+0.9%', cls: 'up' },
 ];
 
 export default function StateC() {
@@ -72,13 +71,13 @@ export default function StateC() {
           <div className="state-d-asset-list">
             {ASSETS.map(a => (
               <div className="sda-row" key={a.ticker}>
-                <svg className="sda-glyph" viewBox="0 0 32 32"><use href={`#${a.id}`} /></svg>
+                <img className="sda-glyph" src={`/shared-design/asset-icons/${a.icon}`} alt="" />
                 <span className="sda-ticker">{a.ticker}</span>
                 <span className={`sda-change ${a.cls}`}>{a.change}</span>
               </div>
             ))}
           </div>
-          <div className="state-d-asset-tail">Final basket TBD</div>
+          <div className="state-d-asset-tail">+ 19 more · 14 crypto + 11 stocks</div>
         </div>
 
       </div>

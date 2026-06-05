@@ -4009,7 +4009,7 @@
   .kiosk-v4 .v4m-tile {
     position: relative;
     min-width: 0;        /* long asset names must not blow out the grid */
-    min-height: 60px;
+    min-height: 76px;
     overflow: hidden;
     border: 1px solid #e4e4e7;
     background: #f6f6f7;
@@ -4024,7 +4024,7 @@
   }
   .kiosk-v4 .v4m-tile .v4m-tile-ticker {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.68rem;
+    font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -4032,7 +4032,7 @@
   }
   .kiosk-v4 .v4m-tile .v4m-tile-name {
     font-family: 'Inter', system-ui, sans-serif;
-    font-size: 0.56rem;
+    font-size: 0.62rem;
     line-height: 1.2;
     color: #b3b3b9;
     max-width: 100%;
@@ -4089,12 +4089,12 @@
     cursor: not-allowed;
   }
 
-  /* ─── Horizontal slider band — the five strategy sliders side by side
+  /* ─── Horizontal slider band — the three strategy sliders side by side
      beneath the basket. Label on top, track in the middle, value below. ─── */
   .kiosk-v4 .v4m-sliders-row {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
   }
   .kiosk-v4 .v4m-sliders-row .v4m-slider {
     border-bottom: none;
@@ -4369,6 +4369,44 @@
       margin: -16px 0;
     }
     .kiosk-v4 .v4m-selector-btn { padding: 11px 0; }
+  }
+
+  /* ─── Asset icon audit grid (design doc §05) ─── */
+  .icon-audit {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+  }
+  .icon-audit .icon-card {
+    border: 1px solid #e4e4e7;
+    background: white;
+    padding: 14px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .icon-audit .icon-card img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    border-radius: 10px;
+  }
+  .icon-audit .icon-card .icon-card-ticker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #18181b;
+  }
+  .icon-audit .icon-card .icon-card-name {
+    font-size: 0.68rem;
+    color: #71717b;
+    line-height: 1.25;
+  }
+  @media (max-width: 900px) {
+    .icon-audit { grid-template-columns: repeat(4, 1fr); }
   }
 
   /* ─── doc-stage: render a kiosk mock inside a true 1024×768 iPad canvas,
@@ -4692,6 +4730,14 @@
   }
   .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-icon {
     width: 22px; height: 22px; display: block;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row img.v4m-alloc-icon {
+    object-fit: contain;
+    border-radius: 6px;   /* square stock favicons get soft corners */
+  }
+  .bigscreen.dir-quipsite.v4.state-d img.sda-glyph {
+    object-fit: contain;
+    border-radius: 6px;
   }
   .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-dot {
     width: 10px;
