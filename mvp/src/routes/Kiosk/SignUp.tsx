@@ -141,7 +141,7 @@ export default function KioskSignUp() {
               </div>
               <div className="v4m-selector-actions">
                 <button type="button" className="v4m-selector-btn" onClick={selectAll}>All</button>
-                <button type="button" className="v4m-selector-btn" onClick={selectNone}>None</button>
+                <button type="button" className="v4m-selector-btn" onClick={selectNone}>Clear</button>
                 <button type="button" className="v4m-selector-btn accent" onClick={autoPick}>Auto-pick</button>
               </div>
               <div className="v4m-pick-list">
