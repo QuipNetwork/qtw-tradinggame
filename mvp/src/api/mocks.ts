@@ -142,9 +142,14 @@ function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize =
     return r;
   };
   const ordered = [...basket].sort((a, b) => rank(a) - rank(b));
-  // Exponential decay, normalized; gentler decay for big baskets so the
-  // tail holdings stay visible (≥ ~1%).
-  const decay = ordered.length > 10 ? 0.93 : 0.78;
+  // Exponential decay, normalized. The position-size slider drives the
+  // optimizer's concentration appetite (like risk interacting with the cap
+  // in the real solver): Tiny → near-equal weights, Heavy → steep decay
+  // into the top holdings. The cap below then enforces the hard bound.
+  const s = maxPositionSize / 100;
+  const decay = ordered.length > 10
+    ? 0.99 - s * 0.19    // 25 assets: top ≈ 4.5% (Tiny) … ≈ 20% (Heavy)
+    : 0.95 - s * 0.30;   // small baskets: near-equal … strongly concentrated
   const raw = ordered.map((_, i) => Math.pow(decay, i));
   let total = raw.reduce((a, b) => a + b, 0);
   let w = raw.map(v => v / total);
