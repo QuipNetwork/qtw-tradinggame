@@ -27,6 +27,18 @@ export function rebalanceEveryHours(value: number): number {
   return REBALANCE_TIERS[i].hours;
 }
 
+// Max position size is RELATIVE to the basket: an absolute cap below 1/n
+// would be infeasible (n assets can't sum to 100%), and with a big basket a
+// large absolute cap never binds. The slider sweeps from equal weight across
+// the basket (1/n — maximally diversified) up to ~50% in a single asset.
+export function maxPositionCapPct(basketSize: number, value: number): number {
+  const n = Math.max(1, basketSize);
+  const floor = 1 / n;
+  const ceiling = Math.max(0.5, floor);     // a 1-asset basket is always 100%
+  const cap = floor + (value / 100) * (ceiling - floor);
+  return Math.round(cap * 100);
+}
+
 export function labelFor(idx: number, val: number): string {
   const labels = SLIDER_LABELS[idx];
   const i = Math.min(labels.length - 1, Math.floor(val / 20));

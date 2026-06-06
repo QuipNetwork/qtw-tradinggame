@@ -1414,7 +1414,7 @@
           <td style="padding: 12px 8px; font-weight: 500;">Max Position Size</td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">How concentrated can a single position get?</td>
           <td style="padding: 12px 8px;"><code>max_weight w_max</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Per-asset upper bound. Higher → bolder bets allowed.</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Per-asset upper bound, <strong>relative to basket size</strong>: the slider sweeps from equal weight (1/n — an absolute cap below that is infeasible) up to ~50% in a single asset. A 25-asset basket at minimum = 4% each; a 4-asset basket at minimum = 25% each. The kiosk shows the computed cap live (e.g. "Medium · ≤27%").</td>
         </tr>
         <tr>
           <td style="padding: 12px 8px; font-weight: 500;">Asset basket</td>

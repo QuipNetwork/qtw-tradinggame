@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
+import { maxPositionCapPct } from '../../utils/strategy';
 import KioskStage from './Stage';
 
 // All three sliders are parameters of the allocation problem the solver runs
@@ -178,7 +179,11 @@ export default function KioskSignUp() {
                       />
                     </div>
                     <div className="v4m-slider-bottom">
-                      <span className="v4m-slider-val">{labelFor(sliders[i], def.labels)}</span>
+                      <span className="v4m-slider-val">
+                        {labelFor(sliders[i], def.labels)}
+                        {/* the position cap is relative to the basket — show the live number */}
+                        {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                      </span>
                     </div>
                   </div>
                 ))}

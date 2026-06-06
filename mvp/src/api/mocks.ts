@@ -82,7 +82,7 @@ export async function getAgent(agentId: string): Promise<AgentConfig | null> {
 
 export async function requestOptimization(agentId: string): Promise<RoutingResult> {
   const agent = await getAgent(agentId);
-  const portfolio = portfolioFor(agentId, agent?.assets);
+  const portfolio = portfolioFor(agentId, agent?.assets, agent?.sliders.maxPositionSize ?? 50);
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
@@ -131,7 +131,7 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
 // basket (older/seeded entries) fall back to the demo basket.
 const FALLBACK_BASKET: AssetTicker[] = ['BTC', 'ETH', 'SOL', 'USDC'];
 
-function portfolioFor(agentId: string, assets?: AssetTicker[]): PortfolioEntry[] {
+function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize = 50): PortfolioEntry[] {
   const basket = assets && assets.length ? assets : FALLBACK_BASKET;
   // Deterministic shuffle seeded by agentId.
   let h = 0;
@@ -142,16 +142,31 @@ function portfolioFor(agentId: string, assets?: AssetTicker[]): PortfolioEntry[]
     return r;
   };
   const ordered = [...basket].sort((a, b) => rank(a) - rank(b));
-  // Exponential decay, normalized to 100%; gentler decay for big baskets so
-  // the tail holdings stay visible (≥ ~1%).
+  // Exponential decay, normalized; gentler decay for big baskets so the
+  // tail holdings stay visible (≥ ~1%).
   const decay = ordered.length > 10 ? 0.93 : 0.78;
   const raw = ordered.map((_, i) => Math.pow(decay, i));
-  const total = raw.reduce((a, b) => a + b, 0);
+  let total = raw.reduce((a, b) => a + b, 0);
+  let w = raw.map(v => v / total);
+
+  // Apply the per-asset cap (relative to basket size — see strategy.ts
+  // maxPositionCapPct): clamp and water-fill the excess onto uncapped
+  // holdings until everything respects the cap.
+  const n = ordered.length;
+  const floor = 1 / n;
+  const cap = floor + (maxPositionSize / 100) * (Math.max(0.5, floor) - floor);
+  for (let pass = 0; pass < 10; pass++) {
+    const excess = w.reduce((a, v) => a + Math.max(0, v - cap), 0);
+    if (excess < 1e-6) break;
+    const uncappedSum = w.reduce((a, v) => a + (v < cap ? v : 0), 0);
+    w = w.map(v => v >= cap ? cap : v + (uncappedSum > 0 ? (v / uncappedSum) * excess : 0));
+  }
+
   let pctLeft = 100;
   return ordered.map((ticker, i) => {
     const pct = i === ordered.length - 1
       ? Math.round(pctLeft * 10) / 10
-      : Math.round((raw[i] / total) * 1000) / 10;
+      : Math.round(w[i] * 1000) / 10;
     pctLeft -= pct;
     return { ticker, pct, usd: Math.round(pct * 100) };
   });
