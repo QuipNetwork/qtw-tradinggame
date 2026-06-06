@@ -1384,8 +1384,14 @@
 <!-- ================================================ PARAMS -->
 <section id="params">
   <div class="kicker">08 · Slider → optimization mapping</div>
-  <h2>How the five sliders map to optimization parameters</h2>
-  <p class="lede">Slider labels follow Base's wording (kept for accessibility to non-quant visitors). Each slider maps to a real parameter in the optimization problem dispatched to Quip.</p>
+  <h2>How the basket and sliders map to optimization parameters</h2>
+  <p class="lede">The solver <strong>allocates a portfolio — it does not execute trades</strong>. Every control the player touches is a parameter of that allocation problem, and each has a cleanly separated, observable job:</p>
+  <ul style="margin: 14px 0 0; padding-left: 22px; color: var(--zinc-600); line-height: 1.65;">
+    <li><strong>Asset basket</strong> — <em>what</em> the optimizer may hold (the universe).</li>
+    <li><strong>Rebalance frequency</strong> — <em>when</em> it re-optimizes (job cadence; this is also the knob that drives quantum-job volume and cost).</li>
+    <li><strong>Risk preference</strong> — <em>which</em> assets lead the allocation (risk aversion: conservative → low-volatility assets like stablecoins and large caps; aggressive → high-volatility small caps and memecoins).</li>
+    <li><strong>Max position size</strong> — <em>how concentrated</em> the leaders may get (per-asset cap, relative to basket size: from equal weight at 1/n up to ~50% in a single asset).</li>
+  </ul>
 
   <div style="overflow-x: auto; margin-top: 24px;">
     <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
@@ -1427,6 +1433,7 @@
   </div>
 
   <p class="small" style="margin-top: 18px;">Final coefficients and parameter ranges are owned by the optimization-model owner; tracked as a TBD below. The mapping above is a starting point.</p>
+  <p class="small" style="margin-top: 10px; color: var(--zinc-500);"><strong>Demo vs. real solver:</strong> the live mocks in this doc (and the MVP app) simulate these effects with placeholder per-asset volatility scores and a deterministic decay — directionally correct and good for demos. A real mean-variance solve is subtler: correlations in <code>Σ</code> matter (that's the point of the covariance term), so the production optimizer will produce portfolios these simulations only approximate. Two spec'd edge cases: with the cap at minimum the only feasible portfolio is equal weight across the basket (1/n each — a 25-asset basket at "Tiny" is exactly 4% per asset); and at "Heavy" with a large basket, tail assets can round to ~0% — "in the basket" means <em>eligible</em>, not <em>always held</em> (whether picks deserve a minimum allocation is an open TBD).</p>
 </section>
 
 <!-- ================================================ ARCHITECTURE -->
