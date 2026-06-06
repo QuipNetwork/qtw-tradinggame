@@ -9,7 +9,9 @@ import KioskStage from './Stage';
 // re-optimize, how hard to chase returns, and how big any single position
 // may get.
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number; labels: [string, string, string, string, string] }> = [
-  { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70, labels: ['Rarely', 'Slow', 'Steady', 'Often', 'Nonstop'] },
+  // Cadence values are the REAL tiers (QPU time costs money — hourly is the
+  // hard cap at the most aggressive setting). See utils/strategy REBALANCE_TIERS.
+  { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70, labels: ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'] },
   { key: 'riskPreference',     label: 'Risk preference',     initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
   { key: 'maxPositionSize',    label: 'Max position size',   initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
 ];

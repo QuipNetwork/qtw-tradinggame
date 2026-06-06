@@ -1,7 +1,7 @@
 import { ASSETS, assetIconSrc } from '../../api';
 
 const SLIDERS = [
-  { label: 'Rebalance frequency', val: 'Often',      pct: 70 },
+  { label: 'Rebalance frequency', val: 'Every 2h',   pct: 70 },
   { label: 'Risk preference',     val: 'Aggressive', pct: 78 },
   { label: 'Max position size',   val: 'Medium',     pct: 50 },
 ];

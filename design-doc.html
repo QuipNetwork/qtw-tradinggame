@@ -356,7 +356,7 @@
                 <input type="range" class="range-overlay" data-kiosk="0" min="0" max="100" value="70" />
               </div>
               <div class="v4m-slider-bottom">
-                <span class="v4m-slider-val" data-kiosk-label="0">Often</span>
+                <span class="v4m-slider-val" data-kiosk-label="0">Every 2h</span>
               </div>
             </div>
             <div class="v4m-slider">
@@ -540,7 +540,7 @@
 
             <!-- Strategy recap — compact strip; the portfolio gets the full card width -->
             <div class="v4m-strat-strip">
-              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Rebalance frequency</span><span class="v4m-strat-val">Often</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Rebalance frequency</span><span class="v4m-strat-val">Every 2h</span></div>
               <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
               <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Max position size</span><span class="v4m-strat-val">Medium</span></div>
             </div>
@@ -704,7 +704,7 @@
         <div>
           <div class="v4m-section-eyebrow" style="margin-bottom: 8px;">Strategy &middot; Drag to Retune</div>
           <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Rebalance frequency</span><span class="v4m-slider-val" data-phone-label="0">Often</span></div>
+            <div class="v4m-slider-top"><span class="v4m-slider-label">Rebalance frequency</span><span class="v4m-slider-val" data-phone-label="0">Every 2h</span></div>
             <div class="v4m-slider-shell">
               <div class="v4m-slider-track">
                 <div class="v4m-slider-fill" data-phone-fill="0" style="width: 70%"></div>
@@ -1209,7 +1209,7 @@
             </div>
 
             <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Rebalance frequency</span><span class="sdf-val">Often</span></div>
+              <div class="sdf-slider-top"><span class="sdf-label">Rebalance frequency</span><span class="sdf-val">Every 2h</span></div>
               <div class="sdf-track"><div class="sdf-fill" style="width: 70%"></div><div class="sdf-knob" style="left: 70%"></div></div>
             </div>
             <div class="sdf-slider">
@@ -1402,7 +1402,7 @@
           <td style="padding: 12px 8px; font-weight: 500;">Rebalance Frequency</td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">How often does my agent re-optimize?</td>
           <td style="padding: 12px 8px;"><code>job cadence</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Not a QUBO term — sets how often the server dispatches a fresh optimization job for this agent. More jobs = the portfolio tracks the market more closely (and more quantum solves on the leaderboard).</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Not a QUBO term — sets how often the server dispatches a fresh optimization job for this agent. Placeholder tiers: <strong>Daily / 8h / 4h / 2h / Hourly</strong> — hourly is the hard cap at the most aggressive setting, because QPU time costs real money. Over the 2-day activation (~10 booth hours/day) that's at most ~20 scheduled jobs per agent (+ manual retunes). The slider shows the cadence directly so players know exactly what they picked.</td>
         </tr>
         <tr style="border-bottom: 1px solid var(--zinc-200);">
           <td style="padding: 12px 8px; font-weight: 500;">Risk Preference</td>
@@ -1897,7 +1897,7 @@
   // ─── Slider label sets (3 sliders — holding style and diversification
   // were dropped; the basket selection expresses those directly) ───
   const SLIDER_LABELS = [
-    ['Rarely', 'Slow', 'Steady', 'Often', 'Nonstop'],
+    ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'],
     ['Conservative', 'Defensive', 'Balanced', 'Aggressive', 'Speculative'],
     ['Tiny', 'Small', 'Medium', 'Large', 'Heavy']
   ];
