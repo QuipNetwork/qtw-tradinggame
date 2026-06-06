@@ -3971,6 +3971,15 @@
   .kiosk-v4 .v4m-rail-col {
     gap: 14px;
   }
+  /* The agent card stretches so its bottom edge aligns with the slider
+     band's; the routing section pins to the card's bottom. */
+  .kiosk-v4 .v4m-rail-col .v4m-mega:last-child {
+    flex: 1;
+    min-height: 0;
+  }
+  .kiosk-v4 .v4m-rail-col .v4m-mega:last-child .v4m-mega-section:first-child {
+    flex: 1;
+  }
   .kiosk-v4 .v4m-cta .v4m-cta-label {
     display: inline-flex;
     align-items: center;
