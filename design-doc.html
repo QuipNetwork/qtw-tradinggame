@@ -1408,7 +1408,7 @@
           <td style="padding: 12px 8px; font-weight: 500;">Risk Preference</td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">How much volatility do I accept for return?</td>
           <td style="padding: 12px 8px;"><code>risk aversion γ</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">The classic mean-variance trade-off coefficient on the covariance term <code>w'Σw</code>.</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">The classic mean-variance trade-off coefficient on the covariance term <code>w'Σw</code>. Observable effect: conservative agents lead with low-volatility assets (USDC/USDT, Safran), aggressive agents lead with high-volatility ones (QUBT, RGTI, HYPE). The doc's live mock simulates this with placeholder per-asset volatility scores.</td>
         </tr>
         <tr style="border-bottom: 1px solid var(--zinc-200);">
           <td style="padding: 12px 8px; font-weight: 500;">Max Position Size</td>
@@ -2027,15 +2027,15 @@
   // allocation from the basket + sliders currently set in the sign-up mock
   // (same math as the app mock: slider-driven decay + relative cap). ───
   const DOC_ASSET_META = {
-    BTC: ['btc.svg', '#F7931A'], ETH: ['eth.svg', '#627EEA'], BNB: ['bnb.svg', '#F3BA2F'],
-    USDC: ['usdc.svg', '#2775CA'], XRP: ['xrp.svg', '#23292F'], SOL: ['sol.png', '#9945FF'],
-    HYPE: ['hype.png', '#4FD1B5'], DOGE: ['doge.svg', '#C2A633'], USDT: ['usdt.svg', '#26A17B'],
-    ZEC: ['zec.svg', '#F4B728'], ALGO: ['algo.svg', '#18181B'], STRK: ['strk.png', '#EC796B'],
-    FIL: ['fil.svg', '#0090FF'], RENDER: ['render.png', '#E11D2E'], IONQ: ['ionq.png', '#FF8200'],
-    QBTS: ['qbts.png', '#008CD7'], RGTI: ['rgti.png', '#00A7B5'], QUBT: ['qubt.png', '#1E6FD9'],
-    QNT: ['qnt.png', '#101820'], SAF: ['saf.png', '#002F87'], INDI: ['indi.png', '#7C3AED'],
-    BTQ: ['btq.png', '#18181B'], LAES: ['laes.png', '#2AA8E0'], ARQQ: ['arqq.png', '#00C2CB'],
-    SPCX: ['spcx.png', '#005288']
+    BTC: ['btc.svg', '#F7931A', 0.45], ETH: ['eth.svg', '#627EEA', 0.55], BNB: ['bnb.svg', '#F3BA2F', 0.50],
+    USDC: ['usdc.svg', '#2775CA', 0.02], XRP: ['xrp.svg', '#23292F', 0.65], SOL: ['sol.png', '#9945FF', 0.70],
+    HYPE: ['hype.png', '#4FD1B5', 0.90], DOGE: ['doge.svg', '#C2A633', 0.85], USDT: ['usdt.svg', '#26A17B', 0.02],
+    ZEC: ['zec.svg', '#F4B728', 0.75], ALGO: ['algo.svg', '#18181B', 0.70], STRK: ['strk.png', '#EC796B', 0.80],
+    FIL: ['fil.svg', '#0090FF', 0.70], RENDER: ['render.png', '#E11D2E', 0.80], IONQ: ['ionq.png', '#FF8200', 0.75],
+    QBTS: ['qbts.png', '#008CD7', 0.85], RGTI: ['rgti.png', '#00A7B5', 0.90], QUBT: ['qubt.png', '#1E6FD9', 0.95],
+    QNT: ['qnt.png', '#101820', 0.60], SAF: ['saf.png', '#002F87', 0.25], INDI: ['indi.png', '#7C3AED', 0.70],
+    BTQ: ['btq.png', '#18181B', 0.85], LAES: ['laes.png', '#2AA8E0', 0.90], ARQQ: ['arqq.png', '#00C2CB', 0.85],
+    SPCX: ['spcx.png', '#005288', 0.50]
   };
   function simulatePortfolio() {
     const block = document.querySelector('#kiosk-routing-hero .v4m-portfolio-block');
@@ -2055,7 +2055,16 @@
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
     const rank = t => { let r = h; for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0; return r; };
-    const ordered = tiles.slice().sort((a, b) => rank(a) - rank(b));
+    // Risk preference tilts which assets lead: conservative → low-vol
+    // (stablecoins, large caps), aggressive → high-vol (small-cap quantum
+    // stocks, memecoins). Name-seeded jitter keeps players distinct.
+    const riskInput = document.querySelector('[data-kiosk="1"]');
+    const rv = (riskInput ? parseInt(riskInput.value, 10) : 50) / 100;
+    const score = t => {
+      const vol = DOC_ASSET_META[t][2];
+      return (1 - rv) * (1 - vol) + rv * vol + 0.15 * ((rank(t) % 1000) / 1000);
+    };
+    const ordered = tiles.slice().sort((a, b) => score(b) - score(a));
     const sizeInput = document.querySelector('[data-kiosk="2"]');
     const sv = (sizeInput ? parseInt(sizeInput.value, 10) : 50) / 100;
     const n = ordered.length;

@@ -10,6 +10,7 @@ import type {
   PortfolioEntry,
   RoutingResult,
 } from './types';
+import { ASSET_BY_TICKER } from './assets';
 
 const STORAGE_PREFIX = 'quip:agents:';
 
@@ -82,7 +83,12 @@ export async function getAgent(agentId: string): Promise<AgentConfig | null> {
 
 export async function requestOptimization(agentId: string): Promise<RoutingResult> {
   const agent = await getAgent(agentId);
-  const portfolio = portfolioFor(agentId, agent?.assets, agent?.sliders.maxPositionSize ?? 50);
+  const portfolio = portfolioFor(
+    agentId,
+    agent?.assets,
+    agent?.sliders.maxPositionSize ?? 50,
+    agent?.sliders.riskPreference ?? 50,
+  );
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
@@ -131,9 +137,13 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
 // basket (older/seeded entries) fall back to the demo basket.
 const FALLBACK_BASKET: AssetTicker[] = ['BTC', 'ETH', 'SOL', 'USDC'];
 
-function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize = 50): PortfolioEntry[] {
+function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize = 50, riskPreference = 50): PortfolioEntry[] {
   const basket = assets && assets.length ? assets : FALLBACK_BASKET;
-  // Deterministic shuffle seeded by agentId.
+  // Risk preference tilts WHICH assets lead the allocation (γ on the
+  // covariance term in the real solver): conservative agents lead with
+  // low-volatility assets (stablecoins, large caps), aggressive agents
+  // lead with high-volatility ones (small-cap quantum stocks, memecoins).
+  // A name-seeded jitter keeps different agents distinct.
   let h = 0;
   for (let i = 0; i < agentId.length; i++) h = (h * 31 + agentId.charCodeAt(i)) >>> 0;
   const rank = (t: string) => {
@@ -141,7 +151,12 @@ function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize =
     for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0;
     return r;
   };
-  const ordered = [...basket].sort((a, b) => rank(a) - rank(b));
+  const r01 = riskPreference / 100;
+  const score = (t: AssetTicker) => {
+    const vol = ASSET_BY_TICKER[t].vol;
+    return (1 - r01) * (1 - vol) + r01 * vol + 0.15 * ((rank(t) % 1000) / 1000);
+  };
+  const ordered = [...basket].sort((a, b) => score(b) - score(a));
   // Exponential decay, normalized. The position-size slider drives the
   // optimizer's concentration appetite (like risk interacting with the cap
   // in the real solver): Tiny → near-equal weights, Heavy → steep decay

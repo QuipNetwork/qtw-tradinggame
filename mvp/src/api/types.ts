@@ -40,6 +40,7 @@ export type AssetInfo = {
   class: AssetClass;
   icon: string;        // filename in shared-design/asset-icons/
   color: string;       // mark color, used in the allocation bar
+  vol: number;         // placeholder volatility score 0..1 (drives the risk tilt in the demo)
 };
 
 export type PortfolioEntry = {
