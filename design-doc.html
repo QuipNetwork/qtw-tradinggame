@@ -458,7 +458,7 @@
   </div>
 
   <h3 style="margin-top: 50px; margin-bottom: 14px;">Kiosk · Strategy returned <span class="interactive-tag" style="margin-left: 8px;">Live · click replay</span></h3>
-  <p class="small" style="margin-bottom: 12px;">After the user submits, the kiosk displays this confirmation screen for ~5 seconds. The primary panel shows the routing result: provider, solve time, and the quantum-vs-classical race. The portfolio breakdown and QR appear below. The big-screen welcome splash fires on the same event.</p>
+  <p class="small" style="margin-bottom: 12px;">After the user submits, the kiosk displays this confirmation screen for ~5 seconds. The primary panel shows the routing result: provider, solve time, and the quantum-vs-classical race. The portfolio below is a <strong>true simulation</strong> — it recomputes live from the basket and sliders set in the sign-up mock above (toggle assets or drag Max position size and watch it re-allocate). The big-screen welcome splash fires on the same event.</p>
 
   <div class="mockup-frame kiosk">
     <div class="chrome"><span class="net-status">Quip Network · Routed</span></div>
@@ -540,9 +540,9 @@
 
             <!-- Strategy recap — compact strip; the portfolio gets the full card width -->
             <div class="v4m-strat-strip">
-              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Rebalance frequency</span><span class="v4m-strat-val">Every 2h</span></div>
-              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
-              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Max position size</span><span class="v4m-strat-val">Medium</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Rebalance frequency</span><span class="v4m-strat-val" data-strat-slider="0">Every 2h</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Risk preference</span><span class="v4m-strat-val" data-strat-slider="1">Aggressive</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Max position size</span><span class="v4m-strat-val" data-strat-slider="2">Medium</span></div>
             </div>
 
             <div class="v4m-portfolio-block">
@@ -2000,6 +2000,7 @@
     p.addEventListener('click', () => {
       kioskSetPick(p, !p.classList.contains('on'));
       kioskUpdateBasket();
+      simulatePortfolio();
     });
   });
   document.querySelectorAll('[data-basket-action]').forEach(btn => {
@@ -2016,11 +2017,85 @@
         }
       }
       kioskUpdateBasket();
+      simulatePortfolio();
     });
   });
   kioskUpdateBasket();
 
   // ─── Compute portfolio weights from the 5 sliders (deterministic) ───
+  // ─── Live portfolio simulation — the strategy-return mock computes its
+  // allocation from the basket + sliders currently set in the sign-up mock
+  // (same math as the app mock: slider-driven decay + relative cap). ───
+  const DOC_ASSET_META = {
+    BTC: ['btc.svg', '#F7931A'], ETH: ['eth.svg', '#627EEA'], BNB: ['bnb.svg', '#F3BA2F'],
+    USDC: ['usdc.svg', '#2775CA'], XRP: ['xrp.svg', '#23292F'], SOL: ['sol.png', '#9945FF'],
+    HYPE: ['hype.png', '#4FD1B5'], DOGE: ['doge.svg', '#C2A633'], USDT: ['usdt.svg', '#26A17B'],
+    ZEC: ['zec.svg', '#F4B728'], ALGO: ['algo.svg', '#18181B'], STRK: ['strk.png', '#EC796B'],
+    FIL: ['fil.svg', '#0090FF'], RENDER: ['render.png', '#E11D2E'], IONQ: ['ionq.png', '#FF8200'],
+    QBTS: ['qbts.png', '#008CD7'], RGTI: ['rgti.png', '#00A7B5'], QUBT: ['qubt.png', '#1E6FD9'],
+    QNT: ['qnt.png', '#101820'], SAF: ['saf.png', '#002F87'], INDI: ['indi.png', '#7C3AED'],
+    BTQ: ['btq.png', '#18181B'], LAES: ['laes.png', '#2AA8E0'], ARQQ: ['arqq.png', '#00C2CB'],
+    SPCX: ['spcx.png', '#005288']
+  };
+  function simulatePortfolio() {
+    const block = document.querySelector('#kiosk-routing-hero .v4m-portfolio-block');
+    if (!block) return;
+    const eyebrow = block.querySelector('.v4m-section-eyebrow');
+    const stackEl = block.querySelector('.v4m-alloc-stack');
+    const gridEl = block.querySelector('.v4m-alloc-grid');
+    const tiles = Array.from(document.querySelectorAll('#kiosk-pick-list .v4m-tile.on')).map(t => t.dataset.pick);
+    if (tiles.length === 0) {
+      eyebrow.innerHTML = 'Your portfolio &middot; no assets selected';
+      stackEl.innerHTML = '';
+      gridEl.innerHTML = '';
+      return;
+    }
+    // Deterministic per-player ordering, seeded by the player name.
+    const name = (kioskName && kioskName.value || 'Player').trim() || 'Player';
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    const rank = t => { let r = h; for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0; return r; };
+    const ordered = tiles.slice().sort((a, b) => rank(a) - rank(b));
+    const sizeInput = document.querySelector('[data-kiosk="2"]');
+    const sv = (sizeInput ? parseInt(sizeInput.value, 10) : 50) / 100;
+    const n = ordered.length;
+    // Slider drives concentration appetite; the relative cap bounds it.
+    const decay = n > 10 ? 0.99 - sv * 0.19 : 0.95 - sv * 0.30;
+    const raw = ordered.map((_, i) => Math.pow(decay, i));
+    const total = raw.reduce((a, b) => a + b, 0);
+    let w = raw.map(v => v / total);
+    const fl = 1 / n;
+    const cap = fl + sv * (Math.max(0.5, fl) - fl);
+    for (let pass = 0; pass < 10; pass++) {
+      const excess = w.reduce((a, v) => a + Math.max(0, v - cap), 0);
+      if (excess < 1e-6) break;
+      const us = w.reduce((a, v) => a + (v < cap ? v : 0), 0);
+      w = w.map(v => v >= cap ? cap : v + (us > 0 ? (v / us) * excess : 0));
+    }
+    let pctLeft = 100;
+    const entries = ordered.map((t, i) => {
+      const pct = i === n - 1 ? Math.round(pctLeft * 10) / 10 : Math.round(w[i] * 1000) / 10;
+      pctLeft -= pct;
+      return { t, pct };
+    });
+    // mirror the current slider words into the strategy strip
+    kioskRanges.forEach((r, i) => {
+      const el = document.querySelector('[data-strat-slider="' + i + '"]');
+      if (el) el.textContent = labelFor(i, parseInt(r.value, 10));
+    });
+    eyebrow.innerHTML = 'Your portfolio &middot; ' + n + ' holding' + (n === 1 ? '' : 's');
+    stackEl.innerHTML = entries.map(e =>
+      '<span style="width:' + e.pct + '%; background:' + DOC_ASSET_META[e.t][1] + ';"></span>').join('');
+    gridEl.className = 'v4m-alloc-grid' + (n > 12 ? ' dense' : '');
+    gridEl.innerHTML = entries.map(e =>
+      '<div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/' + DOC_ASSET_META[e.t][0] + '" alt="">' +
+      '<span class="v4m-alloc-name">' + e.t + '</span>' +
+      '<span class="v4m-alloc-pct">' + e.pct.toFixed(1) + '%</span>' +
+      '<span class="v4m-alloc-usd">$' + Math.round(e.pct * 100).toLocaleString() + '</span></div>').join('');
+  }
+  kioskRanges.forEach(r => r.addEventListener('input', simulatePortfolio));
+  simulatePortfolio();
+
   // ─── Kiosk launch button — updates strategy-return downstream ───
   const kioskLaunch = document.getElementById('kiosk-launch');
   const stratName = document.getElementById('strat-name');
@@ -2044,7 +2119,7 @@
       renderFakeQR(qrGlyphEl, 'qtw.quip.network/p/' + name + handle);
     }
 
-    // Portfolio rows are a static 25-holding demo (full universe selected).
+    simulatePortfolio();
 
     // Fire a fresh routing simulation in the hero card.
     if (typeof renderKioskRouting === 'function') {
