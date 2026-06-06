@@ -4446,8 +4446,12 @@
     padding: 0 0 10px;
     margin-bottom: 10px;
   }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-stack {
+    height: 12px;
+  }
   .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
     padding-top: 12px;
+    margin-top: auto;   /* QR row anchors to the card bottom */
   }
   .kiosk-welcome-v4.app-fit .v4m-agent-qr {
     width: 76px;
@@ -4697,27 +4701,27 @@
   .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row:nth-child(-n+2) {
     border-top: none;
   }
-  /* Dense variant (>12 holdings, up to the full 25): three columns,
-     compact rows, smaller marks — the whole universe fits the canvas. */
+  /* Dense variant (>12 holdings, up to the full 25): three columns —
+     the whole universe fits the canvas while staying comfortably legible. */
   .kiosk-welcome-v4 .v4m-alloc-grid.dense {
     grid-template-columns: 1fr 1fr 1fr;
-    column-gap: 20px;
+    column-gap: 24px;
   }
   .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-row {
     grid-template-columns: auto 1fr auto auto;
-    gap: 7px;
-    padding: 4.5px 0;
+    gap: 9px;
+    padding: 6.5px 0;
   }
   .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-row:nth-child(-n+3) {
     border-top: none;
   }
   .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-icon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
   }
-  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-name { font-size: 0.7rem; }
-  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-pct { font-size: 0.7rem; }
-  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-usd { font-size: 0.66rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-name { font-size: 0.78rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-pct { font-size: 0.78rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-usd { font-size: 0.72rem; }
   /* Strategy recap column — sits between the solver outcome and the portfolio */
   .kiosk-welcome-v4 .v4m-strat-list {
     display: flex; flex-direction: column;
