@@ -214,7 +214,7 @@
       <text x="246" y="62" font-size="11" font-family="JetBrains Mono, monospace" fill="#71717a">STEP 02 · BOOTH</text>
       <text x="246" y="92" font-size="15" font-weight="600" fill="#09090b">Pick basket, tune sliders</text>
       <text x="246" y="112" font-size="12" fill="#52525b">25 assets · Activity,</text>
-      <text x="246" y="128" font-size="12" fill="#52525b">Risk, Trade size</text>
+      <text x="246" y="128" font-size="12" fill="#52525b">Risk, Position cap</text>
       <text x="246" y="160" font-size="11" fill="#a1a1aa">~30 sec</text>
 
       <line x1="440" y1="110" x2="458" y2="110" stroke="#ff6467" stroke-width="2" marker-end="url(#arrow)"/>
@@ -346,7 +346,7 @@
 
             <div class="v4m-slider">
               <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Trading activity</span>
+                <span class="v4m-slider-label">Rebalance frequency</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -356,7 +356,7 @@
                 <input type="range" class="range-overlay" data-kiosk="0" min="0" max="100" value="70" />
               </div>
               <div class="v4m-slider-bottom">
-                <span class="v4m-slider-val" data-kiosk-label="0">High</span>
+                <span class="v4m-slider-val" data-kiosk-label="0">Often</span>
               </div>
             </div>
             <div class="v4m-slider">
@@ -376,7 +376,7 @@
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Trade size</span>
+                <span class="v4m-slider-label">Max position size</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -540,9 +540,9 @@
 
             <!-- Strategy recap — compact strip; the portfolio gets the full card width -->
             <div class="v4m-strat-strip">
-              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Trading activity</span><span class="v4m-strat-val">High</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Rebalance frequency</span><span class="v4m-strat-val">Often</span></div>
               <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
-              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Trade size</span><span class="v4m-strat-val">Medium</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Max position size</span><span class="v4m-strat-val">Medium</span></div>
             </div>
 
             <div class="v4m-portfolio-block">
@@ -704,7 +704,7 @@
         <div>
           <div class="v4m-section-eyebrow" style="margin-bottom: 8px;">Strategy &middot; Drag to Retune</div>
           <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Trading activity</span><span class="v4m-slider-val" data-phone-label="0">High</span></div>
+            <div class="v4m-slider-top"><span class="v4m-slider-label">Rebalance frequency</span><span class="v4m-slider-val" data-phone-label="0">Often</span></div>
             <div class="v4m-slider-shell">
               <div class="v4m-slider-track">
                 <div class="v4m-slider-fill" data-phone-fill="0" style="width: 70%"></div>
@@ -724,7 +724,7 @@
             </div>
           </div>
           <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Trade size</span><span class="v4m-slider-val" data-phone-label="2">Medium</span></div>
+            <div class="v4m-slider-top"><span class="v4m-slider-label">Max position size</span><span class="v4m-slider-val" data-phone-label="2">Medium</span></div>
             <div class="v4m-slider-shell">
               <div class="v4m-slider-track">
                 <div class="v4m-slider-fill" data-phone-fill="2" style="width: 50%"></div>
@@ -1209,7 +1209,7 @@
             </div>
 
             <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Trading activity</span><span class="sdf-val">High</span></div>
+              <div class="sdf-slider-top"><span class="sdf-label">Rebalance frequency</span><span class="sdf-val">Often</span></div>
               <div class="sdf-track"><div class="sdf-fill" style="width: 70%"></div><div class="sdf-knob" style="left: 70%"></div></div>
             </div>
             <div class="sdf-slider">
@@ -1217,7 +1217,7 @@
               <div class="sdf-track"><div class="sdf-fill" style="width: 78%"></div><div class="sdf-knob" style="left: 78%"></div></div>
             </div>
             <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Trade size</span><span class="sdf-val">Medium</span></div>
+              <div class="sdf-slider-top"><span class="sdf-label">Max position size</span><span class="sdf-val">Medium</span></div>
               <div class="sdf-track"><div class="sdf-fill" style="width: 50%"></div><div class="sdf-knob" style="left: 50%"></div></div>
             </div>
 
@@ -1399,10 +1399,10 @@
       </thead>
       <tbody style="font-family: 'Inter', sans-serif;">
         <tr style="border-bottom: 1px solid var(--zinc-200);">
-          <td style="padding: 12px 8px; font-weight: 500;">Trading Activity</td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">How willing am I to flip positions?</td>
-          <td style="padding: 12px 8px;"><code>turnover_penalty λ_t</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Higher activity → lower penalty on deviations from a uniform baseline (more reshuffling allowed).</td>
+          <td style="padding: 12px 8px; font-weight: 500;">Rebalance Frequency</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">How often does my agent re-optimize?</td>
+          <td style="padding: 12px 8px;"><code>job cadence</code></td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Not a QUBO term — sets how often the server dispatches a fresh optimization job for this agent. More jobs = the portfolio tracks the market more closely (and more quantum solves on the leaderboard).</td>
         </tr>
         <tr style="border-bottom: 1px solid var(--zinc-200);">
           <td style="padding: 12px 8px; font-weight: 500;">Risk Preference</td>
@@ -1411,7 +1411,7 @@
           <td style="padding: 12px 8px; color: var(--zinc-600);">The classic mean-variance trade-off coefficient on the covariance term <code>w'Σw</code>.</td>
         </tr>
         <tr style="border-bottom: 1px solid var(--zinc-200);">
-          <td style="padding: 12px 8px; font-weight: 500;">Trade Size</td>
+          <td style="padding: 12px 8px; font-weight: 500;">Max Position Size</td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">How concentrated can a single position get?</td>
           <td style="padding: 12px 8px;"><code>max_weight w_max</code></td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">Per-asset upper bound. Higher → bolder bets allowed.</td>
@@ -1646,7 +1646,7 @@
         <span></span>
       </div>
       <div class="row">
-        <label>Trading Activity</label>
+        <label>Rebalance Frequency</label>
         <input id="play-p1" type="range" min="0" max="100" value="70" />
         <span class="v" id="play-p1-v">70</span>
       </div>
@@ -1656,7 +1656,7 @@
         <span class="v" id="play-p2-v">78</span>
       </div>
       <div class="row">
-        <label>Trade Size</label>
+        <label>Max Position Size</label>
         <input id="play-p3" type="range" min="0" max="100" value="50" />
         <span class="v" id="play-p3-v">50</span>
       </div>
@@ -1687,7 +1687,7 @@
       <p>Each slider crosses a threshold that flips a high-level visual property. Crossing a threshold causes the glyph to re-pick its palette and pattern math, not just adjust texture.</p>
       <ul>
         <li><code>Risk Preference</code>palette family — <strong>cool</strong> (cyan / aurora / electric / forest), <strong>neutral</strong> (mixed / purple / sunset), or <strong>warm</strong> (coral / flare / ember / yellow)</li>
-        <li><code>Trade Size</code>generation mode — <strong>noise</strong> (organic dots), <strong>waves</strong> (geometric interference), or <strong>mandala</strong> (radial)</li>
+        <li><code>Max Position Size</code>generation mode — <strong>noise</strong> (organic dots), <strong>waves</strong> (geometric interference), or <strong>mandala</strong> (radial)</li>
         <li><code>Holding Style</code>radial symmetry — <strong>off</strong> (mirror) below 50, <strong>on</strong> above 50</li>
         <li><code>Diversification</code>ray count when radial — <strong>3 / 5 / 7 / 9</strong></li>
       </ul>
@@ -1696,9 +1696,9 @@
       <h4>LOW-LEVEL · within the chosen style</h4>
       <p>Within the style selected above, each slider also fine-tunes the texture. Same style + different slider values produces glyphs in the same family with different texture.</p>
       <ul>
-        <li><code>Trading Activity</code>frequency / scale of the pattern</li>
+        <li><code>Rebalance Frequency</code>frequency / scale of the pattern</li>
         <li><code>Risk Preference</code>also density / contrast threshold</li>
-        <li><code>Trade Size</code>also cell shape (square / circle / diamond)</li>
+        <li><code>Max Position Size</code>also cell shape (square / circle / diamond)</li>
         <li><code>Holding Style</code>also color drift across the canvas</li>
         <li><code>Name</code>seeds the noise + picks a specific palette inside the slider's family</li>
       </ul>
@@ -1897,7 +1897,7 @@
   // ─── Slider label sets (3 sliders — holding style and diversification
   // were dropped; the basket selection expresses those directly) ───
   const SLIDER_LABELS = [
-    ['Minimal', 'Low', 'Medium', 'High', 'Extreme'],
+    ['Rarely', 'Slow', 'Steady', 'Often', 'Nonstop'],
     ['Conservative', 'Defensive', 'Balanced', 'Aggressive', 'Speculative'],
     ['Tiny', 'Small', 'Medium', 'Large', 'Heavy']
   ];

@@ -1,9 +1,9 @@
 import { ASSETS, assetIconSrc } from '../../api';
 
 const SLIDERS = [
-  { label: 'Trading activity', val: 'High',       pct: 70 },
-  { label: 'Risk preference',  val: 'Aggressive', pct: 78 },
-  { label: 'Trade size',       val: 'Medium',     pct: 50 },
+  { label: 'Rebalance frequency', val: 'Often',      pct: 70 },
+  { label: 'Risk preference',     val: 'Aggressive', pct: 78 },
+  { label: 'Max position size',   val: 'Medium',     pct: 50 },
 ];
 
 // Deterministic fake 24h change per ticker (demo data — no live feed on TV).

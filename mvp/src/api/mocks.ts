@@ -41,20 +41,20 @@ const TOP_10: LeaderboardEntry[] = [
 // (e.g. /kiosk/welcome?agent=a06, /p/a06) render without needing the kiosk
 // form to have created the agent in this browser's localStorage.
 const SEEDED_AGENTS: Record<string, AgentConfig> = {
-  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { tradingActivity: 95, riskPreference: 95, tradeSize: 85 } },
-  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { tradingActivity: 80, riskPreference: 85, tradeSize: 70 } },
-  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60 },
+  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 } },
+  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 } },
+  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { rebalanceFrequency: 65, riskPreference: 78, maxPositionSize: 60 },
          assets: ['XRP', 'ALGO', 'IONQ', 'QNT', 'SAF', 'ARQQ'] },
-  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50 } },
-  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65 } },
+  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { rebalanceFrequency: 55, riskPreference: 70, maxPositionSize: 50 } },
+  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { rebalanceFrequency: 70, riskPreference: 60, maxPositionSize: 65 } },
   // a06 selects the ENTIRE 25-asset universe — the worst-case portfolio demo.
-  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50 },
+  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { rebalanceFrequency: 70, riskPreference: 78, maxPositionSize: 50 },
          assets: ['BTC', 'ETH', 'BNB', 'USDC', 'XRP', 'SOL', 'HYPE', 'DOGE', 'USDT', 'ZEC', 'ALGO', 'STRK', 'FIL', 'RENDER',
                   'IONQ', 'QBTS', 'RGTI', 'QUBT', 'QNT', 'SAF', 'INDI', 'BTQ', 'LAES', 'ARQQ', 'SPCX'] },
-  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40 } },
-  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45 } },
-  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40 } },
-  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { tradingActivity: 25, riskPreference: 30, tradeSize: 30 } },
+  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { rebalanceFrequency: 40, riskPreference: 50, maxPositionSize: 40 } },
+  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { rebalanceFrequency: 50, riskPreference: 55, maxPositionSize: 45 } },
+  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { rebalanceFrequency: 35, riskPreference: 45, maxPositionSize: 40 } },
+  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { rebalanceFrequency: 25, riskPreference: 30, maxPositionSize: 30 } },
 };
 
 function uuid(): string {

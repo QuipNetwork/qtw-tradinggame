@@ -133,9 +133,9 @@ export default function KioskWelcome() {
 
           {/* Strategy recap — compact horizontal strip (3 sliders) */}
           <div className="v4m-strat-strip">
-            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Trading activity</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.tradingActivity)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Rebalance frequency</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.rebalanceFrequency)}</span></div>
             <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
-            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Trade size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.tradeSize)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Max position size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.maxPositionSize)}</span></div>
           </div>
 
           {/* Portfolio — full width; holdings flow into two columns */}

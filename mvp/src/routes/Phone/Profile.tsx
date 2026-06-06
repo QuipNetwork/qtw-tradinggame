@@ -6,9 +6,9 @@ import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
-  { key: 'tradingActivity', label: 'Trading activity' },
-  { key: 'riskPreference',  label: 'Risk preference' },
-  { key: 'tradeSize',       label: 'Trade size' },
+  { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
+  { key: 'riskPreference',     label: 'Risk preference' },
+  { key: 'maxPositionSize',    label: 'Max position size' },
 ];
 
 export default function PhoneProfile() {

@@ -4,10 +4,14 @@ import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, 
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
 import KioskStage from './Stage';
 
+// All three sliders are parameters of the allocation problem the solver runs
+// (it allocates the portfolio — it doesn't execute trades): how often to
+// re-optimize, how hard to chase returns, and how big any single position
+// may get.
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number; labels: [string, string, string, string, string] }> = [
-  { key: 'tradingActivity',  label: 'Trading activity',  initial: 70, labels: ['Idle', 'Quiet', 'Moderate', 'High', 'Manic'] },
-  { key: 'riskPreference',   label: 'Risk preference',   initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
-  { key: 'tradeSize',        label: 'Trade size',        initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
+  { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70, labels: ['Rarely', 'Slow', 'Steady', 'Often', 'Nonstop'] },
+  { key: 'riskPreference',     label: 'Risk preference',     initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
+  { key: 'maxPositionSize',    label: 'Max position size',   initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
