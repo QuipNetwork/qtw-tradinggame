@@ -19,6 +19,18 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: numb
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Verbatim from the Luma event registration question, so kiosk leads and
+// event registrations share one audience taxonomy.
+const INTEREST_OPTIONS = [
+  'Quantum hardware',
+  'Building quantum software',
+  'Research / Academia',
+  'Purchasing compute',
+  'Providing compute',
+  'Investing',
+  'Exploring the space',
+] as const;
+
 function labelFor(value: number, labels: readonly string[]): string {
   const i = Math.min(labels.length - 1, Math.floor(value / 20));
   return labels[i];
@@ -33,6 +45,8 @@ export default function KioskSignUp() {
   const navigate = useNavigate();
   const [name, setName] = useState('Lattice Theory');
   const [email, setEmail] = useState('');
+  const [interest, setInterest] = useState('');
+  const [optIn, setOptIn] = useState(false);
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
   const [selected, setSelected] = useState<Set<AssetTicker>>(new Set(ASSETS.map(a => a.ticker)));
   const [busy, setBusy] = useState(false);
@@ -86,6 +100,8 @@ export default function KioskSignUp() {
       name: previewName,
       handle: previewHandle,
       email: email.trim(),
+      interest: interest || undefined,
+      marketingOptIn: optIn,
       sliders: sliderValues,
       assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
     });
@@ -221,6 +237,27 @@ export default function KioskSignUp() {
                   onChange={e => setEmail(e.target.value)}
                 />
               </div>
+              <div className="v4m-field">
+                <label htmlFor="kiosk-interest">Your interest in quantum computing (optional)</label>
+                <select
+                  className="v4m-input v4m-select"
+                  id="kiosk-interest"
+                  value={interest}
+                  onChange={e => setInterest(e.target.value)}
+                >
+                  <option value="">Select one…</option>
+                  {INTEREST_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+              <label className="v4m-optin" htmlFor="kiosk-optin">
+                <input
+                  type="checkbox"
+                  id="kiosk-optin"
+                  checked={optIn}
+                  onChange={e => setOptIn(e.target.checked)}
+                />
+                <span>Keep me posted about Quip Network</span>
+              </label>
             </div>
           </div>
 

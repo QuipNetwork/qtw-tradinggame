@@ -4189,6 +4189,45 @@
   .kiosk-v4 .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
   .kiosk-v4 .v4m-rail-col .v4m-field:last-child { border-bottom: none; padding-bottom: 0; }
   .kiosk-v4 .v4m-rail-col .v4m-field input.v4m-input { font-size: 1.05rem; }
+  /* Interest dropdown — same serif voice as the text inputs */
+  .kiosk-v4 select.v4m-select {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2371717b' stroke-width='1.5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+    cursor: pointer;
+  }
+  .kiosk-v4 select.v4m-select:invalid,
+  .kiosk-v4 select.v4m-select option[value=""] { color: #a1a1aa; }
+  /* Marketing opt-in — explicit, unchecked by default */
+  .kiosk-v4 .v4m-optin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 12px;
+    cursor: pointer;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    color: #52525c;
+  }
+  .kiosk-v4 .v4m-optin input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #0891B2;
+    flex-shrink: 0;
+  }
 
   .kiosk-v4 .v4m-form-col {
     border-top: 1px solid #18181b;
@@ -4414,14 +4453,20 @@
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-bottom { margin-top: 6px; }
   .kiosk-v4.app-fit .v4m-rail-col { gap: 12px; }
-  .kiosk-v4.app-fit .v4m-field { padding: 8px 0; }
+  .kiosk-v4.app-fit .v4m-field { padding: 7px 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:last-child { padding-bottom: 0; }
-  .kiosk-v4.app-fit .v4m-preview { padding: 12px 10px 4px; }
-  .kiosk-v4.app-fit .v4m-preview-mystery-box { width: 112px; height: 112px; }
-  .kiosk-v4.app-fit .v4m-preview-butterfly { width: 60px; height: 60px; }
-  .kiosk-v4.app-fit .v4m-preview .v4m-preview-name { font-size: 1.1rem; margin-top: 8px; }
-  .kiosk-v4.app-fit .v4m-preview-mystery-caption { margin-top: 6px; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-field input.v4m-input { font-size: 0.98rem; }
+  .kiosk-v4.app-fit .v4m-optin { padding-top: 9px; }
+  .kiosk-v4.app-fit .v4m-preview { padding: 6px 8px 0; }
+  .kiosk-v4.app-fit .v4m-preview-mystery-box { width: 64px; height: 64px; }
+  .kiosk-v4.app-fit .v4m-preview-butterfly { width: 36px; height: 36px; }
+  .kiosk-v4.app-fit .v4m-preview .v4m-preview-name { font-size: 1rem; margin-top: 5px; }
+  .kiosk-v4.app-fit .v4m-preview .v4m-preview-handle { margin-top: 2px; }
+  /* the caption is nice-to-have — the CTA sub-line carries the same message */
+  .kiosk-v4.app-fit .v4m-preview-mystery-caption { display: none; }
+  .kiosk-v4.app-fit .v4m-pr { padding: 5px 0; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-mega .v4m-mega-section { padding: 9px 14px; }
   .kiosk-v4.app-fit .v4m-cta-bar { padding: 0 18px 10px; }
   .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
   .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }

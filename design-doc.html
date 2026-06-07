@@ -409,6 +409,23 @@
                   <label for="kiosk-email">Email (required)</label>
                   <input class="v4m-input" id="kiosk-email" type="email" placeholder="you@example.com" />
                 </div>
+                <div class="v4m-field">
+                  <label for="kiosk-interest">Your interest in quantum computing (optional)</label>
+                  <select class="v4m-input v4m-select" id="kiosk-interest">
+                    <option value="">Select one&hellip;</option>
+                    <option>Quantum hardware</option>
+                    <option>Building quantum software</option>
+                    <option>Research / Academia</option>
+                    <option>Purchasing compute</option>
+                    <option>Providing compute</option>
+                    <option>Investing</option>
+                    <option>Exploring the space</option>
+                  </select>
+                </div>
+                <label class="v4m-optin" for="kiosk-optin">
+                  <input type="checkbox" id="kiosk-optin">
+                  <span>Keep me posted about Quip Network</span>
+                </label>
               </div>
             </div>
             <div class="v4m-mega">
@@ -1348,7 +1365,7 @@
       <span class="pill">MVP — required for QTW</span>
       <h3 style="margin-top: 12px;">Minimum required for the demo</h3>
       <ul>
-        <li>Kiosk sign-up: name, email, 25-asset basket selector, 3 sliders</li>
+        <li>Kiosk sign-up: name, email, interest segment (Luma taxonomy) + explicit marketing opt-in, 25-asset basket selector, 3 sliders</li>
         <li>Quip Network routing job on launch + on every slider re-tune</li>
         <li>Provider-provenance badge wherever a strategy is shown (kiosk return, phone, big-screen)</li>
         <li>Personal phone profile via QR-coded secret URL — live P&amp;L + retune</li>
