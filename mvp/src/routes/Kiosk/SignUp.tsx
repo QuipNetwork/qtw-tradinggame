@@ -277,7 +277,7 @@ export default function KioskSignUp() {
               </div>
             </div>
             <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow">Routing to</span>
+              <span className="v4m-section-eyebrow">Raced across</span>
               <div className="v4m-pr q">
                 <span className="v4m-tag">QPU</span>
                 <span className="v4m-pr-name">D-Wave Advantage</span>
@@ -288,6 +288,7 @@ export default function KioskSignUp() {
                 <span className="v4m-pr-name">Classical baseline</span>
                 <span className="v4m-pr-meta">MILP</span>
               </div>
+              <div className="v4m-pr-note">Quip races your job across both — fastest valid optimum wins.</div>
             </div>
           </div>
         </aside>

@@ -3846,6 +3846,15 @@
     text-transform: uppercase;
     color: #71717b;
   }
+  /* Pre-submit framing: these are race candidates, not a chosen destination —
+     the winner is revealed on the strategy-return screen. */
+  .qs-v4-mock .v4m-pr-note {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: #71717b;
+    padding-top: 8px;
+  }
 
   /* Merged rail box (v4-mega equivalent — transparent so it floats
      against the #fafafa screen, with hairline dividers between sections) */
@@ -4458,15 +4467,16 @@
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:last-child { padding-bottom: 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field input.v4m-input { font-size: 0.98rem; }
   .kiosk-v4.app-fit .v4m-optin { padding-top: 9px; }
-  .kiosk-v4.app-fit .v4m-preview { padding: 6px 8px 0; }
-  .kiosk-v4.app-fit .v4m-preview-mystery-box { width: 64px; height: 64px; }
-  .kiosk-v4.app-fit .v4m-preview-butterfly { width: 36px; height: 36px; }
-  .kiosk-v4.app-fit .v4m-preview .v4m-preview-name { font-size: 1rem; margin-top: 5px; }
-  .kiosk-v4.app-fit .v4m-preview .v4m-preview-handle { margin-top: 2px; }
+  .kiosk-v4.app-fit .v4m-preview { padding: 4px 8px 0; }
+  .kiosk-v4.app-fit .v4m-preview-mystery-box { width: 58px; height: 58px; }
+  .kiosk-v4.app-fit .v4m-preview-butterfly { width: 32px; height: 32px; }
+  .kiosk-v4.app-fit .v4m-preview .v4m-preview-name { font-size: 0.95rem; margin-top: 4px; }
+  .kiosk-v4.app-fit .v4m-preview .v4m-preview-handle { margin-top: 1px; }
   /* the caption is nice-to-have — the CTA sub-line carries the same message */
   .kiosk-v4.app-fit .v4m-preview-mystery-caption { display: none; }
-  .kiosk-v4.app-fit .v4m-pr { padding: 5px 0; }
-  .kiosk-v4.app-fit .v4m-rail-col .v4m-mega .v4m-mega-section { padding: 9px 14px; }
+  .kiosk-v4.app-fit .v4m-pr { padding: 4px 0; }
+  .kiosk-v4.app-fit .v4m-pr-note { padding-top: 6px; font-size: 0.64rem; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-mega .v4m-mega-section { padding: 8px 14px; }
   .kiosk-v4.app-fit .v4m-cta-bar { padding: 0 18px 10px; }
   .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
   .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
