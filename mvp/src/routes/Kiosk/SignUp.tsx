@@ -75,6 +75,7 @@ export default function KioskSignUp() {
 
   const previewName = (name.trim() || 'Player');
   const previewHandle = handleFromName(previewName);
+  const nameValid = name.trim().length > 0;
   const emailValid = EMAIL_RE.test(email.trim());
 
   function updateSlider(i: number, v: number) {
@@ -112,7 +113,7 @@ export default function KioskSignUp() {
   }
 
   async function launch() {
-    if (busy || selected.size === 0 || !emailValid) return;
+    if (busy || selected.size === 0 || !nameValid || !emailValid) return;
     setBusy(true);
     const sliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
@@ -155,7 +156,7 @@ export default function KioskSignUp() {
       <div className="v4m-mega-section">
         <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
         <div className="v4m-field">
-          <label htmlFor="kiosk-name">Player name</label>
+          <label htmlFor="kiosk-name">Player name (required)</label>
           <input
             className="v4m-input"
             id="kiosk-name"
@@ -177,6 +178,15 @@ export default function KioskSignUp() {
             onChange={e => setEmail(e.target.value)}
           />
         </div>
+        <button
+          type="button"
+          className={`v4m-check-row v4m-optin-row${updatesOptIn ? ' on' : ''}`}
+          aria-pressed={updatesOptIn}
+          onClick={() => setUpdatesOptIn(v => !v)}
+        >
+          <span className="v4m-check-box" aria-hidden="true">{updatesOptIn ? '✓' : ''}</span>
+          <span className="v4m-check-label">Sign me up for updates from Quip Network</span>
+        </button>
         <div className="v4m-field v4m-field-checklist">
           <label>Would you like someone from our team to reach out? (optional)</label>
           <div className="v4m-checklist">
@@ -194,15 +204,6 @@ export default function KioskSignUp() {
             ))}
           </div>
         </div>
-        <button
-          type="button"
-          className={`v4m-check-row v4m-optin-row${updatesOptIn ? ' on' : ''}`}
-          aria-pressed={updatesOptIn}
-          onClick={() => setUpdatesOptIn(v => !v)}
-        >
-          <span className="v4m-check-box" aria-hidden="true">{updatesOptIn ? '✓' : ''}</span>
-          <span className="v4m-check-label">Sign me up for updates from Quip Network</span>
-        </button>
       </div>
     </div>
   );
@@ -295,16 +296,18 @@ export default function KioskSignUp() {
       </div>
 
       <div className="v4m-cta-bar">
-        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0 || !emailValid}>
+        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0 || !nameValid || !emailValid}>
           <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
         <div className="v4m-cta-sub">
           {selected.size === 0
             ? 'Select at least one asset to launch'
-            : !emailValid
-              ? 'Enter your email to launch'
-              : `${selected.size} asset${selected.size === 1 ? '' : 's'} in basket · Your unique identity is revealed once you launch · ~1 second to first job`}
+            : !nameValid
+              ? 'Enter a player name to launch'
+              : !emailValid
+                ? 'Enter your email to launch'
+                : `${selected.size} asset${selected.size === 1 ? '' : 's'} in basket · Your unique identity is revealed once you launch · ~1 second to first job`}
         </div>
       </div>
 
