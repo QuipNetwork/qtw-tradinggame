@@ -26,6 +26,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // the agent. "No thanks" is the opt-out and is mutually exclusive with the rest.
 // Short chip labels (the question header supplies the "Yes, I'm interested
 // in…" framing); `value` is the full Luma option text stored on the agent.
+// The question is optional — leaving every box unchecked IS the decline, so
+// there's no explicit "No thanks" row.
 const REACH_OUT_OPTIONS: Array<{ label: string; value: string }> = [
   { label: 'Yes, to learn about quantum computing',        value: "Yes, I'd like to learn more about quantum computing" },
   { label: 'Yes, to buy compute',                          value: "Yes, I'm interested in buying compute" },
@@ -33,9 +35,7 @@ const REACH_OUT_OPTIONS: Array<{ label: string; value: string }> = [
   { label: 'Yes, to build quantum applications',           value: "Yes, I'm interested in building quantum applications" },
   { label: 'Yes, to partner with Quip Network',            value: "Yes, I'm interested in partnering with Quip Network" },
   { label: 'Yes, to learn about post-quantum cryptography', value: "Yes, I'd like to learn more about post-quantum cryptography" },
-  { label: 'No thanks',                                    value: 'No thanks' },
 ];
-const NO_THANKS = 'No thanks';
 
 function labelFor(value: number, labels: readonly string[]): string {
   const i = Math.min(labels.length - 1, Math.floor(value / 20));
@@ -54,18 +54,11 @@ export default function KioskSignUp() {
   const [reachOut, setReachOut] = useState<Set<string>>(new Set());
   const [updatesOptIn, setUpdatesOptIn] = useState(false);
 
-  // "No thanks" is mutually exclusive with the affirmative options.
   function toggleReachOut(value: string) {
     setReachOut(prev => {
       const next = new Set(prev);
-      if (next.has(value)) {
-        next.delete(value);
-      } else if (value === NO_THANKS) {
-        return new Set([NO_THANKS]);
-      } else {
-        next.delete(NO_THANKS);
-        next.add(value);
-      }
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
       return next;
     });
   }
@@ -194,7 +187,7 @@ export default function KioskSignUp() {
               <button
                 type="button"
                 key={o.value}
-                className={`v4m-check-row${reachOut.has(o.value) ? ' on' : ''}${o.value === NO_THANKS ? ' muted' : ''}`}
+                className={`v4m-check-row${reachOut.has(o.value) ? ' on' : ''}`}
                 aria-pressed={reachOut.has(o.value)}
                 onClick={() => toggleReachOut(o.value)}
               >
