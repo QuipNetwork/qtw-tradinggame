@@ -63,7 +63,8 @@ export default function KioskSignUp() {
     });
   }
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
-  const [selected, setSelected] = useState<Set<AssetTicker>>(new Set(ASSETS.map(a => a.ticker)));
+  // Start with an empty basket — the player actively picks their assets.
+  const [selected, setSelected] = useState<Set<AssetTicker>>(new Set());
   const [busy, setBusy] = useState(false);
 
   const previewName = (name.trim() || 'Player');
