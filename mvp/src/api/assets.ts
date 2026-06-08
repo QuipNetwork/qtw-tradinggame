@@ -25,7 +25,7 @@ export const ASSETS: AssetInfo[] = [
   // ── Stocks (11) — Alpaca primary oracle ──
   { ticker: 'IONQ',   name: 'IonQ',                class: 'stock',  icon: 'ionq.png',   color: '#FF8200', vol: 0.75 },
   { ticker: 'QBTS',   name: 'D-Wave Quantum',      class: 'stock',  icon: 'qbts.png',   color: '#008CD7', vol: 0.85 },
-  { ticker: 'RGTI',   name: 'Rigetti Computing',   class: 'stock',  icon: 'rgti.png',   color: '#00A7B5', vol: 0.90 },
+  { ticker: 'RGTI',   name: 'Rigetti Computing',   class: 'stock',  icon: 'rgti.png',   color: '#17A2A6', vol: 0.90 },
   { ticker: 'QUBT',   name: 'Quantum Computing',   class: 'stock',  icon: 'qubt.png',   color: '#1E6FD9', vol: 0.95 },
   { ticker: 'QNT',    name: 'Quantinuum',          class: 'stock',  icon: 'qnt.png',    color: '#101820', vol: 0.60 },
   { ticker: 'SAF',    name: 'Safran',              class: 'stock',  icon: 'saf.png',    color: '#002F87', vol: 0.25 },
