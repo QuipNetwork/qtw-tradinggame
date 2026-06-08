@@ -433,7 +433,7 @@
             <span class="v4m-cta-label"><span class="v4m-step-chip cta">4</span>Create your agent</span>
             <span class="v4m-cta-arrow">→</span>
           </button>
-          <div class="v4m-cta-sub" id="kiosk-cta-sub">25 assets in basket &middot; Your unique identity is revealed once you launch &middot; ~1 second to first job</div>
+          <div class="v4m-cta-sub" id="kiosk-cta-sub" style="display: none;"></div>
         </div>
 
       </div>
@@ -1997,9 +1997,8 @@
     if (kioskBasketCount) kioskBasketCount.textContent = n + '/' + kioskPicks.length;
     if (kioskLaunchBtn) kioskLaunchBtn.disabled = n === 0;
     if (kioskCtaSub) {
-      kioskCtaSub.textContent = n === 0
-        ? 'Select at least one asset to launch'
-        : n + ' asset' + (n === 1 ? '' : 's') + ' in basket · Your unique identity is revealed once you launch · ~1 second to first job';
+      kioskCtaSub.textContent = n === 0 ? 'Select at least one asset to launch' : '';
+      kioskCtaSub.style.display = n === 0 ? '' : 'none';
     }
   }
   kioskPicks.forEach(p => {

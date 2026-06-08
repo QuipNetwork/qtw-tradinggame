@@ -293,15 +293,15 @@ export default function KioskSignUp() {
           <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
-        <div className="v4m-cta-sub">
-          {selected.size === 0
-            ? 'Select at least one asset to launch'
-            : !nameValid
-              ? 'Enter a player name to launch'
-              : !emailValid
-                ? 'Enter your email to launch'
-                : `${selected.size} asset${selected.size === 1 ? '' : 's'} in basket · Your unique identity is revealed once you launch · ~1 second to first job`}
-        </div>
+        {(selected.size === 0 || !nameValid || !emailValid) && (
+          <div className="v4m-cta-sub">
+            {selected.size === 0
+              ? 'Select at least one asset to launch'
+              : !nameValid
+                ? 'Enter a player name to launch'
+                : 'Enter your email to launch'}
+          </div>
+        )}
       </div>
 
     </div>
