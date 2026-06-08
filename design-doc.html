@@ -409,18 +409,17 @@
                   <label for="kiosk-email">Email (required)</label>
                   <input class="v4m-input" id="kiosk-email" type="email" placeholder="you@example.com" />
                 </div>
-                <div class="v4m-field">
-                  <label for="kiosk-interest">Your interest in quantum computing (optional)</label>
-                  <select class="v4m-input v4m-select" id="kiosk-interest">
-                    <option value="">Select one&hellip;</option>
-                    <option>Quantum hardware</option>
-                    <option>Building quantum software</option>
-                    <option>Research / Academia</option>
-                    <option>Purchasing compute</option>
-                    <option>Providing compute</option>
-                    <option>Investing</option>
-                    <option>Exploring the space</option>
-                  </select>
+                <div class="v4m-field v4m-field-chips">
+                  <label>Your interest in quantum computing (optional)</label>
+                  <div class="v4m-chips">
+                    <button type="button" class="v4m-chip">Quantum hardware</button>
+                    <button type="button" class="v4m-chip">Building quantum software</button>
+                    <button type="button" class="v4m-chip">Research / Academia</button>
+                    <button type="button" class="v4m-chip">Purchasing compute</button>
+                    <button type="button" class="v4m-chip">Providing compute</button>
+                    <button type="button" class="v4m-chip">Investing</button>
+                    <button type="button" class="v4m-chip">Exploring the space</button>
+                  </div>
                 </div>
                 <label class="v4m-optin" for="kiosk-optin">
                   <input type="checkbox" id="kiosk-optin">
@@ -441,20 +440,6 @@
                   <div class="v4m-preview-handle" id="kiosk-preview-handle">@latticetheory</div>
                   <div class="v4m-preview-mystery-caption">Identity revealed at launch</div>
                 </div>
-              </div>
-              <div class="v4m-mega-section">
-                <span class="v4m-section-eyebrow">Raced across</span>
-                <div class="v4m-pr q">
-                  <span class="v4m-tag">QPU</span>
-                  <span class="v4m-pr-name">D-Wave Advantage</span>
-                  <span class="v4m-pr-meta">Quantum</span>
-                </div>
-                <div class="v4m-pr c">
-                  <span class="v4m-tag">CPU</span>
-                  <span class="v4m-pr-name">Classical baseline</span>
-                  <span class="v4m-pr-meta">MILP</span>
-                </div>
-                <div class="v4m-pr-note">Quip races your job across both &mdash; fastest valid optimum wins.</div>
               </div>
             </div>
           </aside>
@@ -1931,6 +1916,17 @@
     const i = Math.min(labels.length - 1, Math.floor(val / 20));
     return labels[i];
   }
+
+  // ─── Interest chips — single-select toggle ───
+  document.querySelectorAll('#kiosk-routing-hero, .kiosk-v4').forEach(() => {});
+  const interestChips = Array.from(document.querySelectorAll('.kiosk-v4 .v4m-chip'));
+  interestChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const wasOn = chip.classList.contains('on');
+      interestChips.forEach(c => c.classList.remove('on'));
+      if (!wasOn) chip.classList.add('on');
+    });
+  });
 
   // ─── Scale the kiosk doc-stages to true iPad proportions (1024×768) ───
   function fitDocStages() {

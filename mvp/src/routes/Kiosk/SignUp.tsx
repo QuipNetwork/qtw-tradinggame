@@ -237,17 +237,21 @@ export default function KioskSignUp() {
                   onChange={e => setEmail(e.target.value)}
                 />
               </div>
-              <div className="v4m-field">
-                <label htmlFor="kiosk-interest">Your interest in quantum computing (optional)</label>
-                <select
-                  className="v4m-input v4m-select"
-                  id="kiosk-interest"
-                  value={interest}
-                  onChange={e => setInterest(e.target.value)}
-                >
-                  <option value="">Select one…</option>
-                  {INTEREST_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+              <div className="v4m-field v4m-field-chips">
+                <label>Your interest in quantum computing (optional)</label>
+                <div className="v4m-chips">
+                  {INTEREST_OPTIONS.map(o => (
+                    <button
+                      type="button"
+                      key={o}
+                      className={`v4m-chip${interest === o ? ' on' : ''}`}
+                      aria-pressed={interest === o}
+                      onClick={() => setInterest(prev => prev === o ? '' : o)}
+                    >
+                      {o}
+                    </button>
+                  ))}
+                </div>
               </div>
               <label className="v4m-optin" htmlFor="kiosk-optin">
                 <input
@@ -261,7 +265,7 @@ export default function KioskSignUp() {
             </div>
           </div>
 
-          {/* Agent preview + routing — separate card */}
+          {/* Agent preview — separate card */}
           <div className="v4m-mega">
             <div className="v4m-mega-section">
               <span className="v4m-section-eyebrow cyan-dot">Your Agent</span>
@@ -275,20 +279,6 @@ export default function KioskSignUp() {
                 <div className="v4m-preview-handle">{previewHandle}</div>
                 <div className="v4m-preview-mystery-caption">Identity revealed at launch</div>
               </div>
-            </div>
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow">Raced across</span>
-              <div className="v4m-pr q">
-                <span className="v4m-tag">QPU</span>
-                <span className="v4m-pr-name">D-Wave Advantage</span>
-                <span className="v4m-pr-meta">Quantum</span>
-              </div>
-              <div className="v4m-pr c">
-                <span className="v4m-tag">CPU</span>
-                <span className="v4m-pr-name">Classical baseline</span>
-                <span className="v4m-pr-meta">MILP</span>
-              </div>
-              <div className="v4m-pr-note">Quip races your job across both — fastest valid optimum wins.</div>
             </div>
           </div>
         </aside>
