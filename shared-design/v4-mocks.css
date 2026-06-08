@@ -4604,6 +4604,9 @@
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field:last-child { padding-bottom: 0; }
   .kiosk-v4.app-fit .v4m-rail-col .v4m-field input.v4m-input { font-size: 1rem; }
+  .kiosk-v4.app-fit .v4m-check-row { padding: 7px 4px; }
+  .kiosk-v4.app-fit .v4m-field.v4m-field-checklist { padding-top: 10px; margin-top: 10px; }
+  .kiosk-v4.app-fit .v4m-field.v4m-field-checklist > label { margin-bottom: 8px; }
   .kiosk-v4.app-fit .v4m-optin { padding-top: 8px; }
   .kiosk-v4.app-fit .v4m-chips { gap: 5px; }
   .kiosk-v4.app-fit .v4m-chip { padding: 5px 8px; font-size: 0.7rem; }

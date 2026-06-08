@@ -27,13 +27,13 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Short chip labels (the question header supplies the "Yes, I'm interested
 // in…" framing); `value` is the full Luma option text stored on the agent.
 const REACH_OUT_OPTIONS: Array<{ label: string; value: string }> = [
-  { label: 'Learn about quantum computing',   value: "Yes, I'd like to learn more about quantum computing" },
-  { label: 'Buying compute',                  value: "Yes, I'm interested in buying compute" },
-  { label: 'Providing compute',               value: "Yes, I'm interested in providing compute" },
-  { label: 'Building quantum applications',   value: "Yes, I'm interested in building quantum applications" },
-  { label: 'Partnering with Quip Network',    value: "Yes, I'm interested in partnering with Quip Network" },
-  { label: 'Post-quantum cryptography',       value: "Yes, I'd like to learn more about post-quantum cryptography" },
-  { label: 'No thanks',                       value: 'No thanks' },
+  { label: 'Yes, to learn about quantum computing',        value: "Yes, I'd like to learn more about quantum computing" },
+  { label: 'Yes, to buy compute',                          value: "Yes, I'm interested in buying compute" },
+  { label: 'Yes, to provide compute',                      value: "Yes, I'm interested in providing compute" },
+  { label: 'Yes, to build quantum applications',           value: "Yes, I'm interested in building quantum applications" },
+  { label: 'Yes, to partner with Quip Network',            value: "Yes, I'm interested in partnering with Quip Network" },
+  { label: 'Yes, to learn about post-quantum cryptography', value: "Yes, I'd like to learn more about post-quantum cryptography" },
+  { label: 'No thanks',                                    value: 'No thanks' },
 ];
 const NO_THANKS = 'No thanks';
 
