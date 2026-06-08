@@ -45,8 +45,17 @@ export default function KioskSignUp() {
   const navigate = useNavigate();
   const [name, setName] = useState('Lattice Theory');
   const [email, setEmail] = useState('');
-  const [interest, setInterest] = useState('');
+  const [interests, setInterests] = useState<Set<string>>(new Set());
   const [optIn, setOptIn] = useState(false);
+
+  function toggleInterest(o: string) {
+    setInterests(prev => {
+      const next = new Set(prev);
+      if (next.has(o)) next.delete(o);
+      else next.add(o);
+      return next;
+    });
+  }
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
   const [selected, setSelected] = useState<Set<AssetTicker>>(new Set(ASSETS.map(a => a.ticker)));
   const [busy, setBusy] = useState(false);
@@ -100,7 +109,7 @@ export default function KioskSignUp() {
       name: previewName,
       handle: previewHandle,
       email: email.trim(),
-      interest: interest || undefined,
+      interest: interests.size ? INTEREST_OPTIONS.filter(o => interests.has(o)) : undefined,
       marketingOptIn: optIn,
       sliders: sliderValues,
       assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
@@ -238,15 +247,15 @@ export default function KioskSignUp() {
                 />
               </div>
               <div className="v4m-field v4m-field-chips">
-                <label>Your interest in quantum computing (optional)</label>
+                <label>Interest in quantum computing · pick any</label>
                 <div className="v4m-chips">
                   {INTEREST_OPTIONS.map(o => (
                     <button
                       type="button"
                       key={o}
-                      className={`v4m-chip${interest === o ? ' on' : ''}`}
-                      aria-pressed={interest === o}
-                      onClick={() => setInterest(prev => prev === o ? '' : o)}
+                      className={`v4m-chip${interests.has(o) ? ' on' : ''}`}
+                      aria-pressed={interests.has(o)}
+                      onClick={() => toggleInterest(o)}
                     >
                       {o}
                     </button>

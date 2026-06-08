@@ -17,7 +17,7 @@ export type AgentConfig = {
   name: string;
   handle?: string;              // display handle, auto-derived from the player name
   email?: string;               // required at sign-up; optional here for seeded demo agents
-  interest?: string;            // optional — "What best describes your interest in quantum computing?" (same taxonomy as the Luma event registration)
+  interest?: string[];          // optional, multi-select — "What best describes your interest in quantum computing?" (same taxonomy as the Luma event registration)
   marketingOptIn?: boolean;     // explicit opt-in to follow-up contact from Quip Network (unchecked by default)
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)

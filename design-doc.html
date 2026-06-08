@@ -410,7 +410,7 @@
                   <input class="v4m-input" id="kiosk-email" type="email" placeholder="you@example.com" />
                 </div>
                 <div class="v4m-field v4m-field-chips">
-                  <label>Your interest in quantum computing (optional)</label>
+                  <label>Interest in quantum computing · pick any</label>
                   <div class="v4m-chips">
                     <button type="button" class="v4m-chip">Quantum hardware</button>
                     <button type="button" class="v4m-chip">Building quantum software</button>
@@ -1921,11 +1921,7 @@
   document.querySelectorAll('#kiosk-routing-hero, .kiosk-v4').forEach(() => {});
   const interestChips = Array.from(document.querySelectorAll('.kiosk-v4 .v4m-chip'));
   interestChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      const wasOn = chip.classList.contains('on');
-      interestChips.forEach(c => c.classList.remove('on'));
-      if (!wasOn) chip.classList.add('on');
-    });
+    chip.addEventListener('click', () => chip.classList.toggle('on'));
   });
 
   // ─── Scale the kiosk doc-stages to true iPad proportions (1024×768) ───
