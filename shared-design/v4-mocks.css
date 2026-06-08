@@ -3989,23 +3989,6 @@
   .kiosk-v4 .v4m-rail-col .v4m-mega .v4m-mega-section {
     flex: 1;
   }
-  /* Layout B: vertical sliders in the rail, spaced down the column. */
-  .kiosk-v4 .v4m-sliders-row.vert {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .kiosk-v4 .v4m-sliders-row.vert .v4m-slider-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-  .kiosk-v4 .v4m-body.layout-b .v4m-rail-col .v4m-sliders-row.vert {
-    height: 100%;
-    align-content: space-between;
-  }
-  /* In B the basket keeps its full height; details flows beneath it. */
-  .kiosk-v4 .v4m-body.layout-b .v4m-main-col .v4m-selector-mega { flex: none; }
-  .kiosk-v4 .v4m-body.layout-b .v4m-main-col .v4m-mega:last-child { flex: none; }
   .kiosk-v4 .v4m-cta .v4m-cta-label {
     display: inline-flex;
     align-items: center;
