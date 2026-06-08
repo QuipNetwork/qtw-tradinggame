@@ -4221,7 +4221,35 @@
   .kiosk-v4 select.v4m-select option[value=""] { color: #a1a1aa; }
   /* Reach-out options — single-column checklist (scan top-to-bottom, one line
      each, sharp square checkboxes consistent with the rest of the app). */
-  .kiosk-v4 .v4m-field-checklist { border-bottom: none; }
+  .kiosk-v4 .v4m-field-checklist {
+    border-bottom: none;
+    border-top: 1px solid #18181b;   /* ink rule marks a new question, not another field */
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  /* The question reads as a question — Georgia italic (the app's prompt voice,
+     same as the slider labels) instead of the tiny uppercase mono field label. */
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: #18181b;
+    margin-bottom: 10px;
+  }
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label .opt {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    margin-left: 6px;
+  }
   .kiosk-v4 .v4m-checklist {
     display: flex;
     flex-direction: column;
@@ -4265,11 +4293,11 @@
     color: #52525c;
   }
   .kiosk-v4 .v4m-check-row.on .v4m-check-label { color: #18181b; }
-  /* Standalone newsletter opt-in above the reach-out question — a single row,
-     set apart by a hairline below so it reads as its own line. */
+  /* Standalone newsletter opt-in above the reach-out question — a single row.
+     (The reach-out question's ink top-rule provides the separation below it.) */
   .kiosk-v4 .v4m-optin-row {
     border-top: none;
-    border-bottom: 1px solid #ececef;
+    border-bottom: none;
   }
   /* "No thanks" — quiet decline, set apart by a slightly heavier divider */
   .kiosk-v4 .v4m-check-row.muted { border-top: 1px solid #ececef; }

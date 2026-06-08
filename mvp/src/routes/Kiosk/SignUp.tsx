@@ -188,7 +188,7 @@ export default function KioskSignUp() {
           <span className="v4m-check-label">Sign me up for updates from Quip Network</span>
         </button>
         <div className="v4m-field v4m-field-checklist">
-          <label>Would you like someone from our team to reach out? (optional)</label>
+          <label>Would you like someone from our team to reach out?<span className="opt">Optional</span></label>
           <div className="v4m-checklist">
             {REACH_OUT_OPTIONS.map(o => (
               <button
