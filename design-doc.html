@@ -421,6 +421,7 @@
                     <button type="button" class="v4m-check-row muted" data-no-thanks><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">No thanks</span></button>
                   </div>
                 </div>
+                <button type="button" class="v4m-check-row v4m-optin-row" data-optin><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Sign me up for updates from Quip Network</span></button>
               </div>
             </div>
           </aside>
@@ -1900,20 +1901,27 @@
 
   // ─── Reach-out checklist — multi-select; "No thanks" is the mutually
   // exclusive opt-out. ───
-  const reachRows = Array.from(document.querySelectorAll('.kiosk-v4 .v4m-check-row'));
+  const setRowCheck = row => {
+    const box = row.querySelector('.v4m-check-box');
+    if (box) box.textContent = row.classList.contains('on') ? '✓' : '';
+  };
+  const reachRows = Array.from(document.querySelectorAll('.kiosk-v4 .v4m-check-row:not([data-optin])'));
   reachRows.forEach(row => {
     row.addEventListener('click', () => {
       if (row.hasAttribute('data-no-thanks')) {
         const wasOn = row.classList.contains('on');
-        reachRows.forEach(r => r.classList.remove('on'));
+        reachRows.forEach(r => { r.classList.remove('on'); setRowCheck(r); });
         if (!wasOn) row.classList.add('on');
       } else {
-        reachRows.forEach(r => { if (r.hasAttribute('data-no-thanks')) r.classList.remove('on'); });
+        reachRows.forEach(r => { if (r.hasAttribute('data-no-thanks')) { r.classList.remove('on'); setRowCheck(r); } });
         row.classList.toggle('on');
       }
-      const box = row.querySelector('.v4m-check-box');
-      if (box) box.textContent = row.classList.contains('on') ? '✓' : '';
+      setRowCheck(row);
     });
+  });
+  // Standalone newsletter opt-in — independent toggle.
+  document.querySelectorAll('.kiosk-v4 .v4m-check-row[data-optin]').forEach(row => {
+    row.addEventListener('click', () => { row.classList.toggle('on'); setRowCheck(row); });
   });
 
   // ─── Scale the kiosk doc-stages to true iPad proportions (1024×768) ───

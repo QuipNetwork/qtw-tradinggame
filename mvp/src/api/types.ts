@@ -18,6 +18,7 @@ export type AgentConfig = {
   handle?: string;              // display handle, auto-derived from the player name
   email?: string;               // required at sign-up; optional here for seeded demo agents
   reachOut?: string[];          // optional, multi-select — "Would you like someone from our team to reach out to you?" (verbatim Luma event options). Captures consent + intent + segment in one; "No thanks" = opt out.
+  updatesOptIn?: boolean;       // "Sign me up for updates from Quip Network" — general newsletter opt-in, separate from the direct reach-out request
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)
 };

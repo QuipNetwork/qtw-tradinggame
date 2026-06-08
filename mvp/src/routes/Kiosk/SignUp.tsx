@@ -52,6 +52,7 @@ export default function KioskSignUp() {
   const [name, setName] = useState('Lattice Theory');
   const [email, setEmail] = useState('');
   const [reachOut, setReachOut] = useState<Set<string>>(new Set());
+  const [updatesOptIn, setUpdatesOptIn] = useState(false);
 
   // "No thanks" is mutually exclusive with the affirmative options.
   function toggleReachOut(value: string) {
@@ -122,6 +123,7 @@ export default function KioskSignUp() {
       handle: previewHandle,
       email: email.trim(),
       reachOut: reachOut.size ? REACH_OUT_OPTIONS.filter(o => reachOut.has(o.value)).map(o => o.value) : undefined,
+      updatesOptIn,
       sliders: sliderValues,
       assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
     });
@@ -192,6 +194,15 @@ export default function KioskSignUp() {
             ))}
           </div>
         </div>
+        <button
+          type="button"
+          className={`v4m-check-row v4m-optin-row${updatesOptIn ? ' on' : ''}`}
+          aria-pressed={updatesOptIn}
+          onClick={() => setUpdatesOptIn(v => !v)}
+        >
+          <span className="v4m-check-box" aria-hidden="true">{updatesOptIn ? '✓' : ''}</span>
+          <span className="v4m-check-label">Sign me up for updates from Quip Network</span>
+        </button>
       </div>
     </div>
   );

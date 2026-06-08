@@ -4265,6 +4265,14 @@
     color: #52525c;
   }
   .kiosk-v4 .v4m-check-row.on .v4m-check-label { color: #18181b; }
+  /* Standalone newsletter opt-in below the reach-out list — a single row,
+     set apart by a heavier top rule so it reads as its own question. */
+  .kiosk-v4 .v4m-optin-row {
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #dbdbde;
+    border-bottom: none;
+  }
   /* "No thanks" — quiet decline, set apart by a slightly heavier divider */
   .kiosk-v4 .v4m-check-row.muted { border-top: 1px solid #ececef; }
   .kiosk-v4 .v4m-check-row.muted .v4m-check-label { color: #a1a1aa; }
