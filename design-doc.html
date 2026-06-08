@@ -410,15 +410,15 @@
                   <input class="v4m-input" id="kiosk-email" type="email" placeholder="you@example.com" />
                 </div>
                 <div class="v4m-field v4m-field-chips">
-                  <label>Interest in quantum computing · pick any</label>
+                  <label>Would you like someone from our team to reach out? (optional)</label>
                   <div class="v4m-chips">
-                    <button type="button" class="v4m-chip">Quantum hardware</button>
-                    <button type="button" class="v4m-chip">Building quantum software</button>
-                    <button type="button" class="v4m-chip">Research / Academia</button>
-                    <button type="button" class="v4m-chip">Purchasing compute</button>
+                    <button type="button" class="v4m-chip">Learn more about quantum computing</button>
+                    <button type="button" class="v4m-chip">Buying compute</button>
                     <button type="button" class="v4m-chip">Providing compute</button>
-                    <button type="button" class="v4m-chip">Investing</button>
-                    <button type="button" class="v4m-chip">Exploring the space</button>
+                    <button type="button" class="v4m-chip">Building quantum applications</button>
+                    <button type="button" class="v4m-chip">Partnering with Quip Network</button>
+                    <button type="button" class="v4m-chip">Post-quantum cryptography</button>
+                    <button type="button" class="v4m-chip v4m-chip-muted" data-no-thanks>No thanks</button>
                   </div>
                 </div>
                 <label class="v4m-optin" for="kiosk-optin">
@@ -1351,7 +1351,7 @@
       <span class="pill">MVP — required for QTW</span>
       <h3 style="margin-top: 12px;">Minimum required for the demo</h3>
       <ul>
-        <li>Kiosk sign-up: name, email, interest segment (Luma taxonomy) + explicit marketing opt-in, 25-asset basket selector, 3 sliders</li>
+        <li>Kiosk sign-up: name, email, reach-out question (Luma taxonomy — consent + intent + segment, "No thanks" = opt out), 25-asset basket selector, 3 sliders</li>
         <li>Quip Network routing job on launch + on every slider re-tune</li>
         <li>Provider-provenance badge wherever a strategy is shown (kiosk return, phone, big-screen)</li>
         <li>Personal phone profile via QR-coded secret URL — live P&amp;L + retune</li>
@@ -1921,7 +1921,16 @@
   document.querySelectorAll('#kiosk-routing-hero, .kiosk-v4').forEach(() => {});
   const interestChips = Array.from(document.querySelectorAll('.kiosk-v4 .v4m-chip'));
   interestChips.forEach(chip => {
-    chip.addEventListener('click', () => chip.classList.toggle('on'));
+    chip.addEventListener('click', () => {
+      if (chip.hasAttribute('data-no-thanks')) {
+        const wasOn = chip.classList.contains('on');
+        interestChips.forEach(c => c.classList.remove('on'));
+        if (!wasOn) chip.classList.add('on');
+      } else {
+        interestChips.forEach(c => { if (c.hasAttribute('data-no-thanks')) c.classList.remove('on'); });
+        chip.classList.toggle('on');
+      }
+    });
   });
 
   // ─── Scale the kiosk doc-stages to true iPad proportions (1024×768) ───

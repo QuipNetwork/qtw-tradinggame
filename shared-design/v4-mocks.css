@@ -4247,6 +4247,13 @@
     border-color: #0891B2;
     color: white;
   }
+  /* "No thanks" opt-out reads as a quiet decline until chosen */
+  .kiosk-v4 .v4m-chip.v4m-chip-muted { color: #a1a1aa; }
+  .kiosk-v4 .v4m-chip.v4m-chip-muted.on {
+    background: #52525c;
+    border-color: #52525c;
+    color: white;
+  }
   /* Marketing opt-in — explicit, unchecked by default */
   .kiosk-v4 .v4m-optin {
     display: flex;

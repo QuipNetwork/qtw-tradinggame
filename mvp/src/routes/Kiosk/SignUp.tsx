@@ -19,17 +19,21 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: numb
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Verbatim from the Luma event registration question, so kiosk leads and
-// event registrations share one audience taxonomy.
-const INTEREST_OPTIONS = [
-  'Quantum hardware',
-  'Building quantum software',
-  'Research / Academia',
-  'Purchasing compute',
-  'Providing compute',
-  'Investing',
-  'Exploring the space',
-] as const;
+// "Would you like someone from our team to reach out to you?" — verbatim from
+// the Luma event registration so kiosk leads and event sign-ups share one
+// taxonomy. Captures consent + intent + audience segment in a single question;
+// the chip shows a short label, `value` is the full Luma option text stored on
+// the agent. "No thanks" is the opt-out and is mutually exclusive with the rest.
+const REACH_OUT_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: 'Learn more about quantum computing', value: "Yes, I'd like to learn more about quantum computing" },
+  { label: 'Buying compute',                     value: "Yes, I'm interested in buying compute" },
+  { label: 'Providing compute',                  value: "Yes, I'm interested in providing compute" },
+  { label: 'Building quantum applications',       value: "Yes, I'm interested in building quantum applications" },
+  { label: 'Partnering with Quip Network',        value: "Yes, I'm interested in partnering with Quip Network" },
+  { label: 'Post-quantum cryptography',           value: "Yes, I'd like to learn more about post-quantum cryptography" },
+  { label: 'No thanks',                           value: 'No thanks' },
+];
+const NO_THANKS = 'No thanks';
 
 function labelFor(value: number, labels: readonly string[]): string {
   const i = Math.min(labels.length - 1, Math.floor(value / 20));
@@ -45,14 +49,20 @@ export default function KioskSignUp() {
   const navigate = useNavigate();
   const [name, setName] = useState('Lattice Theory');
   const [email, setEmail] = useState('');
-  const [interests, setInterests] = useState<Set<string>>(new Set());
-  const [optIn, setOptIn] = useState(false);
+  const [reachOut, setReachOut] = useState<Set<string>>(new Set());
 
-  function toggleInterest(o: string) {
-    setInterests(prev => {
+  // "No thanks" is mutually exclusive with the affirmative options.
+  function toggleReachOut(value: string) {
+    setReachOut(prev => {
       const next = new Set(prev);
-      if (next.has(o)) next.delete(o);
-      else next.add(o);
+      if (next.has(value)) {
+        next.delete(value);
+      } else if (value === NO_THANKS) {
+        return new Set([NO_THANKS]);
+      } else {
+        next.delete(NO_THANKS);
+        next.add(value);
+      }
       return next;
     });
   }
@@ -109,8 +119,7 @@ export default function KioskSignUp() {
       name: previewName,
       handle: previewHandle,
       email: email.trim(),
-      interest: interests.size ? INTEREST_OPTIONS.filter(o => interests.has(o)) : undefined,
-      marketingOptIn: optIn,
+      reachOut: reachOut.size ? REACH_OUT_OPTIONS.filter(o => reachOut.has(o.value)).map(o => o.value) : undefined,
       sliders: sliderValues,
       assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
     });
@@ -247,30 +256,21 @@ export default function KioskSignUp() {
                 />
               </div>
               <div className="v4m-field v4m-field-chips">
-                <label>Interest in quantum computing · pick any</label>
+                <label>Would you like someone from our team to reach out? (optional)</label>
                 <div className="v4m-chips">
-                  {INTEREST_OPTIONS.map(o => (
+                  {REACH_OUT_OPTIONS.map(o => (
                     <button
                       type="button"
-                      key={o}
-                      className={`v4m-chip${interests.has(o) ? ' on' : ''}`}
-                      aria-pressed={interests.has(o)}
-                      onClick={() => toggleInterest(o)}
+                      key={o.value}
+                      className={`v4m-chip${reachOut.has(o.value) ? ' on' : ''}${o.value === NO_THANKS ? ' v4m-chip-muted' : ''}`}
+                      aria-pressed={reachOut.has(o.value)}
+                      onClick={() => toggleReachOut(o.value)}
                     >
-                      {o}
+                      {o.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <label className="v4m-optin" htmlFor="kiosk-optin">
-                <input
-                  type="checkbox"
-                  id="kiosk-optin"
-                  checked={optIn}
-                  onChange={e => setOptIn(e.target.checked)}
-                />
-                <span>Keep me posted about Quip Network</span>
-              </label>
             </div>
           </div>
 

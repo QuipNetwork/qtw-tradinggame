@@ -17,8 +17,7 @@ export type AgentConfig = {
   name: string;
   handle?: string;              // display handle, auto-derived from the player name
   email?: string;               // required at sign-up; optional here for seeded demo agents
-  interest?: string[];          // optional, multi-select — "What best describes your interest in quantum computing?" (same taxonomy as the Luma event registration)
-  marketingOptIn?: boolean;     // explicit opt-in to follow-up contact from Quip Network (unchecked by default)
+  reachOut?: string[];          // optional, multi-select — "Would you like someone from our team to reach out to you?" (verbatim Luma event options). Captures consent + intent + segment in one; "No thanks" = opt out.
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)
 };
