@@ -3980,17 +3980,32 @@
   .kiosk-v4 .v4m-rail-col {
     gap: 14px;
   }
-  /* The agent card absorbs the column's slack so its bottom edge aligns with
-     the slider band; its preview centers in that space. The details card
-     (step 3) sits at its natural height above. */
-  .kiosk-v4 .v4m-rail-col .v4m-mega:last-child {
+  /* The rail's single card fills the column height (bottom aligns with the
+     slider band), content top-aligned. */
+  .kiosk-v4 .v4m-rail-col .v4m-mega {
     flex: 1;
     min-height: 0;
   }
-  .kiosk-v4 .v4m-rail-col .v4m-mega:last-child .v4m-mega-section {
+  .kiosk-v4 .v4m-rail-col .v4m-mega .v4m-mega-section {
     flex: 1;
-    justify-content: center;
   }
+  /* Layout B: vertical sliders in the rail, spaced down the column. */
+  .kiosk-v4 .v4m-sliders-row.vert {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .kiosk-v4 .v4m-sliders-row.vert .v4m-slider-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .kiosk-v4 .v4m-body.layout-b .v4m-rail-col .v4m-sliders-row.vert {
+    height: 100%;
+    align-content: space-between;
+  }
+  /* In B the basket keeps its full height; details flows beneath it. */
+  .kiosk-v4 .v4m-body.layout-b .v4m-main-col .v4m-selector-mega { flex: none; }
+  .kiosk-v4 .v4m-body.layout-b .v4m-main-col .v4m-mega:last-child { flex: none; }
   .kiosk-v4 .v4m-cta .v4m-cta-label {
     display: inline-flex;
     align-items: center;
@@ -4221,6 +4236,58 @@
   }
   .kiosk-v4 select.v4m-select:invalid,
   .kiosk-v4 select.v4m-select option[value=""] { color: #a1a1aa; }
+  /* Reach-out options — single-column checklist (scan top-to-bottom, one line
+     each, sharp square checkboxes consistent with the rest of the app). */
+  .kiosk-v4 .v4m-field-checklist { border-bottom: none; }
+  .kiosk-v4 .v4m-checklist {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2px;
+  }
+  .kiosk-v4 .v4m-check-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 8px 4px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #ececef;
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s ease;
+  }
+  .kiosk-v4 .v4m-check-row:last-child { border-bottom: none; }
+  .kiosk-v4 .v4m-check-row:hover { background: #fafafa; }
+  .kiosk-v4 .v4m-check-row.on { background: rgba(8, 145, 178, 0.05); }
+  .kiosk-v4 .v4m-check-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #d4d4d8;
+    background: white;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    line-height: 1;
+    color: white;
+  }
+  .kiosk-v4 .v4m-check-row.on .v4m-check-box { background: #0891B2; border-color: #0891B2; }
+  .kiosk-v4 .v4m-check-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    line-height: 1.25;
+    color: #52525c;
+  }
+  .kiosk-v4 .v4m-check-row.on .v4m-check-label { color: #18181b; }
+  /* "No thanks" — quiet decline, set apart by a slightly heavier divider */
+  .kiosk-v4 .v4m-check-row.muted { border-top: 1px solid #ececef; }
+  .kiosk-v4 .v4m-check-row.muted .v4m-check-label { color: #a1a1aa; }
+  .kiosk-v4 .v4m-check-row.muted.on .v4m-check-box { background: #52525c; border-color: #52525c; }
+  .kiosk-v4 .v4m-check-row.muted.on { background: rgba(82, 82, 92, 0.05); }
+
   /* Interest segment — choices laid out as selectable chips (single-select) */
   .kiosk-v4 .v4m-field-chips { border-bottom: none; }
   .kiosk-v4 .v4m-chips {

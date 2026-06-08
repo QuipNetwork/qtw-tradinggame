@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
 import { maxPositionCapPct } from '../../utils/strategy';
@@ -49,6 +49,10 @@ function handleFromName(name: string): string {
 
 export default function KioskSignUp() {
   const navigate = useNavigate();
+  // Layout comparison: ?layout=b swaps strategy (2) into the right rail and
+  // moves details (3) under the basket. Default 'a' keeps 2 below 1, 3 right.
+  const [searchParams] = useSearchParams();
+  const isB = searchParams.get('layout') === 'b';
   const [name, setName] = useState('Lattice Theory');
   const [email, setEmail] = useState('');
   const [reachOut, setReachOut] = useState<Set<string>>(new Set());
@@ -148,6 +152,102 @@ export default function KioskSignUp() {
     );
   }
 
+  const slidersCard = (
+    <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
+      <div className="v4m-mega-section">
+        <div className="v4m-sliders-head">
+          <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
+        </div>
+        <div className={`v4m-sliders-row${isB ? ' vert' : ''}`}>
+          {SLIDER_DEFS.map((def, i) => (
+            <div className="v4m-slider" key={def.key}>
+              <div className="v4m-slider-top">
+                <span className="v4m-slider-label">{def.label}</span>
+                {isB && (
+                  <span className="v4m-slider-val">
+                    {labelFor(sliders[i], def.labels)}
+                    {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                  </span>
+                )}
+              </div>
+              <div className="v4m-slider-shell">
+                <div className="v4m-slider-track">
+                  <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
+                  <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+                </div>
+                <input
+                  type="range"
+                  className="range-overlay"
+                  min={0}
+                  max={100}
+                  value={sliders[i]}
+                  onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
+                />
+              </div>
+              {!isB && (
+                <div className="v4m-slider-bottom">
+                  <span className="v4m-slider-val">
+                    {labelFor(sliders[i], def.labels)}
+                    {/* the position cap is relative to the basket — show the live number */}
+                    {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const detailsCard = (
+    <div className="v4m-mega">
+      <div className="v4m-mega-section">
+        <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
+        <div className="v4m-field">
+          <label htmlFor="kiosk-name">Player name</label>
+          <input
+            className="v4m-input"
+            id="kiosk-name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </div>
+        <div className="v4m-field">
+          <label htmlFor="kiosk-email">Email (required)</label>
+          <input
+            className="v4m-input"
+            id="kiosk-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="v4m-field v4m-field-checklist">
+          <label>Would you like someone from our team to reach out? (optional)</label>
+          <div className="v4m-checklist">
+            {REACH_OUT_OPTIONS.map(o => (
+              <button
+                type="button"
+                key={o.value}
+                className={`v4m-check-row${reachOut.has(o.value) ? ' on' : ''}${o.value === NO_THANKS ? ' muted' : ''}`}
+                aria-pressed={reachOut.has(o.value)}
+                onClick={() => toggleReachOut(o.value)}
+              >
+                <span className="v4m-check-box" aria-hidden="true">{reachOut.has(o.value) ? '✓' : ''}</span>
+                <span className="v4m-check-label">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <KioskStage>
     <div className="qs-v4-mock kiosk-v4 app-fit">
@@ -165,7 +265,7 @@ export default function KioskSignUp() {
         <h1>Create your <span className="it">trading agent.</span></h1>
       </div>
 
-      <div className="v4m-body selector-top">
+      <div className={`v4m-body selector-top${isB ? ' layout-b' : ''}`}>
 
         <div className="v4m-main-col">
 
@@ -189,109 +289,13 @@ export default function KioskSignUp() {
             </div>
           </div>
 
-          <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
-            <div className="v4m-mega-section">
-              <div className="v4m-sliders-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
-              </div>
-              <div className="v4m-sliders-row">
-                {SLIDER_DEFS.map((def, i) => (
-                  <div className="v4m-slider" key={def.key}>
-                    <div className="v4m-slider-top">
-                      <span className="v4m-slider-label">{def.label}</span>
-                    </div>
-                    <div className="v4m-slider-shell">
-                      <div className="v4m-slider-track">
-                        <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
-                        <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
-                      </div>
-                      <input
-                        type="range"
-                        className="range-overlay"
-                        min={0}
-                        max={100}
-                        value={sliders[i]}
-                        onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
-                      />
-                    </div>
-                    <div className="v4m-slider-bottom">
-                      <span className="v4m-slider-val">
-                        {labelFor(sliders[i], def.labels)}
-                        {/* the position cap is relative to the basket — show the live number */}
-                        {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* In layout B, details (3) sits under the basket; sliders (2) move to the rail. */}
+          {isB ? detailsCard : slidersCard}
 
         </div>
 
-        <aside className="v4m-rail-col" aria-label="Your details and agent">
-          {/* Step 3 — player details, its own card */}
-          <div className="v4m-mega">
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
-              <div className="v4m-field">
-                <label htmlFor="kiosk-name">Player name</label>
-                <input
-                  className="v4m-input"
-                  id="kiosk-name"
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                />
-              </div>
-              <div className="v4m-field">
-                <label htmlFor="kiosk-email">Email (required)</label>
-                <input
-                  className="v4m-input"
-                  id="kiosk-email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="v4m-field v4m-field-chips">
-                <label>Would you like someone from our team to reach out? (optional)</label>
-                <div className="v4m-chips v4m-chips-grid">
-                  {REACH_OUT_OPTIONS.map(o => (
-                    <button
-                      type="button"
-                      key={o.value}
-                      className={`v4m-chip${reachOut.has(o.value) ? ' on' : ''}${o.value === NO_THANKS ? ' v4m-chip-muted' : ''}`}
-                      aria-pressed={reachOut.has(o.value)}
-                      onClick={() => toggleReachOut(o.value)}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Agent preview — separate card */}
-          <div className="v4m-mega">
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow cyan-dot">Your Agent</span>
-              <div className="v4m-preview v4m-preview-mystery">
-                <div className="v4m-preview-mystery-box" aria-hidden="true">
-                  <svg className="v4m-preview-butterfly" viewBox="219 4 106 103" xmlns="http://www.w3.org/2000/svg">
-                    <use href="#quip-butterfly" />
-                  </svg>
-                </div>
-                <div className="v4m-preview-name">{previewName}</div>
-                <div className="v4m-preview-handle">{previewHandle}</div>
-                <div className="v4m-preview-mystery-caption">Identity revealed at launch</div>
-              </div>
-            </div>
-          </div>
+        <aside className="v4m-rail-col" aria-label={isB ? 'Strategy' : 'Your details'}>
+          {isB ? slidersCard : detailsCard}
         </aside>
 
       </div>
