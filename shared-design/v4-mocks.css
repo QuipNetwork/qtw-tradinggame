@@ -4410,6 +4410,14 @@
     color: #a1a1aa;
     font-style: italic;
   }
+  /* Why-it's-required helper under a field (e.g. email → contacting winners) */
+  .kiosk-v4 .v4m-field .v4m-field-hint {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    color: #a1a1aa;
+    margin-top: 5px;
+  }
   .kiosk-v4 .v4m-rail-col {
     display: flex;
     flex-direction: column;

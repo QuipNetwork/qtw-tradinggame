@@ -171,6 +171,7 @@ export default function KioskSignUp() {
             value={email}
             onChange={e => setEmail(e.target.value)}
           />
+          <div className="v4m-field-hint">So we can reach you if you win</div>
         </div>
         <button
           type="button"
