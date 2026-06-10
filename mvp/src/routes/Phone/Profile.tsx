@@ -100,7 +100,6 @@ export default function PhoneProfile() {
             <div className="v4m-phone-head">
               <div>
                 <div className="v4m-phone-name">{agent.name}</div>
-                <div className="v4m-phone-handle">{agent.handle}</div>
               </div>
               <canvas ref={glyphRef} width={56} height={56}></canvas>
               <div className="v4m-phone-rank" style={{ gridColumn: '1 / 3', marginTop: 4, justifySelf: 'start' }}>

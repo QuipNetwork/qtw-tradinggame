@@ -275,7 +275,7 @@
             <div class="v4m-nav-divider"></div>
             <span class="v4m-eyebrow">Quantum Tech World 2026 &middot; Trading Competition</span>
           </div>
-          <span class="v4m-pill">Live &middot; Sign-up &middot; Day 1</span>
+          <span class="v4m-pill">Live &middot; Sign-up</span>
         </div>
 
         <!-- v4 hero: "Create your trading agent." -->
@@ -459,7 +459,7 @@
             <div class="v4m-nav-divider"></div>
             <span class="v4m-eyebrow">Quantum Tech World 2026 &middot; Trading Competition</span>
           </div>
-          <span class="v4m-pill">Live &middot; Sign-up &middot; Day 1</span>
+          <span class="v4m-pill">Live &middot; Sign-up</span>
         </div>
 
         <!-- v4 hero -->
@@ -515,7 +515,6 @@
               <canvas id="welcome-strat-glyph" class="v4m-agent-glyph" width="220" height="220" aria-label="Your generated agent glyph"></canvas>
               <div class="v4m-agent-ident">
                 <div class="v4m-agent-name" id="strat-name">Lattice Theory.</div>
-                <div class="v4m-agent-handle" id="strat-handle-line">@latticetheory</div>
               </div>
               <div class="v4m-agent-bankroll">
                 <div class="v4m-agent-bankroll-lbl">Bankroll</div>
@@ -633,7 +632,6 @@
         <div class="v4m-phone-head">
           <div>
             <div class="v4m-phone-name" id="phone-name">Lattice Theory</div>
-            <div class="v4m-phone-handle">@latticetheory</div>
           </div>
           <canvas id="phone-glyph" width="56" height="56"></canvas>
           <div class="v4m-phone-rank" style="grid-column: 1 / 3; margin-top: 4px; justify-self: start;">
@@ -1033,7 +1031,7 @@
           <div class="qs-hero-left">
             <div class="left">
               <h1>Rank 02 · <span class="it" id="tv-spot-name">Bra-Ket Boy.</span></h1>
-              <div class="spot-handle" id="tv-spot-handle">@braket · 02h 14m on the board</div>
+              <div class="spot-handle" id="tv-spot-handle">02h 14m on the board</div>
             </div>
             <div class="right">
               <div class="lbl" style="font-family:'JetBrains Mono',monospace;font-size:1.3cqh;letter-spacing:0.18em;text-transform:uppercase;color:#71717b;">Spotlight</div>
@@ -1276,7 +1274,6 @@
             <div class="welcome-stage">
               <canvas id="tv-welcome-glyph" class="welcome-glyph" width="260" height="260" aria-hidden="true"></canvas>
               <div class="welcome-name" id="tv-welcome-name">Lattice Theory</div>
-              <div class="welcome-handle" id="tv-welcome-handle">@latticetheory</div>
               <div class="welcome-caption">Portfolio optimized by <span class="it">Quip Network.</span></div>
             </div>
           </div>
@@ -2114,7 +2111,6 @@
   // ─── Kiosk launch button — updates strategy-return downstream ───
   const kioskLaunch = document.getElementById('kiosk-launch');
   const stratName = document.getElementById('strat-name');
-  const stratHandleLine = document.getElementById('strat-handle-line');
   const qrGlyphEl = document.getElementById('qr-glyph');
   const stratHero = document.getElementById('kiosk-routing-hero');
 
@@ -2125,9 +2121,6 @@
     const handle = '@' + (name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'player');
 
     stratName.textContent = name;
-    if (stratHandleLine) {
-      stratHandleLine.innerHTML = `${handle} &middot; bankroll <code>$10,000</code>`;
-    }
 
     // Re-render the QR with the player's profile URL seed (different per name+handle).
     if (qrGlyphEl) {
@@ -2564,7 +2557,7 @@
     if (!$('tv-spot-rank')) return;
     $('tv-spot-rank').textContent = '#' + agent.rank;
     $('tv-spot-name').textContent = agent.name;
-    $('tv-spot-handle').textContent = (agent.handle ? agent.handle + ' · ' : '') + 'rank #' + agent.rank + ' · ' + agent.hours + ' on the board';
+    $('tv-spot-handle').textContent = 'rank #' + agent.rank + ' · ' + agent.hours + ' on the board';
     $('tv-spot-provider').textContent = 'Solved by D-Wave Advantage';
     $('tv-spot-total').textContent = '$' + agent.total.toLocaleString();
 

@@ -69,7 +69,7 @@ export default function KioskWelcome() {
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up · Day 1</span>
+        <span className="v4m-pill">Live · Sign-up</span>
       </div>
 
       <div className="v4m-hero">
@@ -123,7 +123,6 @@ export default function KioskWelcome() {
             <canvas ref={glyphRef} className="v4m-agent-glyph" width={220} height={220} aria-label="Your generated agent glyph"></canvas>
             <div className="v4m-agent-ident">
               <div className="v4m-agent-name">{agent.name}.</div>
-              <div className="v4m-agent-handle">{agent.handle}</div>
             </div>
             <div className="v4m-agent-bankroll">
               <div className="v4m-agent-bankroll-lbl">Bankroll</div>

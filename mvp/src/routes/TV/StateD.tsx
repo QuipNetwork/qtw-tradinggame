@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 
-export default function StateD({ name = 'Lattice Theory', handle = '@latticetheory' }: { name?: string; handle?: string }) {
+export default function StateD({ name = 'Lattice Theory' }: { name?: string }) {
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -39,7 +39,6 @@ export default function StateD({ name = 'Lattice Theory', handle = '@latticetheo
           <div className="welcome-stage">
             <canvas ref={glyphRef} className="welcome-glyph" width={260} height={260} aria-hidden="true"></canvas>
             <div className="welcome-name">{name}</div>
-            <div className="welcome-handle">{handle}</div>
             <div className="welcome-caption">Portfolio optimized by <span className="it">Quip Network.</span></div>
           </div>
         </div>

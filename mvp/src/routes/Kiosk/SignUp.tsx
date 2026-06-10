@@ -213,7 +213,7 @@ export default function KioskSignUp() {
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up · Day 1</span>
+        <span className="v4m-pill">Live · Sign-up</span>
       </div>
 
       <div className="v4m-hero">
