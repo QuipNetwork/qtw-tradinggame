@@ -21,7 +21,7 @@ license that comfortably fits this problem size.
 ## Run the automated tests
 
 ```bash
-.venv/bin/python -m pytest -q             # 56 tests, ~5s
+.venv/bin/python -m pytest -q             # 58 tests, ~5s
 ```
 
 What each suite covers:
@@ -68,6 +68,18 @@ docker run -p 8080:8080 -v assets-data:/data \
 Then set `MARKET_DATA_SOURCE = "assets-api"` in `config.py` (service URL:
 `ASSETS_API_BASE_URL`). Everything downstream is unchanged — the client
 forward-fills stock market-hour gaps onto the hourly grid automatically.
+
+## Enable the D-Wave QPU
+
+The QPU joins the solver race only when a Leap token is present:
+
+```bash
+export DWAVE_API_TOKEN=...   # from cloud.dwavesys.com
+.venv/bin/qtw race           # field becomes gurobi, sa, dwave
+```
+
+Reported D-Wave solve time is QPU access time (the anneal itself), not network
+round-trip. Tune `DWAVE_NUM_READS` in `config.py` against the QPU budget.
 
 ## Run the server
 

@@ -1,6 +1,6 @@
 # TODO
 
-Backend for the QTW 2026 Trading Game. Core is built and tested (56 passing),
+Backend for the QTW 2026 Trading Game. Core is built and tested (58 passing),
 reconciled with the main-branch contract (3 sliders + 25-asset basket selection).
 See `backend/README.md` to run and test, `docs/BACKEND_DAG.md` for the dataflow.
 
@@ -8,6 +8,7 @@ See `backend/README.md` to run and test, `docs/BACKEND_DAG.md` for the dataflow.
 
 - **Contract v2** — 3 sliders (`rebalanceFrequency` discrete tiers / `riskPreference` / `maxPositionSize` relative to basket), 25-asset universe (14 crypto + 11 stocks, QNT included), per-agent basket (min 3 assets, fixed after sign-up), `email`/`reachOut`/`updatesOptIn` persisted.
 - **Model** — cardinality dropped (basket expresses it): Gurobi solves a continuous QP; the QUBO has no indicator block; QUBO results are simplex-normalized, so **SA now genuinely competes** (feasible at all basket sizes).
+- **D-Wave provider** — real Ocean-SDK implementation; token-gated entry into the race; QPU-access-time reporting; hermetic tests via sampler injection.
 - **assets-api client** — `AssetsApiSource` implements `MarketDataSource` against `/v1/history` + `/v1/spot`, forward-filling stock market-hour gaps; flip `config.MARKET_DATA_SOURCE = "assets-api"` to use it.
 - **API, persistence, orchestration, events, CLI** — as before, updated for the basket flow.
 
@@ -32,13 +33,14 @@ QNT needs its provider routing enabled in assets-api now that it's public.
 Add a scheduler loop honoring each agent's cadence, plus the global QPU
 rate-limit math (3k users × cadence → keep total QPU time < 1 hr over 2 days).
 
-### 4. D-Wave provider (last)
-Implement `solve_qubo` on Advantage via the Ocean SDK (needs a Leap token);
-slots into the existing race. Keep a dispatch seam for routing jobs through the
-Quip Network later instead of direct Leap calls.
+### 4. QPU shakeout
+The D-Wave provider is implemented (Ocean SDK, joins the race when
+`DWAVE_API_TOKEN` is set; reports QPU access time). Remaining: run it against
+Leap — verify embedding at 100 bits, tune `DWAVE_NUM_READS` vs the QPU budget,
+and keep a dispatch seam for routing jobs through the Quip Network later.
 
 ## Notes
 
 - **Persistence is in-memory** — lost on restart, single worker only (`--workers 1`). SQLite for booth-day durability.
-- **Docs drift** — CLAUDE.md and `docs/BACKEND_DAG.md` still describe the 5-slider / exactly-K model; refresh after the dust settles. `docs/MARKET_DATA_SPEC.md` is superseded by the assets-api OpenAPI contract.
+- **Docs drift** — CLAUDE.md still describes the 5-slider / exactly-K model; refresh after the dust settles. `docs/MARKET_DATA_SPEC.md` is superseded by the assets-api OpenAPI contract. (`docs/BACKEND_DAG.md` is current.)
 - **Brainstorm session (planned)** — improvements/suggestions pass over the whole flow: booth UX (what makes the race visceral on TV), turnover penalty + fee pairing for V1, leaderboard tie-breaks, Σ shrinkage, SA sweep tuning (~2.3s at 100 bits vs the 2s deadline), QPU showmanship vs cost.

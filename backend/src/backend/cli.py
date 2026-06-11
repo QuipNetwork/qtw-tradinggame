@@ -25,8 +25,7 @@ from .financial.types import PortfolioProblem
 from .orchestration.job import run_optimization
 from .persistence.agents import get_agent_store
 from .solvers.feasibility import check_feasibility
-from .solvers.providers.gurobi import GurobiProvider
-from .solvers.providers.sa import SAProvider
+from .solvers.router import build_providers
 from .solvers.types import SolverFailed
 
 
@@ -148,9 +147,12 @@ def cmd_race(args: argparse.Namespace) -> None:
     tickers = _basket(args)
     problem = _build_problem(tickers, args)
     qubo = encode_qubo(problem)
-    providers = [GurobiProvider(), SAProvider()]
+    providers = build_providers()
+    note = (
+        "" if any(p.role == "QPU" for p in providers) else " (set DWAVE_API_TOKEN to add the QPU)"
+    )
     print(
-        f"racing {', '.join(p.name for p in providers)} over {len(tickers)} assets — "
+        f"racing {', '.join(p.name for p in providers)} over {len(tickers)} assets{note} — "
         f"first feasible wins, printed as each finishes\n",
         flush=True,
     )

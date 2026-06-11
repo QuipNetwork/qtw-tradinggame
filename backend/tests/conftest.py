@@ -11,6 +11,12 @@ from backend.persistence.jobs import get_job_store
 
 
 @pytest.fixture(autouse=True)
+def no_dwave_token(monkeypatch):
+    """Keep tests hermetic — never let a configured Leap token reach the QPU."""
+    monkeypatch.delenv("DWAVE_API_TOKEN", raising=False)
+
+
+@pytest.fixture(autouse=True)
 def isolated_state():
     """Reset stores and pin a fixed-clock market so pipeline math is reproducible."""
     get_agent_store().reset()

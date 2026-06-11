@@ -45,6 +45,14 @@ class PortfolioProblem:
     def N(self) -> int:
         return self.mu.shape[0]
 
+    def objective(self, weights: np.ndarray) -> float:
+        """Mean-variance objective value at the given weights."""
+        value = 0.5 * self.gamma * weights @ self.Sigma @ weights - self.mu @ weights
+        if self.lambda_t > 0.0:
+            diff = weights - self.w_ref
+            value += self.lambda_t * (diff @ diff)
+        return float(value)
+
     def __post_init__(self) -> None:
         assert self.Sigma.shape == (self.N, self.N), "Sigma must be (N, N)"
         assert self.w_ref.shape == (self.N,), "w_ref must be (N,)"

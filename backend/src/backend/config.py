@@ -77,6 +77,12 @@ EPS_BUDGET: float = 1e-3  # |Σwᵢ − 1| < EPS_BUDGET
 EPS_BOX: float = 1e-3  # wᵢ ≤ w_max + EPS_BOX
 
 # -----------------------------------------------------------------------------
+# D-Wave (joins the race only when DWAVE_API_TOKEN is set)
+# -----------------------------------------------------------------------------
+
+DWAVE_NUM_READS: int = 100  # anneal samples per solve — tune against QPU budget
+
+# -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------
 

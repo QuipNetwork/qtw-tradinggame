@@ -15,6 +15,7 @@ from .. import config
 from ..financial.qubo_encoder import encode_qubo, qubo_hash
 from ..financial.types import PortfolioProblem
 from .feasibility import check_feasibility
+from .providers import dwave
 from .providers.gurobi import GurobiProvider
 from .providers.sa import SAProvider
 from .types import QuboMatrix, Solution, SolverFailed
@@ -35,6 +36,14 @@ class RaceResult:
         return self.winner.solve_time_s / self.runner_up_classical.solve_time_s
 
 
+def build_providers() -> list:
+    """The race field: Gurobi + SA always; the D-Wave QPU when a Leap token is set."""
+    providers: list = [GurobiProvider(), SAProvider()]
+    if dwave.is_configured():
+        providers.append(dwave.DWaveProvider())
+    return providers
+
+
 def _dispatch(
     provider: object, problem: PortfolioProblem, qubo: QuboMatrix, deadline_s: float
 ) -> Solution:
@@ -50,9 +59,7 @@ def race(problem: PortfolioProblem, deadline_s: float | None = None) -> RaceResu
 
     qubo = encode_qubo(problem)
     q_h = qubo_hash(qubo)
-
-    # D-Wave joins the race later; until then the field is Gurobi + SA.
-    providers = [GurobiProvider(), SAProvider()]
+    providers = build_providers()
 
     results: list[Solution] = []
     winner: Solution | None = None

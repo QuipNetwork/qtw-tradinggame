@@ -48,6 +48,17 @@ class QuboMatrix:
     def n(self) -> int:
         return self.Q.shape[0]
 
+    def to_dict(self) -> dict[tuple[int, int], float]:
+        """Upper-triangle dict form for Ocean samplers (combines symmetric halves)."""
+        qdict: dict[tuple[int, int], float] = {}
+        for i in range(self.n):
+            qdict[(i, i)] = float(self.Q[i, i])
+            for j in range(i + 1, self.n):
+                v = float(self.Q[i, j] + self.Q[j, i])
+                if v != 0.0:
+                    qdict[(i, j)] = v
+        return qdict
+
 
 @dataclass
 class Solution:
