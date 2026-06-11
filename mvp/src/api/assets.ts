@@ -39,7 +39,7 @@ export const ASSETS: AssetInfo[] = [
   { ticker: 'AMZN',   name: 'Amazon',              class: 'stock',  icon: 'amzn.png',   color: '#FF9900', vol: 0.35 },
   { ticker: 'HON',    name: 'Honeywell',           class: 'stock',  icon: 'hon.png',    color: '#E1251B', vol: 0.25 },
   { ticker: 'SAF',    name: 'Safran',              class: 'stock',  icon: 'saf.png',    color: '#002F87', vol: 0.25 },
-  { ticker: 'INDI',   name: 'indie Semiconductor', class: 'stock',  icon: 'indi.png',   color: '#7C3AED', vol: 0.70 },
+  { ticker: 'SPCX',   name: 'SpaceX',              class: 'stock',  icon: 'spcx.png',   color: '#005288', vol: 0.50 },
 ];
 
 export const CRYPTO_ASSETS = ASSETS.filter(a => a.class === 'crypto');
