@@ -61,11 +61,10 @@ class RoutingResult(BaseModel):
     vs_classical: float = Field(alias="vsClassical")  # winner_time / runner_up_classical_time
     portfolio: list[PortfolioEntry]
 
-    # V1 extensions — optional, present once wired
+    # Extensions beyond the mock contract
     kind: Literal["first", "retune"] | None = None
     job_id: str | None = Field(default=None, alias="jobId")
     solved_at: str | None = Field(default=None, alias="solvedAt")  # ISO-8601 UTC
-    fee_usd: float | None = Field(default=None, alias="feeUsd")
 
     model_config = ConfigDict(populate_by_name=True)
 

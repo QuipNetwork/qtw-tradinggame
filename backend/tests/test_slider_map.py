@@ -53,9 +53,9 @@ def test_w_min_keeps_budget_feasible():
         assert n * params.w_max >= 1.0 - 1e-9
 
 
-def test_lambda_t_forced_zero_in_v0():
-    assert config.V0_LAMBDA_T_FORCED_ZERO is True
-    assert map_sliders(_sliders(), basket_size=5).lambda_t == 0.0
+def test_min_position_floor_is_quarter_of_equal_weight():
+    params = map_sliders(_sliders(), basket_size=8)
+    assert params.w_min == pytest.approx(0.25 / 8)
 
 
 def test_basket_below_minimum_raises():

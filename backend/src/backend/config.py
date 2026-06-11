@@ -20,9 +20,10 @@ MIN_BASKET_SIZE: int = 3
 # Estimation windows (hours)
 # -----------------------------------------------------------------------------
 
-SIGMA_WINDOW_HOURS: int = 720  # 30 days × 24h — fixed, not slider-controlled
-# μ lookback. Fixed now that the holding-style slider was dropped (the basket
-# expresses holding intent); 7 days of hourly returns.
+# Risk lookback T feeding Σ — fixed, not user-facing. 30 days of hourly bars;
+# can extend up to 2160h (90d, the assets-api retention cap).
+SIGMA_WINDOW_HOURS: int = 720
+# Return lookback τ feeding μ — fixed, not user-facing. 7 days of hourly bars.
 MU_WINDOW_HOURS: int = 168
 
 # -----------------------------------------------------------------------------
@@ -37,13 +38,16 @@ GAMMA_RANGE: tuple[float, float] = (0.5, 20.0)  # log-scaled
 # always 100%.
 W_MAX_CEILING: float = 0.5
 
-# Minimum position as a fraction of equal weight: w_min = MIN_POSITION_FRACTION/n.
-# With no cardinality constraint, every basket asset is held at least w_min —
-# the player picked it, so it shows up in the portfolio. n·w_min ≤ 1 always
-# holds since MIN_POSITION_FRACTION ≤ 1.
-MIN_POSITION_FRACTION: float = 0.5
+# Participation floor, not user-facing: w_min = MIN_POSITION_FRACTION/n, so
+# every basket asset the player picked shows up in the portfolio. n·w_min ≤ 1
+# always holds since MIN_POSITION_FRACTION ≤ 1.
+MIN_POSITION_FRACTION: float = 0.25
 
-LAMBDA_T_MAX: float = 50.0  # turnover penalty ceiling; V0 is forced to 0
+# Turnover penalty λ_t‖w − w_prev‖², applied on retunes only (first solve has
+# no holdings to anchor to, so λ_t = 0 and w_ref is irrelevant). Scaled to the
+# data: λ_t = mult × γ × mean(diag Σ), keeping the penalty commensurate with
+# the risk term regardless of market regime.
+TURNOVER_PENALTY_MULT: float = 1.0
 
 # Rebalance-frequency slider tiers → scheduled re-optimization cadence (hours).
 # Hourly is the hard cap: quantum jobs cost real money (mirrors strategy.ts).
@@ -60,14 +64,6 @@ PENALTY_MULT_BUDGET: float = 10.0  # λ_sum = mult × max QUBO objective coeffic
 # to within ~half a grid step. Decoded weights within this tolerance of 1 are
 # normalized onto the simplex before the feasibility gate.
 QUBO_NORMALIZE_TOL: float = 0.05
-
-# -----------------------------------------------------------------------------
-# V0 scope toggles
-# -----------------------------------------------------------------------------
-
-V0_LAMBDA_T_FORCED_ZERO: bool = True  # Turnover penalty disabled in V0
-V0_TRANSACTION_FEE_ENABLED: bool = False  # Explicit fee disabled in V0
-TRANSACTION_FEE_RATE: float = 0.003  # c = 0.3% one-way (when enabled in V1)
 
 # -----------------------------------------------------------------------------
 # Feasibility tolerances (V0 quality bar)

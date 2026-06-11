@@ -49,7 +49,7 @@ def _build_problem(tickers: list[str], args: argparse.Namespace) -> PortfolioPro
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
         Sigma=covariance(returns),
         gamma=params.gamma,
-        lambda_t=params.lambda_t,
+        lambda_t=0.0,  # CLI race is a fresh solve — no holdings to anchor to
         w_ref=np.zeros(len(tickers)),
         w_max=params.w_max,
         w_min=params.w_min,
@@ -106,7 +106,7 @@ def cmd_optimize(args: argparse.Namespace) -> None:
     print(f"agent {agent.id}  bankroll ${agent.bankroll:,.0f}  basket={len(tickers)} assets")
     print(
         f"params: γ={params.gamma:.2f}  w_max={params.w_max:.3f}  w_min={params.w_min:.3f}  "
-        f"rebalance={params.rebalance_hours}h  λ_t={params.lambda_t}"
+        f"rebalance={params.rebalance_hours}h"
     )
 
     outcome = run_optimization(agent.id)

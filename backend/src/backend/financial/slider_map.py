@@ -9,7 +9,8 @@ The three sliders (mirrors mvp/src/api/types.ts and mvp/src/utils/strategy.ts):
 - Rebalance Frequency 100→ hourly scheduled re-optimization (hard cap)
 
 The dropped sliders' roles moved elsewhere: diversification → the player's
-basket selection; holding style → fixed μ window in config.
+basket selection; holding style → fixed lookbacks in config. The turnover
+penalty is retune mechanics (orchestration/job.py), not a slider.
 """
 
 from __future__ import annotations
@@ -75,14 +76,9 @@ def map_sliders(sliders: SliderValues, basket_size: int) -> SliderParams:
     # Rebalance Frequency: scheduled re-optimization cadence
     rebalance_hours = rebalance_every_hours(sliders.rebalance_frequency)
 
-    # Turnover penalty: V0 ships λ_t = 0 (no slider drives it anymore; V1 may
-    # derive it from rebalance frequency).
-    lambda_t = 0.0 if config.V0_LAMBDA_T_FORCED_ZERO else config.LAMBDA_T_MAX
-
     return SliderParams(
         gamma=gamma,
         w_max=w_max,
         w_min=w_min,
         rebalance_hours=rebalance_hours,
-        lambda_t=lambda_t,
     )

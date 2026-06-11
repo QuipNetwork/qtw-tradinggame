@@ -13,9 +13,8 @@ class SliderParams:
 
     gamma: float  # risk aversion (objective coefficient)
     w_max: float  # per-asset cap, relative to the basket (1/n → W_MAX_CEILING)
-    w_min: float  # min position — every basket asset is held at least this
+    w_min: float  # participation floor — every basket asset is held at least this
     rebalance_hours: int  # scheduled re-optimization cadence (24h → 1h cap)
-    lambda_t: float  # turnover penalty weight (0 in V0)
 
 
 @dataclass

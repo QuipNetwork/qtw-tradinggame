@@ -42,7 +42,6 @@ def test_first_solve_allocates_bankroll_over_the_basket():
     assert sum(e.pct for e in result.portfolio) == pytest.approx(100.0, abs=1e-6)
     assert sum(e.usd for e in result.portfolio) == pytest.approx(10_000.0, abs=1e-3)
     assert result.job_id and result.solved_at
-    assert result.fee_usd == 0.0
 
     persisted = store.get(record.id)
     assert persisted.jobs_solved == 1
@@ -68,6 +67,20 @@ def test_retune_is_value_neutral_and_keeps_the_basket():
     assert sum(e.usd for e in result.portfolio) == pytest.approx(10_000.0, abs=1e-2)
     assert store.get(record.id).jobs_solved == 2
     assert {e.channel for e in outcome.events} == {f"agent:{record.id}"}
+
+
+def test_retune_turnover_penalty_anchors_to_previous_portfolio():
+    """With identical market data, a retune under the same sliders should not
+    drift from the held portfolio — the w_prev anchor keeps it in place."""
+    store = get_agent_store()
+    record = store.create(_config(), bankroll=10_000.0)
+    first = run_optimization(record.id).result
+    second = run_optimization(record.id).result
+
+    first_pct = {e.ticker: e.pct for e in first.portfolio}
+    second_pct = {e.ticker: e.pct for e in second.portfolio}
+    for ticker, pct in first_pct.items():
+        assert second_pct[ticker] == pytest.approx(pct, abs=0.5)
 
 
 def test_no_basket_defaults_to_full_universe():

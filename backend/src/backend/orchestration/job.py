@@ -98,11 +98,19 @@ def run_optimization(
             ]
         )
 
+    # Turnover penalty: a first solve has no holdings to anchor to (λ_t = 0,
+    # w_ref irrelevant); a retune anchors to the drifted current weights, scaled
+    # to the data so the penalty stays commensurate with the risk term.
+    if is_first:
+        lambda_t = 0.0
+    else:
+        lambda_t = config.TURNOVER_PENALTY_MULT * params.gamma * float(np.diag(Sigma).mean())
+
     problem = PortfolioProblem(
         mu=mu,
         Sigma=Sigma,
         gamma=params.gamma,
-        lambda_t=params.lambda_t,
+        lambda_t=lambda_t,
         w_ref=np.zeros(len(tickers)) if is_first else w_old.copy(),
         w_max=params.w_max,
         w_min=params.w_min,
@@ -114,13 +122,12 @@ def run_optimization(
     w_new = winner.weights
 
     retune = compute_retune(w_old, w_new, tickers, portfolio_value)
-    investable = portfolio_value - retune.fee_usd
     holdings_units = {t: usd / spot[t] for t, usd in retune.new_holdings_usd.items()}
 
     agents.apply_solve(
         agent_id,
         holdings_units=holdings_units,
-        total=investable,
+        total=portfolio_value,
         provider_type=winner.provider_role,
     )
     provenance = ProviderProvenance(
@@ -138,11 +145,10 @@ def run_optimization(
         provider_type=winner.provider_role,
         solve_time=winner.solve_time_s,
         vs_classical=race_result.vs_classical,
-        portfolio=weights_to_portfolio(w_new, tickers, investable),
+        portfolio=weights_to_portfolio(w_new, tickers, portfolio_value),
         kind="first" if is_first else "retune",
         job_id=job.id,
         solved_at=job.solved_at,
-        fee_usd=retune.fee_usd,
     )
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
