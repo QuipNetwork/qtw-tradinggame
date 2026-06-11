@@ -189,6 +189,68 @@ def cmd_race(args: argparse.Namespace) -> None:
     _print_speedup(winner, results, winner.provider)
 
 
+def cmd_verify_dwave(args: argparse.Namespace) -> None:
+    """Submit one small QUBO to Leap and report solver, embedding, and timing."""
+    from .financial.prices.source import set_source
+    from .financial.prices.synthetic import SyntheticMarketSource
+    from .solvers.providers import dwave
+    from .solvers.sampling import select_solution
+
+    if not dwave.is_configured():
+        parser_error = "DWAVE_API_TOKEN is not set — export it and rerun"
+        raise SystemExit(parser_error)
+
+    set_source(SyntheticMarketSource())  # verification targets Leap, not market data
+    tickers = _basket(args)
+    problem = _build_problem(tickers, args)
+    qubo = encode_qubo(problem)
+    print(f"problem: {len(tickers)} assets → {qubo.n}-variable QUBO (dense)", flush=True)
+
+    from dwave.system import DWaveCliqueSampler
+
+    sampler = DWaveCliqueSampler()
+    chip = sampler.properties.get("chip_id", "?")
+    clique_cap = getattr(sampler, "largest_clique_size", "?")
+    print(f"solver:  {chip}  (largest clique capacity: {clique_cap})", flush=True)
+
+    response = sampler.sample_qubo(
+        qubo.to_dict(), num_reads=config.DWAVE_NUM_READS, label="qtw-verify-dwave"
+    )
+
+    context = response.info.get("embedding_context", {})
+    embedding = context.get("embedding", {})
+    if embedding:
+        lengths = [len(chain) for chain in embedding.values()]
+        print(
+            f"embedding: {len(embedding)} logical vars → {sum(lengths)} physical qubits  "
+            f"(chain length min/avg/max: {min(lengths)}/{sum(lengths) / len(lengths):.1f}/{max(lengths)})"
+        )
+    if context.get("chain_strength") is not None:
+        print(f"chain strength: {context['chain_strength']:.4f}")
+    record = getattr(response, "record", None)
+    if record is not None and "chain_break_fraction" in record.dtype.names:
+        cbf = record.chain_break_fraction
+        print(f"chain breaks: mean {cbf.mean() * 100:.2f}%  max {cbf.max() * 100:.2f}%")
+
+    timing = response.info.get("timing", {})
+    for key in (
+        "qpu_access_time",
+        "qpu_programming_time",
+        "qpu_anneal_time_per_sample",
+        "qpu_readout_time_per_sample",
+    ):
+        if key in timing:
+            print(f"{key}: {timing[key]} µs")
+
+    weights, _ = select_solution(response, qubo, problem)
+    feas = check_feasibility(weights, problem.w_max, problem.w_min)
+    print(
+        f"\nbest read: Σw={weights.sum():.4f}  feasible={feas.feasible}"
+        + ("" if feas.feasible else f"  ({feas.reason})")
+    )
+    print(f"reads: {config.DWAVE_NUM_READS} (parity with SA)")
+
+
 def _print_speedup(winner, results, winner_label) -> None:
     if winner is None or winner.solve_time_s <= 0:
         return
@@ -223,6 +285,12 @@ def main(argv: list[str] | None = None) -> None:
     p_race = sub.add_parser("race", help="run one solver race and show all results")
     _add_common_args(p_race)
     p_race.set_defaults(func=cmd_race)
+
+    p_verify = sub.add_parser(
+        "verify-dwave", help="submit one QUBO to Leap; report embedding + timing"
+    )
+    _add_common_args(p_verify)
+    p_verify.set_defaults(func=cmd_verify_dwave)
 
     args = parser.parse_args(argv)
     try:

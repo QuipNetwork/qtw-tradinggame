@@ -86,7 +86,7 @@ GUROBI_IN_RACE: bool = True
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------
 
-DWAVE_NUM_READS: int = 100  # anneal samples per solve — tune against QPU budget
+DWAVE_NUM_READS: int = 500  # anneal samples per solve — parity with SA's num_reads
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
