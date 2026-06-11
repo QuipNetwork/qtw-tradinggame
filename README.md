@@ -30,6 +30,7 @@ npm run dev          # http://localhost:5173
 ```
 
 See [`mvp/README.md`](./mvp/README.md) for routes, API contract, and the mock-to-real backend swap.
+See [`backend/README.md`](./backend/README.md) for the Python backend (solver race, API, CLI) and [`docs/BACKEND_DAG.md`](./docs/BACKEND_DAG.md) for the system dataflow.
 
 ## Deploy
 
