@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException
 
 from .. import config
 from ..events.bus import get_bus
+from ..financial.basket import validate_basket
 from ..orchestration.job import run_optimization
 from ..persistence.agents import get_agent_store
 from ..persistence.leaderboard import build_leaderboard
@@ -30,6 +31,10 @@ router = APIRouter()
 
 @router.post("/agents", response_model=SubmitAgentResponse)
 async def create_agent(config_in: AgentConfig) -> SubmitAgentResponse:
+    try:
+        validate_basket(config_in.assets)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     record = get_agent_store().create(config_in, bankroll=config.BANKROLL_USD)
     return SubmitAgentResponse(
         agent_id=record.id,

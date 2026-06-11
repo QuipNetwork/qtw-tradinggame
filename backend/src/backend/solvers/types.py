@@ -15,28 +15,25 @@ ProviderRole = Literal["QPU", "CPU"]
 class DecodeMeta:
     """Information needed to decode a QUBO bitstring back to portfolio weights.
 
-    Bit layout (i-major):
-    - positions 0 .. N*b - 1: weight bits x_{i,k} where i = pos // b, k = pos % b
-    - positions N*b .. N*(b+1) - 1: cardinality indicators y_i
+    Bit layout (i-major): position p holds weight bit x_{i,k} with
+    i = p // b, k = p % b. Every asset carries w_min plus a bit-encoded
+    increment spanning [w_min, w_max] — there is no indicator block (the
+    cardinality constraint was dropped; the basket decides participation).
     """
 
     n_assets: int
     bits_per_asset: int
     w_max: float
     asset_tickers: list[str]
-    w_min: float = 0.0  # min size of a selected position; bits span [w_min, w_max]
-
-    @property
-    def n_weight_bits(self) -> int:
-        return self.n_assets * self.bits_per_asset
+    w_min: float = 0.0
 
     @property
     def n_total_bits(self) -> int:
-        return self.n_assets * (self.bits_per_asset + 1)
+        return self.n_assets * self.bits_per_asset
 
     @property
     def weight_coef(self) -> float:
-        """Per-bit increment above w_min (so bits encode the [w_min, w_max] span)."""
+        """Per-bit increment above w_min (bits span [w_min, w_max])."""
         return (self.w_max - self.w_min) / (2**self.bits_per_asset - 1)
 
 
@@ -62,7 +59,7 @@ class Solution:
     provider: ProviderName
     provider_role: ProviderRole
     feasible: bool  # set by feasibility checker, not the provider itself
-    raw_bitstring: np.ndarray | None = None  # for QUBO solvers; None for Gurobi MIQP
+    raw_bitstring: np.ndarray | None = None  # for QUBO solvers; None for Gurobi QP
 
 
 @dataclass

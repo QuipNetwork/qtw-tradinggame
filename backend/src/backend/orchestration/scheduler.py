@@ -7,7 +7,7 @@ revaluation until the user retunes (CLAUDE.md §5.5). Publishing happens on the
 event loop, so the bus queues stay loop-safe.
 
 Σ refresh: with the synthetic source, history is deterministic, so there is
-nothing to refresh; the hook is left for the CoinGecko source (pending), which
+nothing to refresh; the hook is left for the assets-api source, which
 will recompute the cached 720h window every `SIGMA_REFRESH_S`.
 """
 

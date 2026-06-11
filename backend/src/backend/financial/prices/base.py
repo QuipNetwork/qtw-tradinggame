@@ -1,7 +1,7 @@
 """Market-data source interface.
 
 Everything downstream (estimators, pnl, job, scheduler) reads market data through
-this protocol, so the live CoinGecko client (pending) and the synthetic stand-in
+this protocol, so the assets-api client and the synthetic stand-in
 are interchangeable — selected by ``config.MARKET_DATA_SOURCE`` with no pipeline
 changes.
 """

@@ -7,7 +7,7 @@ import numpy as np
 from backend.financial.estimators.covariance import covariance
 from backend.financial.prices.synthetic import SyntheticMarketSource
 
-TICKERS = ["BTC", "ETH", "SOL", "USDC", "LINK"]
+TICKERS = ["BTC", "ETH", "SOL", "USDC", "IONQ", "QBTS"]
 
 
 def test_history_is_deterministic():

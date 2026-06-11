@@ -3,8 +3,7 @@
 The MTM loop revalues each agent's held positions against live spot prices and
 emits an AgentUpdate. It never trades: token holdings are fixed between retunes,
 so weights drift purely as prices move (see CLAUDE.md §5.5). Pure math given the
-holdings and a spot snapshot — the source of those (synthetic now, CoinGecko in
-a later pass) is decided upstream.
+holdings and a spot snapshot — the market source is decided upstream.
 """
 
 from __future__ import annotations

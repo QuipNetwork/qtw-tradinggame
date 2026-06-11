@@ -1,9 +1,9 @@
-"""Deterministic synthetic market data — the V0 stand-in for live CoinGecko.
+"""Deterministic synthetic market data — the V0 stand-in for live data.
 
 Implements `MarketDataSource` so the rest of the pipeline is unaware it isn't
 live. History is a seeded one-factor model (correlated, full-rank covariance);
 spot prices oscillate smoothly with wall-clock time so mark-to-market P&L
-animates on the booth screens. Swap for `CoinGeckoSource` (pending) by flipping
+animates on the booth screens. Swap for the assets-api source by flipping
 ``config.MARKET_DATA_SOURCE``.
 """
 
@@ -25,21 +25,33 @@ _STABLES = frozenset({"USDC", "USDT", "DAI"})
 # level is cosmetic — only returns drive μ/Σ — so unknown tickers fall back to a
 # seeded value.
 _BASE_PRICES: dict[str, float] = {
+    # crypto
     "BTC": 65_000.0,
     "ETH": 3_500.0,
-    "SOL": 150.0,
+    "BNB": 600.0,
     "USDC": 1.0,
-    "LINK": 18.0,
-    "UNI": 10.0,
-    "ADA": 0.60,
-    "DOT": 7.0,
-    "AVAX": 35.0,
-    "MATIC": 0.90,
-    "ATOM": 9.0,
-    "NEAR": 7.0,
-    "LTC": 90.0,
     "XRP": 0.60,
+    "SOL": 150.0,
+    "HYPE": 30.0,
     "DOGE": 0.15,
+    "USDT": 1.0,
+    "ZEC": 40.0,
+    "ALGO": 0.25,
+    "STRK": 0.50,
+    "FIL": 5.0,
+    "RENDER": 5.0,
+    # stocks
+    "IONQ": 35.0,
+    "QBTS": 15.0,
+    "RGTI": 12.0,
+    "QUBT": 8.0,
+    "QNT": 20.0,
+    "SAF": 230.0,
+    "INDI": 4.0,
+    "BTQ": 2.0,
+    "LAES": 4.0,
+    "ARQQ": 25.0,
+    "SPCX": 150.0,
 }
 
 

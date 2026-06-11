@@ -1,14 +1,15 @@
-"""SliderValues (0–100) → SliderParams (γ, w_max, τ, K, λ_t).
+"""SliderValues (0–100) → SliderParams (γ, w_max, w_min, rebalance cadence).
 
 SINGLE SOURCE OF TRUTH for the slider → physical-parameter mapping.
 Frontend never sees physical params; it only sends 0–100 sliders.
 
-UI convention: slider at 100 = max of the conceptual axis.
-- Risk Preference 100   → aggressive → low γ
-- Trade Size 100        → high concentration → high w_max
-- Holding Style 100     → patient → long τ
-- Diversification 100   → high diversification → high K
-- Trading Activity 100  → high activity → low λ_t (free to move)
+The three sliders (mirrors mvp/src/api/types.ts and mvp/src/utils/strategy.ts):
+- Risk Preference 100    → aggressive/speculative → low γ (inverted, log-scaled)
+- Max Position Size 100  → heavy concentration → high w_max (relative to basket)
+- Rebalance Frequency 100→ hourly scheduled re-optimization (hard cap)
+
+The dropped sliders' roles moved elsewhere: diversification → the player's
+basket selection; holding style → fixed μ window in config.
 """
 
 from __future__ import annotations
@@ -30,46 +31,58 @@ def _log_lerp(t: float, lo: float, hi: float) -> float:
     return math.exp(_lerp(t, math.log(lo), math.log(hi)))
 
 
-def map_sliders(sliders: SliderValues) -> SliderParams:
-    """Map 0–100 slider values to physical optimization parameters."""
+def max_position_cap(basket_size: int, value: float) -> float:
+    """Per-asset cap as a fraction, RELATIVE to the basket.
 
-    # Risk Preference: high slider → aggressive → low γ
-    # Invert: t=1 means risk_preference=100 means low γ
+    Mirrors mvp/src/utils/strategy.ts::maxPositionCapPct: an absolute cap below
+    1/n is infeasible, and with a big basket a large absolute cap never binds.
+    Sweeps from equal weight (1/n) up to W_MAX_CEILING; a 1-asset basket is
+    always 100%.
+    """
+    n = max(1, basket_size)
+    floor = 1.0 / n
+    ceiling = max(config.W_MAX_CEILING, floor)
+    return floor + (value / 100.0) * (ceiling - floor)
+
+
+def rebalance_every_hours(value: float) -> int:
+    """Rebalance slider → scheduled cadence in hours (tiers, hourly hard cap).
+
+    Mirrors mvp/src/utils/strategy.ts::rebalanceEveryHours.
+    """
+    tiers = config.REBALANCE_TIERS_HOURS
+    index = min(len(tiers) - 1, int(value // 20))
+    return tiers[index]
+
+
+def map_sliders(sliders: SliderValues, basket_size: int) -> SliderParams:
+    """Map 0–100 slider values to physical optimization parameters.
+
+    `basket_size` is the number of assets the player selected — w_max and
+    w_min are defined relative to it.
+    """
+
+    # Risk Preference: high slider → aggressive → low γ (inverted, log-scaled)
     risk_t = 1.0 - sliders.risk_preference / 100.0
     gamma = _log_lerp(risk_t, *config.GAMMA_RANGE)
 
-    # Diversification: high slider → high K (linear, integer). Computed before
-    # w_max because w_max's floor depends on K.
-    div_t = sliders.diversification / 100.0
-    K_lo, K_hi = config.K_RANGE
-    K = K_lo + round((K_hi - K_lo) * div_t)
+    # Max Position Size: relative cap, equal-weight → W_MAX_CEILING
+    w_max = max_position_cap(basket_size, sliders.max_position_size)
 
-    # Trade Size: per-asset cap from equal-weight (1/K) to concentrated (W_MAX_HI).
-    # Flooring at 1/K guarantees K·w_max ≥ 1 (budget always reachable); at the low
-    # end w_max = 1/K forces exactly-K equal weights.
-    trade_t = sliders.trade_size / 100.0
-    w_max = _lerp(trade_t, 1.0 / K, config.W_MAX_HI)
+    # Minimum position: every selected asset is held (no dust, no cardinality).
+    w_min = config.MIN_POSITION_FRACTION / max(1, basket_size)
 
-    # Minimum size of a selected position → makes the cardinality exactly-K.
-    w_min = config.MIN_POSITION_FRACTION / K
+    # Rebalance Frequency: scheduled re-optimization cadence
+    rebalance_hours = rebalance_every_hours(sliders.rebalance_frequency)
 
-    # Holding Style: high slider → patient → long τ (log-scaled)
-    hold_t = sliders.holding_style / 100.0
-    tau_hours = int(round(_log_lerp(hold_t, *config.TAU_RANGE_HOURS)))
-
-    # Trading Activity: high slider → free to move → low λ_t
-    # Invert: t=1 means trading_activity=100 means low λ_t
-    if config.V0_LAMBDA_T_FORCED_ZERO:
-        lambda_t = 0.0
-    else:
-        activity_t = 1.0 - sliders.trading_activity / 100.0
-        lambda_t = _lerp(activity_t, 0.0, config.LAMBDA_T_MAX)
+    # Turnover penalty: V0 ships λ_t = 0 (no slider drives it anymore; V1 may
+    # derive it from rebalance frequency).
+    lambda_t = 0.0 if config.V0_LAMBDA_T_FORCED_ZERO else config.LAMBDA_T_MAX
 
     return SliderParams(
         gamma=gamma,
         w_max=w_max,
         w_min=w_min,
-        tau_hours=tau_hours,
-        K=K,
+        rebalance_hours=rebalance_hours,
         lambda_t=lambda_t,
     )

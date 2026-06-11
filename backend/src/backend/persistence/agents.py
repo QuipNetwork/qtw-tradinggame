@@ -25,7 +25,11 @@ class AgentRecord:
     id: str
     name: str
     handle: str | None
+    email: str | None
+    reach_out: list[str] | None
+    updates_opt_in: bool | None
     sliders: SliderValues
+    assets: list[str] | None  # the player's basket, fixed at sign-up
     bankroll: float
     holdings_units: dict[str, float] = field(default_factory=dict)
     total: float = 0.0  # current mark-to-market value
@@ -36,7 +40,15 @@ class AgentRecord:
     created_at: str = ""
 
     def to_config(self) -> AgentConfig:
-        return AgentConfig(name=self.name, handle=self.handle, sliders=self.sliders)
+        return AgentConfig(
+            name=self.name,
+            handle=self.handle,
+            email=self.email,
+            reach_out=self.reach_out,
+            updates_opt_in=self.updates_opt_in,
+            sliders=self.sliders,
+            assets=self.assets,
+        )
 
 
 class AgentStore:
@@ -51,7 +63,11 @@ class AgentStore:
                 id=agent_id,
                 name=config.name,
                 handle=config.handle,
+                email=config.email,
+                reach_out=config.reach_out,
+                updates_opt_in=config.updates_opt_in,
                 sliders=config.sliders,
+                assets=list(config.assets) if config.assets else None,
                 bankroll=bankroll,
                 total=bankroll,
                 created_at=_now_iso(),

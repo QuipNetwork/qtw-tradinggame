@@ -1,8 +1,4 @@
-"""Simulated Annealing solver via dwave-neal.
-
-Solves the QUBO form. Uses the same `neal` package D-Wave's Ocean SDK ships
-for SA, which keeps the apples-to-apples comparison fair against D-Wave.
-"""
+"""Simulated Annealing provider — solves the QUBO via dwave-neal."""
 
 from __future__ import annotations
 
@@ -11,19 +7,17 @@ import time
 import numpy as np
 
 from ...financial.qubo_decoder import decode_bitstring
-from ...financial.types import MIQPProblem
+from ...financial.types import PortfolioProblem
 from ..types import QuboMatrix, Solution, SolverFailed
 
 
-def _mv_objective(weights: np.ndarray, miqp: MIQPProblem) -> float:
-    """Evaluate the true mean-variance objective at the decoded weights."""
-    risk = 0.5 * miqp.gamma * weights @ miqp.Sigma @ weights
-    ret = miqp.mu @ weights
-    if miqp.lambda_t > 0.0:
-        diff = weights - miqp.w_ref
-        turnover = miqp.lambda_t * (diff @ diff)
-    else:
-        turnover = 0.0
+def _mv_objective(weights: np.ndarray, problem: PortfolioProblem) -> float:
+    risk = 0.5 * problem.gamma * weights @ problem.Sigma @ weights
+    ret = problem.mu @ weights
+    turnover = 0.0
+    if problem.lambda_t > 0.0:
+        diff = weights - problem.w_ref
+        turnover = problem.lambda_t * (diff @ diff)
     return float(risk - ret + turnover)
 
 
@@ -35,23 +29,22 @@ class SAProvider:
         self.num_reads = num_reads
         self.num_sweeps = num_sweeps
 
-    def solve_qubo(self, qubo: QuboMatrix, miqp: MIQPProblem, deadline_s: float) -> Solution:
+    def solve_qubo(
+        self, qubo: QuboMatrix, problem: PortfolioProblem, deadline_s: float
+    ) -> Solution:
         try:
             import neal
         except ImportError as e:
             raise SolverFailed("dwave-neal not installed") from e
 
-        # neal expects a dict-form QUBO with (i, j) keys for i <= j.
-        # Our Q is symmetric; the off-diagonal coefficient on x_i x_j in the
-        # bilinear form is 2 · Q[i,j], so we sum upper + lower into a single
-        # upper-triangle entry.
+        # neal wants dict form with upper-triangle keys; our symmetric Q stores
+        # half the bilinear coefficient on each side, so combine Q[i,j] + Q[j,i].
         n = qubo.n
         Q = qubo.Q
         qdict: dict[tuple[int, int], float] = {}
         for i in range(n):
             qdict[(i, i)] = float(Q[i, i])
             for j in range(i + 1, n):
-                # Combined coefficient on x_i x_j is Q[i,j] + Q[j,i] = 2 Q[i,j].
                 v = float(Q[i, j] + Q[j, i])
                 if v != 0.0:
                     qdict[(i, j)] = v
@@ -61,23 +54,19 @@ class SAProvider:
         response = sampler.sample_qubo(qdict, num_reads=self.num_reads, num_sweeps=self.num_sweeps)
         elapsed = time.perf_counter() - t0
 
-        # Take the lowest-energy sample.
         best = response.first
         bits = np.array([best.sample[i] for i in range(n)], dtype=np.int8)
-
-        weights = decode_bitstring(bits, qubo.decode_meta)
-        objective = _mv_objective(weights, miqp)
+        weights = decode_bitstring(bits, qubo.decode_meta, normalize=True)
 
         return Solution(
             weights=weights,
-            objective=objective,
+            objective=_mv_objective(weights, problem),
             solve_time_s=elapsed,
             provider="sa",
             provider_role="CPU",
-            feasible=False,  # set by router after running feasibility check
+            feasible=False,  # set by the router's feasibility gate
             raw_bitstring=bits,
         )
 
-    def solve_miqp(self, miqp: MIQPProblem, deadline_s: float) -> Solution:
-        # SA needs QUBO form — router handles encoding.
-        raise NotImplementedError("SA solves QUBO; use solve_qubo with encoded matrix")
+    def solve_qp(self, problem: PortfolioProblem, deadline_s: float) -> Solution:
+        raise NotImplementedError("SA solves QUBO; use solve_qubo with the encoded matrix")

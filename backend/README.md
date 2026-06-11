@@ -21,21 +21,22 @@ license that comfortably fits this problem size.
 ## Run the automated tests
 
 ```bash
-.venv/bin/python -m pytest -q             # 49 tests, ~8s
+.venv/bin/python -m pytest -q             # 56 tests, ~5s
 ```
 
 What each suite covers:
 
 | File | What it checks |
 |---|---|
-| `test_slider_map.py` | 0–100 sliders → params; the inversions; `w_max` floor; `w_min` |
-| `test_qubo_encoder.py` / `test_qubo_roundtrip.py` | QUBO shape/symmetry; decode round-trips within a quantum; `w_min` offset |
-| `test_feasibility.py` | budget / box / exactly-K checks |
+| `test_slider_map.py` | 3 sliders → params; risk inversion; basket-relative caps; rebalance tiers; min basket |
+| `test_qubo_encoder.py` / `test_qubo_roundtrip.py` | QUBO shape/symmetry; bit-grid round-trips; simplex normalization |
+| `test_feasibility.py` | budget / box checks |
 | `test_estimators.py` / `test_synthetic_market.py` | μ, Σ; deterministic history; moving spot |
 | `test_solvers_synthetic.py` | Gurobi feasible; SA feasible & matches Gurobi; the race |
+| `test_assets_api.py` | assets-api client: grid alignment, forward-fill, spot, errors |
 | `test_pnl.py` / `test_retune.py` | mark-to-market; trade diff + V0 fee |
-| `test_persistence.py` / `test_job_pipeline.py` | stores + leaderboard; first-solve & retune end-to-end |
-| `test_api.py` | HTTP flow, 404s, and a live WebSocket push (FastAPI TestClient) |
+| `test_persistence.py` / `test_job_pipeline.py` | stores + leaderboard; first-solve & retune over the basket |
+| `test_api.py` | HTTP flow, 404s/422s, and a live WebSocket push |
 
 ## Test from the CLI (no server needed)
 
@@ -43,13 +44,30 @@ What each suite covers:
 market source — handy for quick checks and for sanity-testing data later.
 
 ```bash
-.venv/bin/qtw market                              # spot, hourly μ and vol per asset
-.venv/bin/qtw optimize --risk 70 --diversification 50   # full solve → portfolio (exactly-K)
-.venv/bin/qtw race --diversification 80           # one solver race, all providers + timing
+.venv/bin/qtw market                                  # spot, hourly μ and vol per asset
+.venv/bin/qtw optimize --risk 70 --assets BTC,ETH,IONQ   # full solve → portfolio
+.venv/bin/qtw race --max-position 80                  # one solver race, all providers + timing
 ```
 
-Slider flags (`--risk`, `--trade-size`, `--holding-style`, `--diversification`,
-`--trading-activity`) take 0–100; `market --tau <hours>` sets the μ lookback.
+Slider flags (`--risk`, `--max-position`, `--rebalance`) take 0–100;
+`--assets` is a comma-separated basket (min 3, defaults to all 25).
+
+## Use real market data (assets-api)
+
+By default the backend runs on a deterministic synthetic market. To use real
+prices, run the assets-api service (gitlab.com/quip.network/assets-api) and
+flip the source:
+
+```bash
+docker run -p 8080:8080 -v assets-data:/data \
+  -e ALPACA_KEY_ID=... -e ALPACA_SECRET=... \
+  registry.gitlab.com/quip.network/assets-api:latest
+# wait for the 90-day backfill, check http://127.0.0.1:8080/healthz
+```
+
+Then set `MARKET_DATA_SOURCE = "assets-api"` in `config.py` (service URL:
+`ASSETS_API_BASE_URL`). Everything downstream is unchanged — the client
+forward-fills stock market-hour gaps onto the hourly grid automatically.
 
 ## Run the server
 
@@ -67,24 +85,25 @@ BASE=http://127.0.0.1:8000
 
 # 1. Create an agent → returns agentId, qrUrl, bankroll
 curl -s $BASE/agents -H 'content-type: application/json' -d '{
-  "name":"Neo","handle":"neo",
-  "sliders":{"tradingActivity":50,"riskPreference":70,"tradeSize":50,"holdingStyle":40,"diversification":50}
+  "name":"Neo","email":"neo@example.com",
+  "sliders":{"rebalanceFrequency":50,"riskPreference":70,"maxPositionSize":50},
+  "assets":["BTC","ETH","IONQ","QBTS"]
 }'
 
 # 2. Optimize (first solve). Use the agentId from step 1.
 curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' -d '{}'
 #    → RoutingResult: provider, providerType, solveTime, vsClassical, portfolio[], kind="first"
 
-# 3. Retune with new sliders (kind="retune")
+# 3. Retune with new sliders (kind="retune"; the basket is fixed at sign-up)
 curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' \
-  -d '{"sliders":{"tradingActivity":50,"riskPreference":90,"tradeSize":50,"holdingStyle":40,"diversification":80}}'
+  -d '{"sliders":{"rebalanceFrequency":50,"riskPreference":90,"maxPositionSize":80}}'
 
 # 4. Leaderboard
 curl -s $BASE/leaderboard
 ```
 
 Things worth checking in the response:
-- `portfolio` has exactly **K** entries (K from the Diversification slider) and the `pct` values sum to 100.
+- `portfolio` holds **every basket asset** (min-position floor) and the `pct` values sum to 100.
 - `kind` is `"first"` then `"retune"`; `jobId` and `solvedAt` are populated.
 
 ## Test the live WebSocket

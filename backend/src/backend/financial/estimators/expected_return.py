@@ -1,9 +1,7 @@
 """Expected-return estimator μ.
 
-μ is the per-asset mean of hourly returns over the user's τ-window. τ is the
-only quantity a slider feeds into the *input data* (Holding Style → τ): a patient
-agent averages over a long lookback, a restless one over a short, recent window.
-This module is pure; A later pass wires the returns source (prices/history.py).
+μ is the per-asset mean of hourly returns over the trailing τ-window
+(fixed at config.MU_WINDOW_HOURS now that the holding-style slider is gone).
 """
 
 from __future__ import annotations

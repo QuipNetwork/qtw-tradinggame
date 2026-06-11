@@ -12,21 +12,35 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SliderValues(BaseModel):
-    """All sliders are 0–100 ints from the UI."""
+    """The three strategy sliders, all 0–100 from the UI.
 
-    trading_activity: float = Field(ge=0, le=100, alias="tradingActivity")
+    rebalance_frequency — how often the agent dispatches a scheduled
+        re-optimization job (Daily → Hourly; hourly is the hard cap).
+    risk_preference — risk-aversion term γ in the objective.
+    max_position_size — per-asset weight cap, relative to the basket
+        (equal weight 1/n → ~50% in a single asset).
+    """
+
+    rebalance_frequency: float = Field(ge=0, le=100, alias="rebalanceFrequency")
     risk_preference: float = Field(ge=0, le=100, alias="riskPreference")
-    trade_size: float = Field(ge=0, le=100, alias="tradeSize")
-    holding_style: float = Field(ge=0, le=100, alias="holdingStyle")
-    diversification: float = Field(ge=0, le=100)
+    max_position_size: float = Field(ge=0, le=100, alias="maxPositionSize")
 
     model_config = ConfigDict(populate_by_name=True)
 
 
 class AgentConfig(BaseModel):
     name: str
-    handle: str | None = None
+    handle: str | None = None  # display handle, auto-derived from the name
+    email: str | None = None  # required at sign-up; optional for seeded demo agents
+    reach_out: list[str] | None = Field(default=None, alias="reachOut")
+    updates_opt_in: bool | None = Field(default=None, alias="updatesOptIn")
     sliders: SliderValues
+    # The player's selected basket — a subset of the 25-asset universe.
+    # None/empty falls back to the full universe. Fixed after sign-up
+    # (players do not change their basket on retune).
+    assets: list[str] | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 ProviderType = Literal["QPU", "CPU"]
@@ -96,8 +110,8 @@ class SubmitAgentResponse(BaseModel):
 class OptimizeRequest(BaseModel):
     """POST /agents/{id}/optimize.
 
-    Optional `sliders` payload per Q9 — extending optimize with slider update
-    in one atomic round-trip.
+    Optional `sliders` payload per Q9 — slider update + optimize in one atomic
+    round-trip. The basket is fixed at sign-up and cannot be changed here.
     """
 
     sliders: SliderValues | None = None

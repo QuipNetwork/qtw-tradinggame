@@ -1,9 +1,4 @@
-"""API surface via FastAPI TestClient: HTTP flow, 404s, and a WS push.
-
-The TestClient context manager runs the app lifespan, which starts the MTM
-scheduler. Gurobi is required for a feasible optimize; the WS/HTTP shape tests
-that don't optimize run regardless.
-"""
+"""API surface via FastAPI TestClient: HTTP flow, 404s, and a WS push."""
 
 from __future__ import annotations
 
@@ -14,21 +9,23 @@ from fastapi.testclient import TestClient
 
 from backend.api.app import create_app
 
-_HAS_GUROBI = importlib.util.find_spec("gurobipy") is not None
-requires_gurobi = pytest.mark.skipif(not _HAS_GUROBI, reason="gurobipy not installed")
+requires_gurobi = pytest.mark.skipif(
+    importlib.util.find_spec("gurobipy") is None, reason="gurobipy not installed"
+)
 
-_SLIDERS = {
-    "tradingActivity": 50,
-    "riskPreference": 70,
-    "tradeSize": 50,
-    "holdingStyle": 40,
-    "diversification": 50,
-}
+_SLIDERS = {"rebalanceFrequency": 50, "riskPreference": 70, "maxPositionSize": 50}
+_BASKET = ["BTC", "ETH", "IONQ", "QBTS"]
 
 
 def _create(client: TestClient, name: str = "Neo") -> str:
     response = client.post(
-        "/agents", json={"name": name, "handle": name.lower(), "sliders": _SLIDERS}
+        "/agents",
+        json={
+            "name": name,
+            "email": f"{name.lower()}@example.com",
+            "sliders": _SLIDERS,
+            "assets": _BASKET,
+        },
     )
     assert response.status_code == 200
     body = response.json()
@@ -42,7 +39,9 @@ def test_create_and_get_agent():
         agent_id = _create(client)
         got = client.get(f"/agents/{agent_id}")
         assert got.status_code == 200
-        assert got.json()["sliders"]["riskPreference"] == 70
+        body = got.json()
+        assert body["sliders"]["riskPreference"] == 70
+        assert body["assets"] == _BASKET
 
 
 def test_unknown_agent_is_404():
@@ -67,17 +66,26 @@ def test_optimize_returns_routing_result():
         body = response.json()
         assert body["kind"] == "first"
         assert body["providerType"] in ("QPU", "CPU")
+        assert {entry["ticker"] for entry in body["portfolio"]} == set(_BASKET)
         assert sum(entry["pct"] for entry in body["portfolio"]) == pytest.approx(100.0, abs=1e-6)
-        assert "vsClassical" in body and "solvedAt" in body
 
 
 @requires_gurobi
 def test_websocket_streams_agent_update():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
-        client.post(f"/agents/{agent_id}/optimize", json={})  # first solve → holdings
+        client.post(f"/agents/{agent_id}/optimize", json={})
         with client.websocket_connect(f"/agents/{agent_id}") as socket:
-            # A retune publishes an immediate valuation to the subscribed channel.
-            client.post(f"/agents/{agent_id}/optimize", json={})
+            client.post(f"/agents/{agent_id}/optimize", json={})  # retune → push
             update = socket.receive_json()
             assert {"plUSD", "plPct", "total"} <= set(update)
+
+
+def test_basket_below_minimum_is_rejected():
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/agents",
+            json={"name": "Tiny", "sliders": _SLIDERS, "assets": ["BTC"]},
+        )
+        assert response.status_code == 422
+        assert "at least" in response.json()["detail"]
