@@ -79,7 +79,11 @@ export DWAVE_API_TOKEN=...   # from cloud.dwavesys.com
 ```
 
 Reported D-Wave solve time is QPU access time (the anneal itself), not network
-round-trip. Tune `DWAVE_NUM_READS` in `config.py` against the QPU budget.
+round-trip. Tune `DWAVE_NUM_READS` in `config.py` against the QPU budget. The
+provider uses the clique sampler (cached embeddings — no per-solve embedding
+search) and picks the best *feasible* anneal read, not just the lowest-energy
+one. For production set `GUROBI_IN_RACE = False` — Gurobi stays an offline
+oracle and the live race is SA vs the QPU.
 
 ## Run the server
 

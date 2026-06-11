@@ -77,6 +77,15 @@ EPS_BUDGET: float = 1e-3  # |Σwᵢ − 1| < EPS_BUDGET
 EPS_BOX: float = 1e-3  # wᵢ ≤ w_max + EPS_BOX
 
 # -----------------------------------------------------------------------------
+# Race field
+# -----------------------------------------------------------------------------
+
+# Gurobi races locally during development but is NOT deployed to production
+# (licensing) — there it remains the offline oracle only, and the live race is
+# SA (CPU) vs D-Wave (QPU).
+GUROBI_IN_RACE: bool = True
+
+# -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------
 

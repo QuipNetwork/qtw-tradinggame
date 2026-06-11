@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import time
 
-import numpy as np
-
-from ...financial.qubo_decoder import decode_bitstring
 from ...financial.types import PortfolioProblem
+from ..sampling import select_solution
 from ..types import QuboMatrix, Solution, SolverFailed
 
 
@@ -15,7 +13,7 @@ class SAProvider:
     name = "sa"
     role = "CPU"
 
-    def __init__(self, num_reads: int = 1000, num_sweeps: int = 1000) -> None:
+    def __init__(self, num_reads: int = 500, num_sweeps: int = 500) -> None:
         self.num_reads = num_reads
         self.num_sweeps = num_sweeps
 
@@ -34,9 +32,7 @@ class SAProvider:
         )
         elapsed = time.perf_counter() - t0
 
-        best = response.first
-        bits = np.array([best.sample[i] for i in range(qubo.n)], dtype=np.int8)
-        weights = decode_bitstring(bits, qubo.decode_meta, normalize=True)
+        weights, bits = select_solution(response, qubo, problem)
 
         return Solution(
             weights=weights,

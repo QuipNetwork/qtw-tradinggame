@@ -37,8 +37,10 @@ class RaceResult:
 
 
 def build_providers() -> list:
-    """The race field: Gurobi + SA always; the D-Wave QPU when a Leap token is set."""
-    providers: list = [GurobiProvider(), SAProvider()]
+    """The race field: SA always, Gurobi unless disabled for production,
+    the D-Wave QPU when a Leap token is set."""
+    providers: list = [GurobiProvider()] if config.GUROBI_IN_RACE else []
+    providers.append(SAProvider())
     if dwave.is_configured():
         providers.append(dwave.DWaveProvider())
     return providers
