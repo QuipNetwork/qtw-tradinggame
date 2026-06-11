@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import time
+from functools import partial
 from threading import Lock
 
 from ... import config
@@ -25,6 +26,25 @@ _sampler_lock = Lock()
 
 def is_configured() -> bool:
     return bool(os.environ.get("DWAVE_API_TOKEN"))
+
+
+def sample_kwargs(num_reads: int) -> dict:
+    """Shared QPU sampling parameters (also used by the verify-dwave CLI).
+
+    The budget penalty couples every pair of bits, so per-qubit coupling sums
+    are large and the sampler's default chain strength under-protects chains —
+    uniform torque compensation with a prefactor keeps them intact.
+    """
+    kwargs: dict = {"num_reads": num_reads, "annealing_time": config.DWAVE_ANNEAL_TIME_US}
+    try:
+        from dwave.embedding.chain_strength import uniform_torque_compensation
+
+        kwargs["chain_strength"] = partial(
+            uniform_torque_compensation, prefactor=config.DWAVE_CHAIN_STRENGTH_PREFACTOR
+        )
+    except ImportError:
+        pass  # fake samplers in tests don't need it
+    return kwargs
 
 
 def _get_sampler():
@@ -58,7 +78,7 @@ class DWaveProvider:
         t0 = time.perf_counter()
         try:
             response = sampler.sample_qubo(
-                qubo.to_dict(), num_reads=self._num_reads, label="qtw-tradinggame"
+                qubo.to_dict(), label="qtw-tradinggame", **sample_kwargs(self._num_reads)
             )
         except Exception as e:
             raise SolverFailed(f"D-Wave sampling failed: {e}") from e

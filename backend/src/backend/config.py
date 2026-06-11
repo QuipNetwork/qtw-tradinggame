@@ -87,6 +87,10 @@ GUROBI_IN_RACE: bool = True
 # -----------------------------------------------------------------------------
 
 DWAVE_NUM_READS: int = 500  # anneal samples per solve — parity with SA's num_reads
+DWAVE_ANNEAL_TIME_US: int = 100  # longer anneal → better quality (default QPU is 20µs)
+# Chain strength = uniform torque compensation × this prefactor. Raise if
+# verify-dwave reports chain breaks above ~5%.
+DWAVE_CHAIN_STRENGTH_PREFACTOR: float = 2.0
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)

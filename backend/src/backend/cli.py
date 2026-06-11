@@ -209,12 +209,25 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
     from dwave.system import DWaveCliqueSampler
 
     sampler = DWaveCliqueSampler()
-    chip = sampler.properties.get("chip_id", "?")
+    qpu = getattr(sampler, "qpu", None)
+    chip = (
+        getattr(qpu, "properties", {}).get("chip_id")
+        or sampler.properties.get("chip_id")
+        or sampler.properties.get("qpu_properties", {}).get("chip_id", "?")
+    )
     clique_cap = getattr(sampler, "largest_clique_size", "?")
     print(f"solver:  {chip}  (largest clique capacity: {clique_cap})", flush=True)
+    print(
+        f"params:  anneal {config.DWAVE_ANNEAL_TIME_US} µs · chain-strength UTC ×"
+        f"{config.DWAVE_CHAIN_STRENGTH_PREFACTOR} · {config.DWAVE_NUM_READS} reads (parity with SA)",
+        flush=True,
+    )
 
     response = sampler.sample_qubo(
-        qubo.to_dict(), num_reads=config.DWAVE_NUM_READS, label="qtw-verify-dwave"
+        qubo.to_dict(),
+        label="qtw-verify-dwave",
+        return_embedding=True,
+        **dwave.sample_kwargs(config.DWAVE_NUM_READS),
     )
 
     context = response.info.get("embedding_context", {})
@@ -226,7 +239,7 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
             f"(chain length min/avg/max: {min(lengths)}/{sum(lengths) / len(lengths):.1f}/{max(lengths)})"
         )
     if context.get("chain_strength") is not None:
-        print(f"chain strength: {context['chain_strength']:.4f}")
+        print(f"chain strength: {float(context['chain_strength']):.4f}")
     record = getattr(response, "record", None)
     if record is not None and "chain_break_fraction" in record.dtype.names:
         cbf = record.chain_break_fraction
@@ -248,7 +261,6 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
         f"\nbest read: Σw={weights.sum():.4f}  feasible={feas.feasible}"
         + ("" if feas.feasible else f"  ({feas.reason})")
     )
-    print(f"reads: {config.DWAVE_NUM_READS} (parity with SA)")
 
 
 def _print_speedup(winner, results, winner_label) -> None:
