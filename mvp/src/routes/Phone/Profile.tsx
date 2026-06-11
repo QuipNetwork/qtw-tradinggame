@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { AgentConfig, AgentUpdate, RoutingResult, SliderValues } from '../../api';
-import { getAgent, requestOptimization, subscribeAgent } from '../../api';
+import type { AgentConfig, AgentUpdate, RoutingResult, SliderValues, AssetTicker, AssetInfo } from '../../api';
+import { getAgent, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
 
@@ -11,6 +11,9 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'maxPositionSize',    label: 'Max position size' },
 ];
 
+// A basket needs at least this many assets (mirrors the kiosk sign-up rule).
+const MIN_ASSETS = 3;
+
 export default function PhoneProfile() {
   const { agentId } = useParams();
   const [agent, setAgent] = useState<AgentConfig | null>(null);
@@ -18,6 +21,9 @@ export default function PhoneProfile() {
   const [result, setResult] = useState<RoutingResult | null>(null);
   const [live, setLive] = useState<AgentUpdate | null>(null);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'profile' | 'basket'>('profile');
+  const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
+  const [savingBasket, setSavingBasket] = useState(false);
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -27,6 +33,7 @@ export default function PhoneProfile() {
       if (!a) return;
       setAgent(a);
       setSliders(slidersToArray(a.sliders));
+      setBasket(new Set(a.assets ?? []));
 
       const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
       if (cachedRaw) {
@@ -68,6 +75,45 @@ export default function PhoneProfile() {
     setBusy(false);
   }
 
+  function toggleBasket(ticker: AssetTicker) {
+    setBasket(prev => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker);
+      else next.add(ticker);
+      return next;
+    });
+  }
+
+  // Save only persists the basket and returns to the profile. Re-optimizing is
+  // a separate, explicit action from the main profile ("Re-optimize on Quip").
+  async function saveBasket() {
+    if (savingBasket || !agentId || basket.size < MIN_ASSETS) return;
+    setSavingBasket(true);
+    const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
+    await updateAgent(agentId, { assets });
+    setAgent(prev => prev ? { ...prev, assets } : prev);
+    setSavingBasket(false);
+    setView('profile');
+  }
+
+  const basketTile = (a: AssetInfo) => {
+    const on = basket.has(a.ticker);
+    return (
+      <button
+        type="button"
+        key={a.ticker}
+        className={`v4m-tile ${a.class}${on ? ' on' : ''}`}
+        aria-pressed={on}
+        onClick={() => toggleBasket(a.ticker)}
+      >
+        <span className="v4m-tile-check" aria-hidden="true">✓</span>
+        <img className="v4m-tile-icon" src={assetIconSrc(a.ticker)} alt="" loading="lazy" />
+        <span className="v4m-tile-ticker">{a.ticker}</span>
+        <span className="v4m-tile-name">{a.name}</span>
+      </button>
+    );
+  };
+
   const total = live?.total ?? 10142;
   const plUSD = live?.plUSD ?? 142;
   const plPct = live?.plPct ?? 1.42;
@@ -96,6 +142,28 @@ export default function PhoneProfile() {
                 <span className="v4m-battery"></span>
               </div>
             </div>
+
+            {view === 'basket' ? (
+            <div className="v4m-basket-screen">
+              <div className="v4m-basket-head">
+                <button type="button" className="v4m-basket-back" onClick={() => setView('profile')} aria-label="Back to profile">←</button>
+                <span className="v4m-section-eyebrow">Edit basket</span>
+                <span className={`v4m-basket-count${basket.size > 0 && basket.size < MIN_ASSETS ? ' under' : ''}`}>{basket.size}/{ASSETS.length} · min {MIN_ASSETS}</span>
+              </div>
+              <div className="v4m-basket-scroll">
+                <div className="v4m-basket-group">Crypto · {CRYPTO_ASSETS.length}</div>
+                <div className="v4m-basket-grid">{CRYPTO_ASSETS.map(basketTile)}</div>
+                <div className="v4m-basket-group">Stocks · {STOCK_ASSETS.length}</div>
+                <div className="v4m-basket-grid">{STOCK_ASSETS.map(basketTile)}</div>
+              </div>
+              <button className={`v4m-cta${savingBasket ? ' busy' : ''}`} onClick={saveBasket} disabled={savingBasket || basket.size < MIN_ASSETS}>
+                <span>{savingBasket ? 'Saving…' : 'Save basket'}</span>
+                <span className="v4m-cta-arrow">→</span>
+              </button>
+              {basket.size < MIN_ASSETS && <div className="v4m-cta-sub">Select at least {MIN_ASSETS} assets</div>}
+            </div>
+            ) : (
+            <div className="v4m-phone-view">
 
             <div className="v4m-phone-head">
               <div>
@@ -158,6 +226,11 @@ export default function PhoneProfile() {
               </div>
             </div>
 
+            <button type="button" className="v4m-basket-open" onClick={() => setView('basket')}>
+              <span className="v4m-section-eyebrow">Your basket · {basket.size} asset{basket.size === 1 ? '' : 's'}</span>
+              <span className="v4m-basket-open-cta">Edit →</span>
+            </button>
+
             <div>
               <div className="v4m-section-eyebrow" style={{ marginBottom: 8 }}>Strategy · Drag to Retune</div>
               {SLIDER_DEFS.map((def, i) => (
@@ -193,6 +266,9 @@ export default function PhoneProfile() {
               <span>{busy ? 'Re-optimizing…' : 'Re-optimize on Quip Network'}</span>
               <span className="v4m-cta-arrow">→</span>
             </button>
+
+            </div>
+            )}
 
           </div>
         </div>

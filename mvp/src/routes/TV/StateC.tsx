@@ -80,7 +80,7 @@ export default function StateC() {
         </div>
 
         <div className="state-d-assets">
-          <div className="state-d-eyebrow cyan-dot">Supported assets · 25</div>
+          <div className="state-d-eyebrow cyan-dot">Supported assets · {CRYPTO_ASSETS.length + STOCK_ASSETS.length}</div>
           <div className="state-d-asset-list all">
             <div className="sda-col">
               <div className="sda-col-head">Crypto · {CRYPTO_ASSETS.length}</div>

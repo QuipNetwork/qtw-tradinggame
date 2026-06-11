@@ -20,21 +20,22 @@ export type AgentConfig = {
   reachOut?: string[];          // optional, multi-select — "Would you like someone from our team to reach out to you?" (verbatim Luma event options). Captures consent + intent + segment in one; "No thanks" = opt out.
   updatesOptIn?: boolean;       // "Sign me up for updates from Quip Network" — general newsletter opt-in, separate from the direct reach-out request
   sliders: SliderValues;
-  assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)
+  assets?: AssetTicker[];       // the player's selected basket (subset of the 28-asset universe)
 };
 
 export type ProviderType = 'QPU' | 'CPU';
 
 export type AssetClass = 'crypto' | 'stock';
 
-// The full 25-asset tradable universe: 14 crypto + 11 stocks.
+// The full 28-asset tradable universe: 14 crypto + 14 stocks.
 export type AssetTicker =
   // crypto
   | 'BTC' | 'ETH' | 'BNB' | 'USDC' | 'XRP' | 'SOL' | 'HYPE'
   | 'DOGE' | 'USDT' | 'ZEC' | 'ALGO' | 'STRK' | 'FIL' | 'RENDER'
   // stocks
   | 'IONQ' | 'QBTS' | 'RGTI' | 'QUBT' | 'IBM' | 'SAF'
-  | 'INDI' | 'HON' | 'LAES' | 'ARQQ' | 'GOOGL';
+  | 'INDI' | 'HON' | 'LAES' | 'ARQQ' | 'GOOGL'
+  | 'NVDA' | 'MSFT' | 'AMZN';
 
 export type AssetInfo = {
   ticker: AssetTicker;

@@ -160,7 +160,7 @@ export default function KioskWelcome() {
               ))}
             </div>
             {/* Grouped by class, weight-sorted within each. >12 holdings switches
-                to the dense three-column grid so even a full 25-asset basket fits. */}
+                to the dense three-column grid so even a full 28-asset basket fits. */}
             {cryptoHoldings.length > 0 && (
               <>
                 <div className="v4m-alloc-subhead">Crypto · {cryptoHoldings.length}</div>

@@ -19,6 +19,9 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: numb
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// A basket needs at least this many assets to optimize a meaningful portfolio.
+const MIN_ASSETS = 3;
+
 // "Would you like someone from our team to reach out to you?" — verbatim from
 // the Luma event registration so kiosk leads and event sign-ups share one
 // taxonomy. Captures consent + intent + audience segment in a single question;
@@ -97,17 +100,18 @@ export default function KioskSignUp() {
     setSelected(new Set());
   }
 
-  // Auto-pick: a coin flip per asset builds a random basket (never empty).
+  // Auto-pick: a coin flip per asset builds a random basket (never below the
+  // minimum — top up with random distinct assets if the flips came up short).
   function autoPick() {
-    const picked = ASSETS.filter(() => Math.random() < 0.5).map(a => a.ticker);
-    if (picked.length === 0) {
-      picked.push(ASSETS[Math.floor(Math.random() * ASSETS.length)].ticker);
+    const picked = new Set(ASSETS.filter(() => Math.random() < 0.5).map(a => a.ticker));
+    while (picked.size < MIN_ASSETS) {
+      picked.add(ASSETS[Math.floor(Math.random() * ASSETS.length)].ticker);
     }
-    setSelected(new Set(picked));
+    setSelected(picked);
   }
 
   async function launch() {
-    if (busy || selected.size === 0 || !nameValid || !emailValid) return;
+    if (busy || selected.size < MIN_ASSETS || !nameValid || !emailValid) return;
     setBusy(true);
     const sliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
@@ -227,8 +231,8 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your basket</span>
-                <span className="v4m-selector-count">{selected.size}/{ASSETS.length}</span>
+                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your basket <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
+                <span className={`v4m-selector-count${selected.size > 0 && selected.size < MIN_ASSETS ? ' under' : ''}`}>{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
                 <button type="button" className="v4m-selector-btn" onClick={selectAll}>All</button>
@@ -291,14 +295,14 @@ export default function KioskSignUp() {
       </div>
 
       <div className="v4m-cta-bar">
-        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0 || !nameValid || !emailValid}>
+        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size < MIN_ASSETS || !nameValid || !emailValid}>
           <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
-        {(selected.size === 0 || !nameValid || !emailValid) && (
+        {(selected.size < MIN_ASSETS || !nameValid || !emailValid) && (
           <div className="v4m-cta-sub">
-            {selected.size === 0
-              ? 'Select at least one asset to launch'
+            {selected.size < MIN_ASSETS
+              ? `Select at least ${MIN_ASSETS} assets to launch`
               : !nameValid
                 ? 'Enter a player name to launch'
                 : 'Enter your email to launch'}

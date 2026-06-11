@@ -1,4 +1,4 @@
-// The 25-asset tradable universe (14 crypto + 11 stocks), sourced from the
+// The 28-asset tradable universe (14 crypto + 14 stocks), sourced from the
 // QTW oracle routing table (qtw-oracles / data/oracle-routing.json).
 // Order here is display order in the sign-up asset selector.
 // Icons live in shared-design/asset-icons/ (see design doc §05 for the audit);
@@ -34,6 +34,9 @@ export const ASSETS: AssetInfo[] = [
   { ticker: 'LAES',   name: 'SEALSQ',              class: 'stock',  icon: 'laes.png',   color: '#2AA8E0', vol: 0.90 },
   { ticker: 'IBM',    name: 'IBM',                 class: 'stock',  icon: 'ibm.png',    color: '#1F70C7', vol: 0.30 },
   { ticker: 'GOOGL',  name: 'Alphabet',            class: 'stock',  icon: 'googl.png',  color: '#4285F4', vol: 0.35 },
+  { ticker: 'NVDA',   name: 'NVIDIA',              class: 'stock',  icon: 'nvda.png',   color: '#76B900', vol: 0.45 },
+  { ticker: 'MSFT',   name: 'Microsoft',           class: 'stock',  icon: 'msft.png',   color: '#0078D4', vol: 0.28 },
+  { ticker: 'AMZN',   name: 'Amazon',              class: 'stock',  icon: 'amzn.png',   color: '#FF9900', vol: 0.35 },
   { ticker: 'HON',    name: 'Honeywell',           class: 'stock',  icon: 'hon.png',    color: '#E1251B', vol: 0.25 },
   { ticker: 'SAF',    name: 'Safran',              class: 'stock',  icon: 'saf.png',    color: '#002F87', vol: 0.25 },
   { ticker: 'INDI',   name: 'indie Semiconductor', class: 'stock',  icon: 'indi.png',   color: '#7C3AED', vol: 0.70 },
