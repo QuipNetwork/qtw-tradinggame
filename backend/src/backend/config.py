@@ -90,11 +90,15 @@ GUROBI_IN_RACE: bool = True
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------
 
-DWAVE_NUM_READS: int = 500  # anneal samples per solve — parity with SA's num_reads
-DWAVE_ANNEAL_TIME_US: int = 100  # longer anneal → better quality (default QPU is 20µs)
+# All three knobs are env-overridable for tuning sweeps, e.g.
+#   DWAVE_CHAIN_STRENGTH_PREFACTOR=4 qtw verify-dwave
+DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # parity with SA
+DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
 # Chain strength = uniform torque compensation × this prefactor. Raise if
-# verify-dwave reports chain breaks above ~5%.
-DWAVE_CHAIN_STRENGTH_PREFACTOR: float = 2.0
+# verify-dwave reports chain breaks above ~5% (long chains need stronger bonds).
+DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(
+    os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 2.0)
+)
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
