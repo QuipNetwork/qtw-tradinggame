@@ -105,7 +105,11 @@ DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # parity wit
 DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
 # Chain strength = uniform torque compensation × this prefactor. Raise if
 # verify-dwave reports chain breaks above ~5% (long chains need stronger bonds).
-DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 2.0))
+# ×3 from hardware sweeps: ×2 leaves ~17% chain breaks at 75+ vars; ×3 gives
+# 0.4% there with margin to spare at small baskets.
+DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(
+    os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 3.0)
+)
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
