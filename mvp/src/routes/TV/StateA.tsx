@@ -22,7 +22,7 @@ export default function StateA({ leaderboard }: { leaderboard: LeaderboardEntry[
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Live · Top Ten · Day 1</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">Live · Top Ten</span><span className="bar"></span></div>
       </div>
 
       <div className="qs-body-v4">

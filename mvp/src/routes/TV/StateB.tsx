@@ -20,7 +20,7 @@ export default function StateB({ leaderboard, rankIndex }: { leaderboard: Leader
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Spotlight · Rank {rankPadded} · Day 1</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">Spotlight · Rank {rankPadded}</span><span className="bar"></span></div>
       </div>
 
       <div className="qs-body-v4">

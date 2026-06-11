@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor } from '../../api';
+import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import type { PortfolioEntry } from '../../api';
 import { renderGlyph, renderFakeQR, strHash, pickStyle } from '../../utils/glyph';
 import { labelFor, glyphParams } from '../../utils/strategy';
 import KioskStage from './Stage';
@@ -51,6 +52,19 @@ export default function KioskWelcome() {
   if (!agent) return null;
 
   const portfolio = result?.portfolio ?? [];
+  // Holdings stay weight-sorted, but split into crypto / stocks so each class
+  // reads as its own group (the combined allocation bar above keeps the whole).
+  const cryptoHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'crypto');
+  const stockHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'stock');
+  const dense = portfolio.length > 12;
+  const allocRow = (entry: PortfolioEntry) => (
+    <div className="v4m-alloc-row" key={entry.ticker}>
+      <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
+      <span className="v4m-alloc-name">{entry.ticker}</span>
+      <span className="v4m-alloc-pct">{entry.pct.toFixed(1)}%</span>
+      <span className="v4m-alloc-usd">${entry.usd.toLocaleString()}</span>
+    </div>
+  );
   const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');
 
   const isQpu = result?.providerType === 'QPU';
@@ -145,18 +159,24 @@ export default function KioskWelcome() {
                 <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
               ))}
             </div>
-            {/* >12 holdings switches to the dense three-column grid so even a
-                full 25-asset basket fits the iPad canvas */}
-            <div className={`v4m-alloc-grid${portfolio.length > 12 ? ' dense' : ''}`}>
-              {portfolio.map(entry => (
-                <div className="v4m-alloc-row" key={entry.ticker}>
-                  <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
-                  <span className="v4m-alloc-name">{entry.ticker}</span>
-                  <span className="v4m-alloc-pct">{entry.pct.toFixed(1)}%</span>
-                  <span className="v4m-alloc-usd">${entry.usd.toLocaleString()}</span>
+            {/* Grouped by class, weight-sorted within each. >12 holdings switches
+                to the dense three-column grid so even a full 28-asset basket fits. */}
+            {cryptoHoldings.length > 0 && (
+              <>
+                <div className="v4m-alloc-subhead">Crypto · {cryptoHoldings.length}</div>
+                <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
+                  {cryptoHoldings.map(allocRow)}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+            {stockHoldings.length > 0 && (
+              <>
+                <div className="v4m-alloc-subhead">Stocks · {stockHoldings.length}</div>
+                <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
+                  {stockHoldings.map(allocRow)}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="v4m-agent-qr-row">

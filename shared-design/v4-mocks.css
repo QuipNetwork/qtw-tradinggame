@@ -201,7 +201,7 @@
   .mockup-frame.dark .screen { background: var(--zinc-950); border-color: var(--zinc-800); }
   .mockup-frame.phone { max-width: 360px; margin: 0 auto; border-radius: 28px; padding: 14px 8px 18px; }
   .mockup-frame.phone .chrome { display: none; }
-  .mockup-frame.phone .screen { border-radius: 18px; }
+  .mockup-frame.phone .screen { border-radius: 18px; aspect-ratio: 9 / 19.5; display: flex; flex-direction: column; }
 
   /* Booth kiosk mockup */
   .kiosk-screen {
@@ -4008,6 +4008,13 @@
     color: #0891B2;
     font-variant-numeric: tabular-nums;
   }
+  /* Count turns amber while the basket is below the minimum (1–2 picked). */
+  .kiosk-v4 .v4m-selector-count.under { color: #C2410C; }
+  /* "· min 3" requirement note appended to the step label. */
+  .kiosk-v4 .v4m-selector-req {
+    font-weight: 400;
+    color: #a1a1aa;
+  }
   .kiosk-v4 .v4m-selector-actions {
     display: flex;
     gap: 8px;
@@ -4062,7 +4069,10 @@
     grid-template-columns: repeat(7, 1fr);
     gap: 6px;
   }
-  .kiosk-v4 .v4m-tile {
+  /* Asset tiles are shared between the kiosk selector and the phone basket
+     editor so they look identical on every surface. */
+  .kiosk-v4 .v4m-tile,
+  .phone-v4 .v4m-tile {
     position: relative;
     min-width: 0;        /* long asset names must not blow out the grid */
     min-height: 80px;
@@ -4080,7 +4090,8 @@
   }
   /* Brand icon — dimmed to grayscale when the asset is not selected, so
      the selected basket pops in full color and reads at a glance. */
-  .kiosk-v4 .v4m-tile .v4m-tile-icon {
+  .kiosk-v4 .v4m-tile .v4m-tile-icon,
+  .phone-v4 .v4m-tile .v4m-tile-icon {
     width: 22px;
     height: 22px;
     object-fit: contain;
@@ -4089,11 +4100,13 @@
     opacity: 0.45;
     transition: filter 0.12s ease, opacity 0.12s ease;
   }
-  .kiosk-v4 .v4m-tile.on .v4m-tile-icon {
+  .kiosk-v4 .v4m-tile.on .v4m-tile-icon,
+  .phone-v4 .v4m-tile.on .v4m-tile-icon {
     filter: none;
     opacity: 1;
   }
-  .kiosk-v4 .v4m-tile .v4m-tile-ticker {
+  .kiosk-v4 .v4m-tile .v4m-tile-ticker,
+  .phone-v4 .v4m-tile .v4m-tile-ticker {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.78rem;
     font-weight: 700;
@@ -4101,7 +4114,8 @@
     text-transform: uppercase;
     color: #a1a1aa;
   }
-  .kiosk-v4 .v4m-tile .v4m-tile-name {
+  .kiosk-v4 .v4m-tile .v4m-tile-name,
+  .phone-v4 .v4m-tile .v4m-tile-name {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.62rem;
     line-height: 1.2;
@@ -4115,7 +4129,8 @@
     overflow: hidden;
   }
   /* Class accent bar along the tile's bottom edge */
-  .kiosk-v4 .v4m-tile::after {
+  .kiosk-v4 .v4m-tile::after,
+  .phone-v4 .v4m-tile::after {
     content: '';
     position: absolute;
     left: 0;
@@ -4124,23 +4139,32 @@
     height: 3px;
     background: #e4e4e7;
   }
-  .kiosk-v4 .v4m-tile.crypto::after { background: #a5e8f5; }
-  .kiosk-v4 .v4m-tile.stock::after  { background: #d4d4d8; }
+  .kiosk-v4 .v4m-tile.crypto::after,
+  .phone-v4 .v4m-tile.crypto::after { background: #a5e8f5; }
+  .kiosk-v4 .v4m-tile.stock::after,
+  .phone-v4 .v4m-tile.stock::after  { background: #d4d4d8; }
   /* Selected state */
-  .kiosk-v4 .v4m-tile.on {
+  .kiosk-v4 .v4m-tile.on,
+  .phone-v4 .v4m-tile.on {
     background: white;
     border-color: #0891B2;
     box-shadow: inset 0 0 0 1px #0891B2;
   }
-  .kiosk-v4 .v4m-tile.on.stock {
+  .kiosk-v4 .v4m-tile.on.stock,
+  .phone-v4 .v4m-tile.on.stock {
     border-color: #3f3f46;
     box-shadow: inset 0 0 0 1px #3f3f46;
   }
-  .kiosk-v4 .v4m-tile.on .v4m-tile-ticker { color: #18181b; }
-  .kiosk-v4 .v4m-tile.on .v4m-tile-name { color: #71717b; }
-  .kiosk-v4 .v4m-tile.on.crypto::after { background: #0891B2; }
-  .kiosk-v4 .v4m-tile.on.stock::after  { background: #3f3f46; }
-  .kiosk-v4 .v4m-tile-check {
+  .kiosk-v4 .v4m-tile.on .v4m-tile-ticker,
+  .phone-v4 .v4m-tile.on .v4m-tile-ticker { color: #18181b; }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-name,
+  .phone-v4 .v4m-tile.on .v4m-tile-name { color: #71717b; }
+  .kiosk-v4 .v4m-tile.on.crypto::after,
+  .phone-v4 .v4m-tile.on.crypto::after { background: #0891B2; }
+  .kiosk-v4 .v4m-tile.on.stock::after,
+  .phone-v4 .v4m-tile.on.stock::after  { background: #3f3f46; }
+  .kiosk-v4 .v4m-tile-check,
+  .phone-v4 .v4m-tile-check {
     position: absolute;
     top: 0;
     right: 0;
@@ -4153,9 +4177,12 @@
     text-align: center;
     display: none;
   }
-  .kiosk-v4 .v4m-tile.on.stock .v4m-tile-check { background: #3f3f46; }
-  .kiosk-v4 .v4m-tile.on .v4m-tile-check { display: block; }
-  .kiosk-v4 .v4m-cta:disabled {
+  .kiosk-v4 .v4m-tile.on.stock .v4m-tile-check,
+  .phone-v4 .v4m-tile.on.stock .v4m-tile-check { background: #3f3f46; }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-check,
+  .phone-v4 .v4m-tile.on .v4m-tile-check { display: block; }
+  .kiosk-v4 .v4m-cta:disabled,
+  .phone-v4 .v4m-cta:disabled {
     background: #d4d4d8;
     cursor: not-allowed;
   }
@@ -4649,13 +4676,14 @@
   }
   .kiosk-welcome-v4.app-fit .v4m-agent-panel {
     padding: 16px 18px;
-    gap: 12px;
+    gap: 10px;
     min-height: 0;
   }
   .kiosk-welcome-v4.app-fit .v4m-agent-header {
     gap: 14px;
-    padding-bottom: 12px;
+    padding-bottom: 8px;
   }
+  .kiosk-welcome-v4.app-fit .v4m-agent-glyph { width: 74px; height: 74px; }
   .kiosk-welcome-v4.app-fit .v4m-strat-strip {
     padding: 0 0 10px;
     margin-bottom: 10px;
@@ -4663,6 +4691,14 @@
   .kiosk-welcome-v4.app-fit .v4m-alloc-stack {
     height: 12px;
   }
+  /* Grouped portfolio (Crypto/Stocks) adds two sub-headers; compress the
+     sub-headers and dense rows so a full 25-asset basket still clears the QR. */
+  .kiosk-welcome-v4.app-fit .v4m-alloc-subhead {
+    margin: 5px 0 3px;
+    font-size: 0.56rem;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-subhead:first-of-type { margin-top: 2px; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-row { padding: 4.5px 0; }
   .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
     padding-top: 12px;
     margin-top: auto;   /* QR row anchors to the card bottom */
@@ -4902,6 +4938,17 @@
     flex-direction: column;
     min-height: 0;
   }
+  /* Class sub-header inside the portfolio (Crypto / Stocks), above each grid. */
+  .kiosk-welcome-v4 .v4m-alloc-subhead {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    margin: 14px 0 6px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-subhead:first-of-type { margin-top: 10px; }
   .kiosk-welcome-v4 .v4m-alloc-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -5189,7 +5236,74 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
+    flex: 1;            /* fill the fixed-height phone screen */
+    min-height: 0;
+    overflow: hidden;   /* the active view scrolls internally, not the frame */
   }
+  /* ─── Phone basket editor — the 2nd screen reachable from the profile ─── */
+  /* One view fills the phone's fixed viewport (status bar stays pinned above).
+     The profile scrolls as a whole; the basket pins its header + Save button
+     and scrolls only the asset grid — so the phone frame never grows. */
+  .phone-v4 #phone-profile-view,
+  .phone-v4 .v4m-phone-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .phone-v4 #phone-basket-view,
+  .phone-v4 .v4m-basket-screen {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  /* Compact the phone basket tiles (same kiosk styling, smaller) so the whole
+     28-asset grid fits the phone viewport without the frame growing. */
+  .phone-v4 .v4m-tile { min-height: 62px; padding: 5px 4px 6px; gap: 1px; }
+  .phone-v4 .v4m-tile .v4m-tile-icon { width: 18px; height: 18px; }
+  .phone-v4 .v4m-tile .v4m-tile-ticker { font-size: 0.66rem; }
+  .phone-v4 .v4m-tile .v4m-tile-name { font-size: 0.52rem; }
+  .phone-v4 .v4m-basket-grid { gap: 5px; }
+  .phone-v4 .v4m-basket-group { padding: 4px 0 2px; }
+  .phone-v4 .v4m-basket-open {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%;
+    border: 1px solid #e4e4e7; background: #f6f6f7;
+    border-radius: 8px; padding: 10px 12px; cursor: pointer;
+  }
+  .phone-v4 .v4m-basket-open-cta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; color: #0891B2;
+  }
+  .phone-v4 .v4m-basket-screen {
+    display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0;
+  }
+  .phone-v4 .v4m-basket-head { display: flex; align-items: center; gap: 10px; }
+  .phone-v4 .v4m-basket-back {
+    border: 1px solid #e4e4e7; background: white; border-radius: 6px;
+    width: 28px; height: 28px; flex: none;
+    font-size: 1rem; line-height: 1; color: #18181b; cursor: pointer;
+  }
+  .phone-v4 .v4m-basket-count {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em;
+    color: #0891B2; font-variant-numeric: tabular-nums;
+  }
+  .phone-v4 .v4m-basket-count.under { color: #C2410C; }
+  .phone-v4 .v4m-basket-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .phone-v4 .v4m-basket-group {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.56rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #a1a1aa; padding: 8px 0 5px;
+  }
+  /* Phone basket uses the shared .v4m-tile (styled above) in a 4-up grid. */
+  .phone-v4 .v4m-basket-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .phone-v4 .v4m-status {
     display: flex;
     justify-content: space-between;
@@ -5998,12 +6112,26 @@
     text-transform: uppercase;
     color: #a1a1aa;
   }
-  /* All-25 variant — the full universe in a compact two-column grid */
+  /* All-25 variant — crypto in one column, stocks in the other */
   .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all {
     display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: 2.2cqw;
     align-content: start;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-col-head {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.2cqh;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    padding-bottom: 0.5cqh;
   }
   .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-row {
     grid-template-columns: 3cqh 1fr auto;

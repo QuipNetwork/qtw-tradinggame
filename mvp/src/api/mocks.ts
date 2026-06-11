@@ -45,13 +45,13 @@ const SEEDED_AGENTS: Record<string, AgentConfig> = {
   a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 } },
   a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 } },
   a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { rebalanceFrequency: 65, riskPreference: 78, maxPositionSize: 60 },
-         assets: ['XRP', 'ALGO', 'IONQ', 'QNT', 'SAF', 'ARQQ'] },
+         assets: ['XRP', 'ALGO', 'IONQ', 'IBM', 'SAF', 'ARQQ'] },
   a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { rebalanceFrequency: 55, riskPreference: 70, maxPositionSize: 50 } },
   a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { rebalanceFrequency: 70, riskPreference: 60, maxPositionSize: 65 } },
-  // a06 selects the ENTIRE 25-asset universe — the worst-case portfolio demo.
+  // a06 selects the ENTIRE 28-asset universe — the worst-case portfolio demo.
   a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { rebalanceFrequency: 70, riskPreference: 78, maxPositionSize: 50 },
          assets: ['BTC', 'ETH', 'BNB', 'USDC', 'XRP', 'SOL', 'HYPE', 'DOGE', 'USDT', 'ZEC', 'ALGO', 'STRK', 'FIL', 'RENDER',
-                  'IONQ', 'QBTS', 'RGTI', 'QUBT', 'QNT', 'SAF', 'INDI', 'BTQ', 'LAES', 'ARQQ', 'SPCX'] },
+                  'IONQ', 'QBTS', 'RGTI', 'QUBT', 'IBM', 'SAF', 'INDI', 'HON', 'LAES', 'ARQQ', 'GOOGL', 'NVDA', 'MSFT', 'AMZN'] },
   a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { rebalanceFrequency: 40, riskPreference: 50, maxPositionSize: 40 } },
   a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { rebalanceFrequency: 50, riskPreference: 55, maxPositionSize: 45 } },
   a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { rebalanceFrequency: 35, riskPreference: 45, maxPositionSize: 40 } },
@@ -79,6 +79,15 @@ export async function getAgent(agentId: string): Promise<AgentConfig | null> {
     try { return JSON.parse(raw); } catch { /* fall through to seeded */ }
   }
   return SEEDED_AGENTS[agentId] ?? null;
+}
+
+// Merge a patch into the stored agent (creating a localStorage copy of a
+// seeded agent on first edit). Used by the phone profile's basket editor.
+export async function updateAgent(agentId: string, patch: Partial<AgentConfig>): Promise<AgentConfig> {
+  const current = (await getAgent(agentId)) ?? ({ name: 'Player', sliders: { rebalanceFrequency: 50, riskPreference: 50, maxPositionSize: 50 } } as AgentConfig);
+  const next = { ...current, ...patch };
+  localStorage.setItem(STORAGE_PREFIX + agentId, JSON.stringify({ ...next, agentId, createdAt: Date.now() }));
+  return delay(next);
 }
 
 export async function requestOptimization(agentId: string): Promise<RoutingResult> {
@@ -131,7 +140,7 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
 }
 
 // Builds the optimizer's "answer" from the agent's selected basket. EVERY
-// selected asset gets an allocation (a 25-asset basket yields 25 holdings),
+// selected asset gets an allocation (a 28-asset basket yields 28 holdings),
 // weighted by exponential decay over a deterministic per-agent ordering
 // (same agent → same portfolio on re-render). Agents without a stored
 // basket (older/seeded entries) fall back to the demo basket.
@@ -163,7 +172,7 @@ function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize =
   // into the top holdings. The cap below then enforces the hard bound.
   const s = maxPositionSize / 100;
   const decay = ordered.length > 10
-    ? 0.99 - s * 0.19    // 25 assets: top ≈ 4.5% (Tiny) … ≈ 20% (Heavy)
+    ? 0.99 - s * 0.19    // 28 assets: top ≈ 3.6% (Tiny) … ≈ 20% (Heavy)
     : 0.95 - s * 0.30;   // small baskets: near-equal … strongly concentrated
   const raw = ordered.map((_, i) => Math.pow(decay, i));
   let total = raw.reduce((a, b) => a + b, 0);

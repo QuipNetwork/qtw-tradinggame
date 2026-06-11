@@ -1,4 +1,5 @@
-import { ASSETS, assetIconSrc } from '../../api';
+import { CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import type { AssetInfo } from '../../api';
 
 const SLIDERS = [
   { label: 'Rebalance frequency', val: 'Every 2h',   pct: 70 },
@@ -15,6 +16,17 @@ function fakeChange(ticker: string): { text: string; cls: string } {
   return { text: `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}%`, cls: v > 0 ? 'up' : 'down' };
 }
 
+function assetRow(a: AssetInfo) {
+  const c = fakeChange(a.ticker);
+  return (
+    <div className="sda-row" key={a.ticker}>
+      <img className="sda-glyph" src={assetIconSrc(a.ticker)} alt="" />
+      <span className="sda-ticker">{a.ticker}</span>
+      <span className={`sda-change ${c.cls}`}>{c.text}</span>
+    </div>
+  );
+}
+
 export default function StateC() {
   return (
     <div className="bigscreen dir-quipsite v4 state-d">
@@ -24,7 +36,7 @@ export default function StateC() {
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Welcome · Sign-up · Day 1</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">Welcome · Sign-up</span><span className="bar"></span></div>
       </div>
 
       <div className="state-d-body">
@@ -68,20 +80,18 @@ export default function StateC() {
         </div>
 
         <div className="state-d-assets">
-          <div className="state-d-eyebrow cyan-dot">Supported assets · 25</div>
+          <div className="state-d-eyebrow cyan-dot">Supported assets · {CRYPTO_ASSETS.length + STOCK_ASSETS.length}</div>
           <div className="state-d-asset-list all">
-            {ASSETS.map(a => {
-              const c = fakeChange(a.ticker);
-              return (
-                <div className="sda-row" key={a.ticker}>
-                  <img className="sda-glyph" src={assetIconSrc(a.ticker)} alt="" />
-                  <span className="sda-ticker">{a.ticker}</span>
-                  <span className={`sda-change ${c.cls}`}>{c.text}</span>
-                </div>
-              );
-            })}
+            <div className="sda-col">
+              <div className="sda-col-head">Crypto · {CRYPTO_ASSETS.length}</div>
+              {CRYPTO_ASSETS.map(assetRow)}
+            </div>
+            <div className="sda-col">
+              <div className="sda-col-head">Stocks · {STOCK_ASSETS.length}</div>
+              {STOCK_ASSETS.map(assetRow)}
+            </div>
           </div>
-          <div className="state-d-asset-tail">14 crypto · 11 stocks · pick your basket at the kiosk</div>
+          <div className="state-d-asset-tail">Pick your basket at the kiosk</div>
         </div>
 
       </div>
