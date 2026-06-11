@@ -58,7 +58,14 @@ REBALANCE_TIERS_HOURS: tuple[int, ...] = (24, 8, 4, 2, 1)
 # QUBO encoding hyperparameters
 # -----------------------------------------------------------------------------
 
-BIT_PRECISION: int = 4  # b — 16 levels per asset across [w_min, w_max]
+# Bits per asset across [w_min, w_max]. Large baskets drop to 3 bits: with b=4
+# the budget couplings span a 64× range, and past ~60 variables the QPU's
+# auto-scaling pushes the low-bit couplings below coupler precision — the chip
+# can't feel them and Σw drifts. Fewer bits = coarser grid (normalization
+# absorbs it) but a landscape the hardware can actually represent.
+BIT_PRECISION: int = 4
+BIT_PRECISION_LARGE: int = 3
+QUBO_PREFERRED_MAX_VARS: int = 60  # use BIT_PRECISION while n·b stays within this
 # λ_sum = mult × max objective coefficient. Large enough that SA's worst-case
 # budget violation stays under half a grid step (≈ 1/(2·Δ·u_top) ≈ 460 for the
 # 25-asset basket), small enough that the objective isn't crushed below QPU
@@ -96,9 +103,7 @@ DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # parity wit
 DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
 # Chain strength = uniform torque compensation × this prefactor. Raise if
 # verify-dwave reports chain breaks above ~5% (long chains need stronger bonds).
-DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(
-    os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 2.0)
-)
+DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 2.0))
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)

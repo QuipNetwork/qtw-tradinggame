@@ -27,3 +27,14 @@ def test_higher_bit_precision_grows_the_matrix(synthetic_problem_3assets):
     q4 = encode_qubo(synthetic_problem_3assets, bits_per_asset=4)
     q5 = encode_qubo(synthetic_problem_3assets, bits_per_asset=5)
     assert q5.n == q4.n + 3  # one extra bit per asset
+
+
+def test_large_baskets_drop_to_3_bits(synthetic_problem_3assets):
+    from backend.financial.qubo_encoder import bits_for_basket
+
+    assert bits_for_basket(6) == 4
+    assert bits_for_basket(15) == 4
+    assert bits_for_basket(16) == 3
+    assert bits_for_basket(25) == 3
+    # small fixture still encodes at full precision
+    assert encode_qubo(synthetic_problem_3assets).n == 12

@@ -52,6 +52,14 @@ from ..solvers.types import DecodeMeta, QuboMatrix
 from .types import PortfolioProblem
 
 
+def bits_for_basket(n_assets: int) -> int:
+    """Full precision while the QUBO stays small; 3 bits for large baskets
+    (see config — QPU coupler dynamic range, not solver capacity, is the limit)."""
+    if n_assets * config.BIT_PRECISION <= config.QUBO_PREFERRED_MAX_VARS:
+        return config.BIT_PRECISION
+    return config.BIT_PRECISION_LARGE
+
+
 def encode_qubo(
     problem: PortfolioProblem,
     bits_per_asset: int | None = None,
@@ -59,7 +67,7 @@ def encode_qubo(
 ) -> QuboMatrix:
     """Convert the box-constrained QP → QUBO. See module docstring."""
 
-    b = bits_per_asset if bits_per_asset is not None else config.BIT_PRECISION
+    b = bits_per_asset if bits_per_asset is not None else bits_for_basket(problem.N)
     pmult_budget = (
         penalty_mult_budget if penalty_mult_budget is not None else config.PENALTY_MULT_BUDGET
     )
