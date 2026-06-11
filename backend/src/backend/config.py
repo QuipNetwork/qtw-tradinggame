@@ -59,7 +59,11 @@ REBALANCE_TIERS_HOURS: tuple[int, ...] = (24, 8, 4, 2, 1)
 # -----------------------------------------------------------------------------
 
 BIT_PRECISION: int = 4  # b — 16 levels per asset across [w_min, w_max]
-PENALTY_MULT_BUDGET: float = 10.0  # λ_sum = mult × max QUBO objective coefficient
+# λ_sum = mult × max objective coefficient. Large enough that SA's worst-case
+# budget violation stays under half a grid step (≈ 1/(2·Δ·u_top) ≈ 460 for the
+# 25-asset basket), small enough that the objective isn't crushed below QPU
+# precision after coupler auto-scaling.
+PENALTY_MULT_BUDGET: float = 500.0
 
 # A QUBO solver's weights live on a discrete grid, so Σw=1 is only achievable
 # to within ~half a grid step. Decoded weights within this tolerance of 1 are

@@ -262,6 +262,23 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
         + ("" if feas.feasible else f"  ({feas.reason})")
     )
 
+    # Objective spread across feasible reads — if the QPU 'sees' the objective,
+    # the best feasible read beats the mean; identical values mean it's only
+    # satisfying constraints and the spread is random.
+    from .financial.qubo_decoder import decode_bitstring
+
+    objectives = []
+    for sample in response.samples():
+        bits = np.array([sample[i] for i in range(qubo.n)], dtype=np.int8)
+        w = decode_bitstring(bits, qubo.decode_meta, normalize=True)
+        if check_feasibility(w, problem.w_max, problem.w_min).feasible:
+            objectives.append(problem.objective(w))
+    if objectives:
+        print(
+            f"feasible reads: {len(objectives)}/{config.DWAVE_NUM_READS}  "
+            f"objective best/mean: {min(objectives):.6f} / {sum(objectives) / len(objectives):.6f}"
+        )
+
 
 def _print_speedup(winner, results, winner_label) -> None:
     if winner is None or winner.solve_time_s <= 0:

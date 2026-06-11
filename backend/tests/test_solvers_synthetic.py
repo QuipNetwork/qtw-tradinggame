@@ -71,3 +71,37 @@ def test_router_race_produces_a_feasible_winner(synthetic_problem_3assets):
     assert result.winner.provider in ("gurobi", "sa")
     assert len(result.q_hash) == 64
     assert result.vs_classical > 0.0
+
+
+@requires_neal
+def test_sa_feasible_at_full_universe_scale():
+    """Penalty-ratio canary: at 500× (no obj_scale floor) SA must still respect
+    the budget on the hardest case — the dense 25-asset, 100-bit QUBO."""
+    import numpy as np
+
+    from backend import config
+    from backend.financial.basket import TICKERS
+    from backend.financial.estimators.covariance import covariance
+    from backend.financial.estimators.expected_return import expected_return
+    from backend.financial.prices.source import get_source
+    from backend.financial.types import PortfolioProblem
+    from backend.solvers.providers.sa import SAProvider
+
+    tickers = list(TICKERS)
+    returns = get_source().hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
+    problem = PortfolioProblem(
+        mu=expected_return(returns, config.MU_WINDOW_HOURS),
+        Sigma=covariance(returns),
+        gamma=1.5,
+        lambda_t=0.0,
+        w_ref=np.zeros(len(tickers)),
+        w_max=0.27,
+        w_min=0.01,
+        asset_tickers=tickers,
+    )
+    qubo = encode_qubo(problem)
+    solution = SAProvider().solve_qubo(qubo, problem, deadline_s=10.0)
+    feas = check_feasibility(solution.weights, problem.w_max, problem.w_min)
+    assert feas.feasible, (
+        f"SA infeasible at 500× penalty ratio — raise PENALTY_MULT_BUDGET ({feas.reason})"
+    )

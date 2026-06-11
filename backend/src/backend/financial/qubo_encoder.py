@@ -88,8 +88,10 @@ def encode_qubo(
         + 2.0 * problem.lambda_t * (m - problem.w_ref)
     )
 
-    # Penalty weight scales with the largest objective coefficient.
-    obj_scale = max(float(np.abs(A_obj).max()), float(np.abs(b_obj).max()), 1.0)
+    # Penalty weight tracks the largest objective coefficient (tiny epsilon
+    # guard only — a hard floor would blow the penalty:objective ratio to ~10⁶
+    # and erase the objective below QPU precision after coupler auto-scaling).
+    obj_scale = max(float(np.abs(A_obj).max()), float(np.abs(b_obj).max()), 1e-12)
     lambda_sum = pmult_budget * obj_scale
 
     # -------------------------------------------------------------------------
