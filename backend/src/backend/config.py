@@ -92,8 +92,8 @@ EPS_BOX: float = 1e-3  # wᵢ ≤ w_max + EPS_BOX
 
 # Gurobi races locally during development but is NOT deployed to production
 # (licensing) — there it remains the offline oracle only, and the live race is
-# SA (CPU) vs D-Wave (QPU).
-GUROBI_IN_RACE: bool = True
+# SA (CPU) vs D-Wave (QPU). GUROBI_IN_RACE=0 to preview the production field.
+GUROBI_IN_RACE: bool = os.environ.get("GUROBI_IN_RACE", "1").lower() not in ("0", "false")
 
 # -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
