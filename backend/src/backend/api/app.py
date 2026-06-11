@@ -11,6 +11,7 @@ the MTM scheduler for the life of the server. Run locally with:
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -22,9 +23,32 @@ from ..events.bus import get_bus
 from ..orchestration.scheduler import run_mtm_loop
 from . import routes, ws
 
+log = logging.getLogger(__name__)
+
+
+def _check_market_source() -> None:
+    """Announce the active data source; a missing assets-api should fail loudly."""
+    from ..financial.prices.assets_api import AssetsApiSource
+    from ..financial.prices.source import get_source
+
+    source = get_source()
+    log.info("market data source: %s", type(source).__name__)
+    if isinstance(source, AssetsApiSource):
+        try:
+            source.health()
+            log.info("assets-api reachable at %s", config.ASSETS_API_BASE_URL)
+        except Exception as e:
+            log.error(
+                "assets-api unreachable at %s — solves and MTM will fail until it is up "
+                "(or set MARKET_DATA_SOURCE=synthetic): %s",
+                config.ASSETS_API_BASE_URL,
+                e,
+            )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    _check_market_source()
     stop = asyncio.Event()
     task = asyncio.create_task(run_mtm_loop(get_bus(), stop))
     try:

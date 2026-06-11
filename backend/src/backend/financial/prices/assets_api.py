@@ -57,6 +57,9 @@ class AssetsApiSource:
         returns = prices[1:] / prices[:-1] - 1.0
         return returns[-window_hours:]
 
+    def health(self) -> dict:
+        return self._get("/healthz", {})
+
     def spot_prices(self, tickers: list[str]) -> dict[str, float]:
         body = self._get("/v1/spot", {"tickers": ",".join(tickers)})
         quotes: dict[str, dict] = body.get("prices", {})

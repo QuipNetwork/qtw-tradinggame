@@ -18,6 +18,7 @@ from .financial import basket
 from .financial.basket import validate_basket
 from .financial.estimators.covariance import covariance
 from .financial.estimators.expected_return import expected_return
+from .financial.prices.assets_api import AssetsApiError
 from .financial.prices.source import get_source
 from .financial.qubo_encoder import encode_qubo
 from .financial.slider_map import map_sliders
@@ -228,6 +229,8 @@ def main(argv: list[str] | None = None) -> None:
         args.func(args)
     except ValueError as exc:
         parser.error(str(exc))
+    except AssetsApiError as exc:
+        parser.error(f"{exc}\n(start assets-api, or run with MARKET_DATA_SOURCE=synthetic)")
 
 
 if __name__ == "__main__":

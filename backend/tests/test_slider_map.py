@@ -59,9 +59,9 @@ def test_min_position_floor_is_quarter_of_equal_weight():
 
 
 def test_basket_below_minimum_raises():
-    from backend.financial.basket import validate_basket
+    from backend.financial.basket import TICKERS, validate_basket
 
     with pytest.raises(ValueError, match="at least"):
         validate_basket(["BTC", "ETH"])
     assert validate_basket(["BTC", "ETH", "IONQ"]) == ["BTC", "ETH", "IONQ"]
-    assert len(validate_basket(None)) == config.N_ASSETS
+    assert len(validate_basket(None)) == len(TICKERS)

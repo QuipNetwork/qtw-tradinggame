@@ -4,9 +4,9 @@ Mirrors mvp/src/api/assets.ts (14 crypto + 11 stocks) and the assets-api
 registry (assets.yaml). Players select a subset of this universe at sign-up;
 the optimizer runs over their selection.
 
-Note: QNT (Quantinuum) recently went public and is included. SPCX (SpaceX) is
-still private — assets-api cannot price it yet; drop/substitute/synthesize
-before booth (tracked in TODO.md).
+All 25 assets are priceable by assets-api. Three original picks were swapped
+(2026-06-10) for coverage: QNT → HON (Honeywell, Quantinuum's majority owner),
+SPCX → GOOGL, BTQ → IBM. The frontend list (mvp/src/api/assets.ts) must match.
 """
 
 from __future__ import annotations
@@ -47,13 +47,13 @@ BASKET: tuple[AssetMeta, ...] = (
     AssetMeta("QBTS", "D-Wave Quantum", "stock"),
     AssetMeta("RGTI", "Rigetti Computing", "stock"),
     AssetMeta("QUBT", "Quantum Computing", "stock"),
-    AssetMeta("QNT", "Quantinuum", "stock"),
+    AssetMeta("HON", "Honeywell", "stock"),
     AssetMeta("SAF", "Safran", "stock"),
     AssetMeta("INDI", "indie Semiconductor", "stock"),
-    AssetMeta("BTQ", "BTQ Technologies", "stock"),
+    AssetMeta("IBM", "IBM", "stock"),
     AssetMeta("LAES", "SEALSQ", "stock"),
     AssetMeta("ARQQ", "Arqit Quantum", "stock"),
-    AssetMeta("SPCX", "SpaceX", "stock"),
+    AssetMeta("GOOGL", "Alphabet", "stock"),
 )
 
 TICKERS: tuple[str, ...] = tuple(a.ticker for a in BASKET)

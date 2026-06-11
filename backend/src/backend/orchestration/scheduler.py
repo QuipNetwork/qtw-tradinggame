@@ -6,14 +6,12 @@ new valuation, and publishes an AgentUpdate per agent. It never trades — pure
 revaluation until the user retunes (CLAUDE.md §5.5). Publishing happens on the
 event loop, so the bus queues stay loop-safe.
 
-Σ refresh: with the synthetic source, history is deterministic, so there is
-nothing to refresh; the hook is left for the assets-api source, which
-will recompute the cached 720h window every `SIGMA_REFRESH_S`.
 """
 
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from .. import config
 from ..events.bus import EventBus
@@ -38,14 +36,19 @@ async def run_mtm_loop(
     tick = tick_s if tick_s is not None else config.MTM_TICK_S
     tickers = list(basket.TICKERS)
 
+    log = logging.getLogger(__name__)
     while not stop.is_set():
-        spot = market.spot_prices(tickers)
-        for agent in agents.all():
-            if not agent.holdings_units:
-                continue
-            update = mark_to_market(agent.holdings_units, spot, agent.bankroll)
-            agents.set_valuation(agent.id, update)
-            bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
+        try:
+            spot = market.spot_prices(tickers)
+            for agent in agents.all():
+                if not agent.holdings_units:
+                    continue
+                update = mark_to_market(agent.holdings_units, spot, agent.bankroll)
+                agents.set_valuation(agent.id, update)
+                bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
+        except Exception:
+            # A flaky data source must not kill the loop; skip this tick.
+            log.exception("MTM tick failed")
         # Sleep one tick, but wake immediately when asked to stop.
         try:
             await asyncio.wait_for(stop.wait(), timeout=tick)

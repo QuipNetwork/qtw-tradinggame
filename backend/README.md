@@ -1,9 +1,9 @@
 # QTW 2026 Trading Game — Backend
 
-Python backend for the booth trading competition. Phases 0/1/3/4/6 are built; it
-runs end-to-end on a deterministic **synthetic** market (no network), so you can
-exercise the whole pipeline today. See `../docs/BACKEND_DAG.md` for the dataflow
-and `../TODO.md` for what's left.
+Python backend for the booth trading competition. Reads market data from the
+**assets-api** service by default; a deterministic synthetic source
+(`MARKET_DATA_SOURCE=synthetic`) runs the whole pipeline offline. See
+`../docs/BACKEND_DAG.md` for the dataflow and `../TODO.md` for what's left.
 
 ## Setup
 
@@ -52,11 +52,10 @@ market source — handy for quick checks and for sanity-testing data later.
 Slider flags (`--risk`, `--max-position`, `--rebalance`) take 0–100;
 `--assets` is a comma-separated basket (min 3, defaults to all 25).
 
-## Use real market data (assets-api)
+## Market data (assets-api by default)
 
-By default the backend runs on a deterministic synthetic market. To use real
-prices, run the assets-api service (gitlab.com/quip.network/assets-api) and
-flip the source:
+The backend expects the assets-api service (gitlab.com/quip.network/assets-api)
+on `http://127.0.0.1:8080` (override with `ASSETS_API_BASE_URL`):
 
 ```bash
 docker run -p 8080:8080 -v assets-data:/data \
@@ -65,9 +64,9 @@ docker run -p 8080:8080 -v assets-data:/data \
 # wait for the 90-day backfill, check http://127.0.0.1:8080/healthz
 ```
 
-Then set `MARKET_DATA_SOURCE = "assets-api"` in `config.py` (service URL:
-`ASSETS_API_BASE_URL`). Everything downstream is unchanged — the client
-forward-fills stock market-hour gaps onto the hourly grid automatically.
+Stock market-hour gaps are forward-filled onto the hourly grid automatically.
+No service running? `MARKET_DATA_SOURCE=synthetic` switches everything
+(server, CLI, tests already pin it) to the deterministic offline source.
 
 ## Enable the D-Wave QPU
 

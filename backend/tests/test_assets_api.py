@@ -47,8 +47,8 @@ def test_missing_history_raises():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"bars": {"BTC": [_bar("2026-06-05T00:00:00Z", 1.0)]}})
 
-    with pytest.raises(AssetsApiError, match="QNT"):
-        _source(handler).hourly_returns(["BTC", "QNT"], window_hours=2)
+    with pytest.raises(AssetsApiError, match="HON"):
+        _source(handler).hourly_returns(["BTC", "HON"], window_hours=2)
 
 
 def test_spot_prices():
