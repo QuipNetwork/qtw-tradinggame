@@ -30,12 +30,20 @@ the 2026-06-10 swaps (QNT→HON, SPCX→GOOGL, BTQ→IBM) — backend updated.
 - **Swap tickers in `mvp/src/api/assets.ts`** to match assets-api: QNT→HON, SPCX→GOOGL, BTQ→IBM (names, icons, colors).
 - Scan-Badge button → Gemini (needs Rick's key).
 
-### 3. Rate limits (replaces any transaction-cost idea)
-- Manual retune button: rate-limited per user (+ UI feedback for the cooldown).
+### 3. Rate limits (replaces any transaction-cost idea) — design agreed
+Budget: ~55 min QPU over 2 days (~3,300s); measured cost ~170ms/solve at 500
+reads → ~19k QPU solves. At 3,000 attendees, first solves cost only 8.5 min —
+the budget fits everything with ~5 QPU retunes/person headroom.
+- **Global token bucket metering QPU *milliseconds*** — debits the actual
+  `qpu_access_time` per solve; refill = budget/event-duration (~46 ms/s). Hard
+  ceiling regardless of crowd size; races without tokens run CPU-only (SA).
+- **QPU eligibility: human-witnessed solves only** (first solve, manual
+  retune). Scheduled rebalances run CPU-only — no budget on invisible races.
+- **Per-agent manual retune cooldown** (~5 min, env-tunable) → 429 +
+  Retry-After; frontend shows the countdown.
 - Rebalance Frequency slider: drives automatic scheduled retunes (hourly cap) —
   `rebalance_hours` is mapped and stored but nothing dispatches jobs yet.
-- QPU access: globally budgeted token bucket (assumptions on concurrent users
-  and the <1hr-total-QPU-over-2-days math to be worked out).
+- Nice-to-have: `/budget` endpoint to watch spend live at the booth.
 
 ### 4. QPU shakeout
 The D-Wave provider is implemented (Ocean SDK, joins the race when

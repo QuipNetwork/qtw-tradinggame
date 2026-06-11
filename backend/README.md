@@ -21,7 +21,7 @@ license that comfortably fits this problem size.
 ## Run the automated tests
 
 ```bash
-.venv/bin/python -m pytest -q             # 58 tests, ~5s
+.venv/bin/python -m pytest -q             # 60 tests, ~2s
 ```
 
 What each suite covers:
@@ -78,11 +78,15 @@ export DWAVE_API_TOKEN=...   # from cloud.dwavesys.com
 ```
 
 Reported D-Wave solve time is QPU access time (the anneal itself), not network
-round-trip. Tune `DWAVE_NUM_READS` in `config.py` against the QPU budget. The
-provider uses the clique sampler (cached embeddings — no per-solve embedding
-search) and picks the best *feasible* anneal read, not just the lowest-energy
-one. For production set `GUROBI_IN_RACE = False` — Gurobi stays an offline
-oracle and the live race is SA vs the QPU.
+round-trip. The provider uses the clique sampler (cached embeddings — no
+per-solve embedding search) and picks the best *feasible* anneal read, not just
+the lowest-energy one.
+
+Tuning knobs are env vars: `DWAVE_NUM_READS` (500), `DWAVE_ANNEAL_TIME_US`
+(100), `DWAVE_CHAIN_STRENGTH_PREFACTOR` (3). `qtw verify-dwave [--assets …]`
+submits one QUBO to Leap and reports chip, embedding, chain breaks, timing, and
+feasible-read stats. `GUROBI_IN_RACE=0` previews the production field — Gurobi
+stays an offline oracle and the live race is SA vs the QPU.
 
 ## Run the server
 

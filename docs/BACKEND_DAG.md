@@ -189,7 +189,7 @@ feasible** answer wins.
 
 ## Key invariants
 
-1. **`slider_map.py` is the only translator** of 0–100 sliders → physical params (γ, w_max, w_min, τ, K, λ_t). The frontend never sees physical params.
+1. **`slider_map.py` is the only translator** of 0–100 sliders → physical params (γ, w_max, w_min, rebalance cadence). The frontend never sees physical params.
 2. **`config.py` owns every static knob** — bankroll, bit precision, penalty weights, ε tolerances, K bounds.
 3. **`basket.py` is the single source of the asset universe.**
 4. **The MTM loop never enters the solver path** — pure revaluation until the next retune.
