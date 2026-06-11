@@ -72,10 +72,12 @@ QUBO_PREFERRED_MAX_VARS: int = 60  # use BIT_PRECISION while n·b stays within t
 # precision after coupler auto-scaling.
 PENALTY_MULT_BUDGET: float = 500.0
 
-# A QUBO solver's weights live on a discrete grid, so Σw=1 is only achievable
-# to within ~half a grid step. Decoded weights within this tolerance of 1 are
-# normalized onto the simplex before the feasibility gate.
-QUBO_NORMALIZE_TOL: float = 0.05
+# A QUBO solver's weights live on a discrete grid (and the QPU adds analog
+# noise), so Σw=1 is only approximate. Decoded sums within this tolerance of 1
+# are normalized onto the simplex before the feasibility gate; the box check
+# stays as the backstop (a >10% rescale pushes weights past w_min/w_max + ε,
+# so genuinely bad reads still fail).
+QUBO_NORMALIZE_TOL: float = 0.10
 
 # -----------------------------------------------------------------------------
 # Feasibility tolerances (V0 quality bar)
