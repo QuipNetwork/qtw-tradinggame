@@ -4649,13 +4649,14 @@
   }
   .kiosk-welcome-v4.app-fit .v4m-agent-panel {
     padding: 16px 18px;
-    gap: 12px;
+    gap: 10px;
     min-height: 0;
   }
   .kiosk-welcome-v4.app-fit .v4m-agent-header {
     gap: 14px;
-    padding-bottom: 12px;
+    padding-bottom: 8px;
   }
+  .kiosk-welcome-v4.app-fit .v4m-agent-glyph { width: 74px; height: 74px; }
   .kiosk-welcome-v4.app-fit .v4m-strat-strip {
     padding: 0 0 10px;
     margin-bottom: 10px;
@@ -4663,6 +4664,14 @@
   .kiosk-welcome-v4.app-fit .v4m-alloc-stack {
     height: 12px;
   }
+  /* Grouped portfolio (Crypto/Stocks) adds two sub-headers; compress the
+     sub-headers and dense rows so a full 25-asset basket still clears the QR. */
+  .kiosk-welcome-v4.app-fit .v4m-alloc-subhead {
+    margin: 5px 0 3px;
+    font-size: 0.56rem;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-subhead:first-of-type { margin-top: 2px; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-row { padding: 4.5px 0; }
   .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
     padding-top: 12px;
     margin-top: auto;   /* QR row anchors to the card bottom */
@@ -4902,6 +4911,17 @@
     flex-direction: column;
     min-height: 0;
   }
+  /* Class sub-header inside the portfolio (Crypto / Stocks), above each grid. */
+  .kiosk-welcome-v4 .v4m-alloc-subhead {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    margin: 14px 0 6px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-subhead:first-of-type { margin-top: 10px; }
   .kiosk-welcome-v4 .v4m-alloc-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -5998,12 +6018,26 @@
     text-transform: uppercase;
     color: #a1a1aa;
   }
-  /* All-25 variant — the full universe in a compact two-column grid */
+  /* All-25 variant — crypto in one column, stocks in the other */
   .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all {
     display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: 2.2cqw;
     align-content: start;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-col-head {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.2cqh;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    padding-bottom: 0.5cqh;
   }
   .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-row {
     grid-template-columns: 3cqh 1fr auto;

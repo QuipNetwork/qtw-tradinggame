@@ -1,4 +1,5 @@
-import { ASSETS, assetIconSrc } from '../../api';
+import { CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import type { AssetInfo } from '../../api';
 
 const SLIDERS = [
   { label: 'Rebalance frequency', val: 'Every 2h',   pct: 70 },
@@ -13,6 +14,17 @@ function fakeChange(ticker: string): { text: string; cls: string } {
   const v = ((h % 61) - 28) / 10;   // −2.8 … +3.2
   if (Math.abs(v) < 0.05) return { text: '±0.0%', cls: 'flat' };
   return { text: `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}%`, cls: v > 0 ? 'up' : 'down' };
+}
+
+function assetRow(a: AssetInfo) {
+  const c = fakeChange(a.ticker);
+  return (
+    <div className="sda-row" key={a.ticker}>
+      <img className="sda-glyph" src={assetIconSrc(a.ticker)} alt="" />
+      <span className="sda-ticker">{a.ticker}</span>
+      <span className={`sda-change ${c.cls}`}>{c.text}</span>
+    </div>
+  );
 }
 
 export default function StateC() {
@@ -70,18 +82,16 @@ export default function StateC() {
         <div className="state-d-assets">
           <div className="state-d-eyebrow cyan-dot">Supported assets · 25</div>
           <div className="state-d-asset-list all">
-            {ASSETS.map(a => {
-              const c = fakeChange(a.ticker);
-              return (
-                <div className="sda-row" key={a.ticker}>
-                  <img className="sda-glyph" src={assetIconSrc(a.ticker)} alt="" />
-                  <span className="sda-ticker">{a.ticker}</span>
-                  <span className={`sda-change ${c.cls}`}>{c.text}</span>
-                </div>
-              );
-            })}
+            <div className="sda-col">
+              <div className="sda-col-head">Crypto · {CRYPTO_ASSETS.length}</div>
+              {CRYPTO_ASSETS.map(assetRow)}
+            </div>
+            <div className="sda-col">
+              <div className="sda-col-head">Stocks · {STOCK_ASSETS.length}</div>
+              {STOCK_ASSETS.map(assetRow)}
+            </div>
           </div>
-          <div className="state-d-asset-tail">14 crypto · 11 stocks · pick your basket at the kiosk</div>
+          <div className="state-d-asset-tail">Pick your basket at the kiosk</div>
         </div>
 
       </div>
