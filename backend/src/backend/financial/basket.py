@@ -1,12 +1,8 @@
-"""The 25-asset tradable universe — single source of truth for ticker metadata.
+"""The 28-asset tradable universe — single source of truth for ticker metadata.
 
-Mirrors mvp/src/api/assets.ts (14 crypto + 11 stocks) and the assets-api
-registry (assets.yaml). Players select a subset of this universe at sign-up;
-the optimizer runs over their selection.
-
-All 25 assets are priceable by assets-api. Three original picks were swapped
-(2026-06-10) for coverage: QNT → HON (Honeywell, Quantinuum's majority owner),
-SPCX → GOOGL, BTQ → IBM. The frontend list (mvp/src/api/assets.ts) must match.
+Mirrors mvp/src/api/assets.ts (14 crypto + 14 stocks). NOTE: assets-api's
+registry (assets.yaml) still lists 25 — NVDA, MSFT, AMZN need to be added
+there before live-data baskets containing them will price.
 """
 
 from __future__ import annotations
@@ -31,29 +27,32 @@ BASKET: tuple[AssetMeta, ...] = (
     AssetMeta("BTC", "Bitcoin", "crypto"),
     AssetMeta("ETH", "Ethereum", "crypto"),
     AssetMeta("BNB", "BNB", "crypto"),
-    AssetMeta("USDC", "USD Coin", "crypto"),
-    AssetMeta("XRP", "XRP", "crypto"),
     AssetMeta("SOL", "Solana", "crypto"),
-    AssetMeta("HYPE", "Hyperliquid", "crypto"),
-    AssetMeta("DOGE", "Dogecoin", "crypto"),
+    AssetMeta("XRP", "XRP", "crypto"),
     AssetMeta("USDT", "Tether", "crypto"),
+    AssetMeta("USDC", "USD Coin", "crypto"),
+    AssetMeta("DOGE", "Dogecoin", "crypto"),
+    AssetMeta("HYPE", "Hyperliquid", "crypto"),
     AssetMeta("ZEC", "Zcash", "crypto"),
     AssetMeta("ALGO", "Algorand", "crypto"),
-    AssetMeta("STRK", "Starknet", "crypto"),
     AssetMeta("FIL", "Filecoin", "crypto"),
     AssetMeta("RENDER", "Render", "crypto"),
-    # ── Stocks (11) ──
+    AssetMeta("STRK", "Starknet", "crypto"),
+    # ── Stocks (14) ──
     AssetMeta("IONQ", "IonQ", "stock"),
-    AssetMeta("QBTS", "D-Wave Quantum", "stock"),
     AssetMeta("RGTI", "Rigetti Computing", "stock"),
+    AssetMeta("QBTS", "D-Wave Quantum", "stock"),
     AssetMeta("QUBT", "Quantum Computing", "stock"),
+    AssetMeta("ARQQ", "Arqit Quantum", "stock"),
+    AssetMeta("LAES", "SEALSQ", "stock"),
+    AssetMeta("IBM", "IBM", "stock"),
+    AssetMeta("GOOGL", "Alphabet", "stock"),
+    AssetMeta("NVDA", "NVIDIA", "stock"),
+    AssetMeta("MSFT", "Microsoft", "stock"),
+    AssetMeta("AMZN", "Amazon", "stock"),
     AssetMeta("HON", "Honeywell", "stock"),
     AssetMeta("SAF", "Safran", "stock"),
     AssetMeta("INDI", "indie Semiconductor", "stock"),
-    AssetMeta("IBM", "IBM", "stock"),
-    AssetMeta("LAES", "SEALSQ", "stock"),
-    AssetMeta("ARQQ", "Arqit Quantum", "stock"),
-    AssetMeta("GOOGL", "Alphabet", "stock"),
 )
 
 TICKERS: tuple[str, ...] = tuple(a.ticker for a in BASKET)

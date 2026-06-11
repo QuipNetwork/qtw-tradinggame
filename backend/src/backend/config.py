@@ -62,7 +62,7 @@ BIT_PRECISION_LARGE: int = 3
 QUBO_PREFERRED_MAX_VARS: int = 60  # use BIT_PRECISION while n·b stays within this
 # λ_sum = mult × max objective coefficient. Large enough that SA's worst-case
 # budget violation stays under half a grid step (≈ 1/(2·Δ·u_top) ≈ 460 for the
-# 25-asset basket), small enough that the objective isn't crushed below QPU
+# full-universe basket), small enough that the objective isn't crushed below QPU
 # precision after coupler auto-scaling.
 PENALTY_MULT_BUDGET: float = 500.0
 

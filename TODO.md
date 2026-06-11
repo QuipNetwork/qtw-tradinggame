@@ -1,12 +1,12 @@
 # TODO
 
 Backend for the QTW 2026 Trading Game. Core is built and tested (58 passing),
-reconciled with the main-branch contract (3 sliders + 25-asset basket selection).
+reconciled with the main-branch contract (3 sliders + 28-asset basket selection).
 See `backend/README.md` to run and test, `docs/BACKEND_DAG.md` for the dataflow.
 
 ## Done
 
-- **Contract v2** — 3 sliders (`rebalanceFrequency` discrete tiers / `riskPreference` / `maxPositionSize` relative to basket), 25-asset universe (14 crypto + 11 stocks, QNT included), per-agent basket (min 3 assets, fixed after sign-up), `email`/`reachOut`/`updatesOptIn` persisted.
+- **Contract v2** — 3 sliders (`rebalanceFrequency` discrete tiers / `riskPreference` / `maxPositionSize` relative to basket), 28-asset universe (14 crypto + 14 stocks incl. NVDA/MSFT/AMZN), per-agent basket (min 3 assets, re-selectable on retune), `email`/`reachOut`/`updatesOptIn` persisted.
 - **Retune mechanics** — a retune liquidates all holdings at spot and reallocates the full value over a (possibly re-selected) basket: no turnover penalty, no transaction fee — trade pressure is rate limits instead. `OptimizeRequest` accepts `sliders` and/or `assets`; the kiosk/phone basket re-selection UI is frontend-branch work. Participation floor 0.25/n; lookbacks fixed (μ 168h, Σ 720h).
 - **Model** — cardinality dropped (basket expresses it): Gurobi solves a continuous QP; the QUBO has no indicator block; QUBO results are simplex-normalized, so **SA now genuinely competes** (feasible at all basket sizes).
 - **D-Wave provider** — real Ocean-SDK implementation; token-gated entry into the race; QPU-access-time reporting; hermetic tests via sampler injection.
@@ -21,6 +21,8 @@ out). Stand it up locally (Docker or `make run`), let the 90-day backfill
 finish, and shake out real-data surprises (SAF via the SAFRY ADR, stablecoin
 near-zero variance → consider Σ shrinkage). Basket is fully priceable after
 the 2026-06-10 swaps (QNT→HON, SPCX→GOOGL, BTQ→IBM) — backend updated.
+**Gap: assets-api's registry still has 25 assets — NVDA, MSFT, AMZN must be
+added to assets.yaml** or baskets containing them won't price on live data.
 
 ### 2. Frontend wiring
 - `api/real.ts` (fetch + WS) + env-gate `api/index.ts` on `VITE_API_BASE` (mocks otherwise; Netlify preview unaffected).

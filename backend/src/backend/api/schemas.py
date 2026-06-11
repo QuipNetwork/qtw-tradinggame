@@ -35,7 +35,7 @@ class AgentConfig(BaseModel):
     reach_out: list[str] | None = Field(default=None, alias="reachOut")
     updates_opt_in: bool | None = Field(default=None, alias="updatesOptIn")
     sliders: SliderValues
-    # The player's selected basket — a subset of the 25-asset universe.
+    # The player's selected basket — a subset of the 28-asset universe.
     # None/empty falls back to the full universe; re-selectable on retune.
     assets: list[str] | None = None
 

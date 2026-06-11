@@ -52,6 +52,9 @@ _BASE_PRICES: dict[str, float] = {
     "LAES": 4.0,
     "ARQQ": 25.0,
     "GOOGL": 175.0,
+    "NVDA": 180.0,
+    "MSFT": 450.0,
+    "AMZN": 220.0,
 }
 
 

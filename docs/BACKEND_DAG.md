@@ -50,7 +50,7 @@ flowchart TB
         QD["qubo_decoder.py<br/>bitstring → weights"]
         RT["allocate<br/>liquidate → reallocate"]
         PNL["pnl.py<br/>holdings × spot → AgentUpdate"]
-        BASKET["basket.py<br/>25-asset universe"]
+        BASKET["basket.py<br/>28-asset universe"]
     end
 
     %% ===== Market data =====
