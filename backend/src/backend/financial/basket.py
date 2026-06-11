@@ -2,7 +2,8 @@
 
 Mirrors mvp/src/api/assets.ts (14 crypto + 14 stocks). NOTE: assets-api's
 registry (assets.yaml) still lists 25 — NVDA, MSFT, AMZN need to be added
-there before live-data baskets containing them will price.
+there before live-data baskets containing them will price. SPCX (private) has
+no provider — it needs a synthesized series in assets-api.
 """
 
 from __future__ import annotations
@@ -52,7 +53,7 @@ BASKET: tuple[AssetMeta, ...] = (
     AssetMeta("AMZN", "Amazon", "stock"),
     AssetMeta("HON", "Honeywell", "stock"),
     AssetMeta("SAF", "Safran", "stock"),
-    AssetMeta("INDI", "indie Semiconductor", "stock"),
+    AssetMeta("SPCX", "SpaceX", "stock"),
 )
 
 TICKERS: tuple[str, ...] = tuple(a.ticker for a in BASKET)

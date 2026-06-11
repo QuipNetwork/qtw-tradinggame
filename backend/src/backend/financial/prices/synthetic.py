@@ -47,7 +47,7 @@ _BASE_PRICES: dict[str, float] = {
     "QUBT": 8.0,
     "HON": 220.0,
     "SAF": 230.0,
-    "INDI": 4.0,
+    "SPCX": 150.0,
     "IBM": 290.0,
     "LAES": 4.0,
     "ARQQ": 25.0,

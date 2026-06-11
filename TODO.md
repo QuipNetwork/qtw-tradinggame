@@ -21,8 +21,9 @@ out). Stand it up locally (Docker or `make run`), let the 90-day backfill
 finish, and shake out real-data surprises (SAF via the SAFRY ADR, stablecoin
 near-zero variance → consider Σ shrinkage). Basket is fully priceable after
 the 2026-06-10 swaps (QNT→HON, SPCX→GOOGL, BTQ→IBM) — backend updated.
-**Gap: assets-api's registry still has 25 assets — NVDA, MSFT, AMZN must be
-added to assets.yaml** or baskets containing them won't price on live data.
+**Gap: assets-api's registry still has 25 assets — NVDA, MSFT, AMZN, SPCX must
+be reconciled in assets.yaml** (SPCX is private: needs a synthesized series)
+or baskets containing them won't price on live data.
 
 ### 2. Frontend wiring
 - `api/real.ts` (fetch + WS) + env-gate `api/index.ts` on `VITE_API_BASE` (mocks otherwise; Netlify preview unaffected).
