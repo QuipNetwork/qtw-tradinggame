@@ -21,7 +21,7 @@ export default function StateD({ name = 'Lattice Theory' }: { name?: string }) {
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Welcome · Day 1 · 14:22:08</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">Welcome · 14:22:08</span><span className="bar"></span></div>
       </div>
 
       <div className="qs-body-v4">

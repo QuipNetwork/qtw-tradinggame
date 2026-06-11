@@ -24,7 +24,7 @@ export default function StateC() {
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Welcome · Sign-up · Day 1</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">Welcome · Sign-up</span><span className="bar"></span></div>
       </div>
 
       <div className="state-d-body">

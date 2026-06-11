@@ -33,8 +33,8 @@ export type AssetTicker =
   | 'BTC' | 'ETH' | 'BNB' | 'USDC' | 'XRP' | 'SOL' | 'HYPE'
   | 'DOGE' | 'USDT' | 'ZEC' | 'ALGO' | 'STRK' | 'FIL' | 'RENDER'
   // stocks
-  | 'IONQ' | 'QBTS' | 'RGTI' | 'QUBT' | 'QNT' | 'SAF'
-  | 'INDI' | 'BTQ' | 'LAES' | 'ARQQ' | 'SPCX';
+  | 'IONQ' | 'QBTS' | 'RGTI' | 'QUBT' | 'IBM' | 'SAF'
+  | 'INDI' | 'HON' | 'LAES' | 'ARQQ' | 'GOOGL';
 
 export type AssetInfo = {
   ticker: AssetTicker;
