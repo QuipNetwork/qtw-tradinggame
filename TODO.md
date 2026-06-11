@@ -16,17 +16,18 @@ See `backend/README.md` to run and test, `docs/BACKEND_DAG.md` for the dataflow.
 ## Remaining (in order)
 
 ### 1. Run against real data
-Stand up assets-api locally (Docker or clone + `make run`), let the 90-day
-backfill finish, flip the source, and shake out real-data surprises (sparse
-BTQ/SAF OTC bars, stablecoin near-zero variance → consider Σ shrinkage).
-**SPCX has no provider** (private) — drop, substitute, or synthesize before booth;
-QNT needs its provider routing enabled in assets-api now that it's public.
+assets-api is now the default source (`MARKET_DATA_SOURCE=synthetic` to opt
+out). Stand it up locally (Docker or `make run`), let the 90-day backfill
+finish, and shake out real-data surprises (SAF via the SAFRY ADR, stablecoin
+near-zero variance → consider Σ shrinkage). Basket is fully priceable after
+the 2026-06-10 swaps (QNT→HON, SPCX→GOOGL, BTQ→IBM) — backend updated.
 
 ### 2. Frontend wiring
 - `api/real.ts` (fetch + WS) + env-gate `api/index.ts` on `VITE_API_BASE` (mocks otherwise; Netlify preview unaffected).
 - Local test loop: `uvicorn` on :8000 + `VITE_API_BASE=http://127.0.0.1:8000 npm run dev`.
 - Welcome/Profile render `result.portfolio` from the server; drop the `sessionStorage` handoff; Profile sends sliders on retune; fix the `BoothTV` setState pattern.
 - Mirror `MIN_BASKET_SIZE = 3` in the kiosk (Select stays disabled below it; backend already enforces).
+- **Swap tickers in `mvp/src/api/assets.ts`** to match assets-api: QNT→HON, SPCX→GOOGL, BTQ→IBM (names, icons, colors).
 - Scan-Badge button → Gemini (needs Rick's key).
 
 ### 3. Rate limits (replaces any transaction-cost idea)
@@ -45,5 +46,5 @@ and keep a dispatch seam for routing jobs through the Quip Network later.
 ## Notes
 
 - **Persistence is in-memory** — lost on restart, single worker only (`--workers 1`). SQLite for booth-day durability.
-- **Docs drift** — CLAUDE.md still describes the 5-slider / exactly-K model; refresh after the dust settles. `docs/MARKET_DATA_SPEC.md` is superseded by the assets-api OpenAPI contract. (`docs/BACKEND_DAG.md` is current.)
+- **Docs** — CLAUDE.md rewritten to the current model; MARKET_DATA_SPEC and IMPLEMENTATION_NOTES deleted (superseded by assets-api's openapi.yaml and git history). `docs/BACKEND_DAG.md` is current.
 - **Brainstorm session (planned)** — improvements/suggestions pass over the whole flow: booth UX (what makes the race visceral on TV), leaderboard tie-breaks, Σ shrinkage, `TURNOVER_PENALTY_MULT` tuning, QPU showmanship vs cost.
