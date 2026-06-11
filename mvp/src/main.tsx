@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import './index.css';
 import symbolsSvg from '../../shared-design/symbols.svg.html?raw';
 
 // Inject the shared SVG symbol library so <use href="#crypto-btc"/> etc. work

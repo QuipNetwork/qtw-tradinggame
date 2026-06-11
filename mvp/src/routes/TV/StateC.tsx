@@ -1,19 +1,19 @@
+import { ASSETS, assetIconSrc } from '../../api';
+
 const SLIDERS = [
-  { label: 'Trading activity', val: 'High',       pct: 70 },
-  { label: 'Risk preference',  val: 'Aggressive', pct: 78 },
-  { label: 'Trade size',       val: 'Medium',     pct: 50 },
-  { label: 'Holding style',    val: 'Patient',    pct: 30 },
-  { label: 'Diversification',  val: 'Balanced',   pct: 55 },
+  { label: 'Rebalance frequency', val: 'Every 2h',   pct: 70 },
+  { label: 'Risk preference',     val: 'Aggressive', pct: 78 },
+  { label: 'Max position size',   val: 'Medium',     pct: 50 },
 ];
 
-const ASSETS = [
-  { id: 'crypto-btc',  ticker: 'BTC',  change: '+2.1%',  cls: 'up' },
-  { id: 'crypto-eth',  ticker: 'ETH',  change: '+1.4%',  cls: 'up' },
-  { id: 'crypto-sol',  ticker: 'SOL',  change: '+3.0%',  cls: 'up' },
-  { id: 'crypto-link', ticker: 'LINK', change: '−0.6%',  cls: 'down' },
-  { id: 'crypto-uni',  ticker: 'UNI',  change: '+0.3%',  cls: 'up' },
-  { id: 'crypto-usdc', ticker: 'USDC', change: '±0.0%',  cls: 'flat' },
-];
+// Deterministic fake 24h change per ticker (demo data — no live feed on TV).
+function fakeChange(ticker: string): { text: string; cls: string } {
+  let h = 0;
+  for (let i = 0; i < ticker.length; i++) h = (h * 31 + ticker.charCodeAt(i)) >>> 0;
+  const v = ((h % 61) - 28) / 10;   // −2.8 … +3.2
+  if (Math.abs(v) < 0.05) return { text: '±0.0%', cls: 'flat' };
+  return { text: `${v > 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}%`, cls: v > 0 ? 'up' : 'down' };
+}
 
 export default function StateC() {
   return (
@@ -51,8 +51,8 @@ export default function StateC() {
             <div className="sdf-input sdf-input-placeholder">Your name</div>
           </div>
           <div className="sdf-field">
-            <label>X handle (optional)</label>
-            <div className="sdf-input sdf-input-placeholder">Your handle</div>
+            <label>Email (required)</label>
+            <div className="sdf-input sdf-input-placeholder">you@example.com</div>
           </div>
 
           {SLIDERS.map(s => (
@@ -68,17 +68,20 @@ export default function StateC() {
         </div>
 
         <div className="state-d-assets">
-          <div className="state-d-eyebrow cyan-dot">Supported assets</div>
-          <div className="state-d-asset-list">
-            {ASSETS.map(a => (
-              <div className="sda-row" key={a.ticker}>
-                <svg className="sda-glyph" viewBox="0 0 32 32"><use href={`#${a.id}`} /></svg>
-                <span className="sda-ticker">{a.ticker}</span>
-                <span className={`sda-change ${a.cls}`}>{a.change}</span>
-              </div>
-            ))}
+          <div className="state-d-eyebrow cyan-dot">Supported assets · 25</div>
+          <div className="state-d-asset-list all">
+            {ASSETS.map(a => {
+              const c = fakeChange(a.ticker);
+              return (
+                <div className="sda-row" key={a.ticker}>
+                  <img className="sda-glyph" src={assetIconSrc(a.ticker)} alt="" />
+                  <span className="sda-ticker">{a.ticker}</span>
+                  <span className={`sda-change ${c.cls}`}>{c.text}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="state-d-asset-tail">Final basket TBD</div>
+          <div className="state-d-asset-tail">14 crypto · 11 stocks · pick your basket at the kiosk</div>
         </div>
 
       </div>

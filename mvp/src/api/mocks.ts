@@ -5,9 +5,12 @@
 import type {
   AgentConfig,
   AgentUpdate,
+  AssetTicker,
   LeaderboardEntry,
+  PortfolioEntry,
   RoutingResult,
 } from './types';
+import { ASSET_BY_TICKER } from './assets';
 
 const STORAGE_PREFIX = 'quip:agents:';
 
@@ -39,16 +42,20 @@ const TOP_10: LeaderboardEntry[] = [
 // (e.g. /kiosk/welcome?agent=a06, /p/a06) render without needing the kiosk
 // form to have created the agent in this browser's localStorage.
 const SEEDED_AGENTS: Record<string, AgentConfig> = {
-  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { tradingActivity: 95, riskPreference: 95, tradeSize: 85, holdingStyle: 10, diversification: 20 } },
-  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { tradingActivity: 80, riskPreference: 85, tradeSize: 70, holdingStyle: 20, diversification: 30 } },
-  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { tradingActivity: 65, riskPreference: 78, tradeSize: 60, holdingStyle: 35, diversification: 45 } },
-  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { tradingActivity: 55, riskPreference: 70, tradeSize: 50, holdingStyle: 45, diversification: 55 } },
-  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { tradingActivity: 70, riskPreference: 60, tradeSize: 65, holdingStyle: 40, diversification: 50 } },
-  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { tradingActivity: 70, riskPreference: 78, tradeSize: 50, holdingStyle: 30, diversification: 55 } },
-  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { tradingActivity: 40, riskPreference: 50, tradeSize: 40, holdingStyle: 60, diversification: 65 } },
-  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { tradingActivity: 50, riskPreference: 55, tradeSize: 45, holdingStyle: 55, diversification: 70 } },
-  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { tradingActivity: 35, riskPreference: 45, tradeSize: 40, holdingStyle: 70, diversification: 60 } },
-  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { tradingActivity: 25, riskPreference: 30, tradeSize: 30, holdingStyle: 80, diversification: 75 } },
+  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 } },
+  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 } },
+  a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { rebalanceFrequency: 65, riskPreference: 78, maxPositionSize: 60 },
+         assets: ['XRP', 'ALGO', 'IONQ', 'QNT', 'SAF', 'ARQQ'] },
+  a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { rebalanceFrequency: 55, riskPreference: 70, maxPositionSize: 50 } },
+  a05: { name: 'QUBO McQuboface',        handle: '@qubomcquboface',        sliders: { rebalanceFrequency: 70, riskPreference: 60, maxPositionSize: 65 } },
+  // a06 selects the ENTIRE 25-asset universe — the worst-case portfolio demo.
+  a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { rebalanceFrequency: 70, riskPreference: 78, maxPositionSize: 50 },
+         assets: ['BTC', 'ETH', 'BNB', 'USDC', 'XRP', 'SOL', 'HYPE', 'DOGE', 'USDT', 'ZEC', 'ALGO', 'STRK', 'FIL', 'RENDER',
+                  'IONQ', 'QBTS', 'RGTI', 'QUBT', 'QNT', 'SAF', 'INDI', 'BTQ', 'LAES', 'ARQQ', 'SPCX'] },
+  a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { rebalanceFrequency: 40, riskPreference: 50, maxPositionSize: 40 } },
+  a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { rebalanceFrequency: 50, riskPreference: 55, maxPositionSize: 45 } },
+  a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { rebalanceFrequency: 35, riskPreference: 45, maxPositionSize: 40 } },
+  a10: { name: 'Tunneling Tina',         handle: '@tunnelingtina',         sliders: { rebalanceFrequency: 25, riskPreference: 30, maxPositionSize: 30 } },
 };
 
 function uuid(): string {
@@ -74,7 +81,14 @@ export async function getAgent(agentId: string): Promise<AgentConfig | null> {
   return SEEDED_AGENTS[agentId] ?? null;
 }
 
-export async function requestOptimization(_agentId: string): Promise<RoutingResult> {
+export async function requestOptimization(agentId: string): Promise<RoutingResult> {
+  const agent = await getAgent(agentId);
+  const portfolio = portfolioFor(
+    agentId,
+    agent?.assets,
+    agent?.sliders.maxPositionSize ?? 50,
+    agent?.sliders.riskPreference ?? 50,
+  );
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
@@ -84,7 +98,7 @@ export async function requestOptimization(_agentId: string): Promise<RoutingResu
       providerType: 'QPU' as const,
       solveTime: qpu,
       vsClassical: Math.round((classical / qpu) * 10) / 10,
-      portfolio: defaultPortfolio(),
+      portfolio,
     });
   }
   const c = CLASSICAL_PROVIDERS[Math.floor(Math.random() * CLASSICAL_PROVIDERS.length)];
@@ -95,7 +109,7 @@ export async function requestOptimization(_agentId: string): Promise<RoutingResu
     providerType: 'CPU' as const,
     solveTime: cpu,
     vsClassical: Math.round((qpu / cpu) * 10) / 10,
-    portfolio: defaultPortfolio(),
+    portfolio,
   });
 }
 
@@ -116,11 +130,64 @@ export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) 
   return () => clearInterval(interval);
 }
 
-function defaultPortfolio() {
-  return [
-    { ticker: 'BTC' as const,  pct: 42, usd: 4200 },
-    { ticker: 'ETH' as const,  pct: 28, usd: 2800 },
-    { ticker: 'SOL' as const,  pct: 22, usd: 2200 },
-    { ticker: 'USDC' as const, pct: 8,  usd:  800 },
-  ];
+// Builds the optimizer's "answer" from the agent's selected basket. EVERY
+// selected asset gets an allocation (a 25-asset basket yields 25 holdings),
+// weighted by exponential decay over a deterministic per-agent ordering
+// (same agent → same portfolio on re-render). Agents without a stored
+// basket (older/seeded entries) fall back to the demo basket.
+const FALLBACK_BASKET: AssetTicker[] = ['BTC', 'ETH', 'SOL', 'USDC'];
+
+function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize = 50, riskPreference = 50): PortfolioEntry[] {
+  const basket = assets && assets.length ? assets : FALLBACK_BASKET;
+  // Risk preference tilts WHICH assets lead the allocation (γ on the
+  // covariance term in the real solver): conservative agents lead with
+  // low-volatility assets (stablecoins, large caps), aggressive agents
+  // lead with high-volatility ones (small-cap quantum stocks, memecoins).
+  // A name-seeded jitter keeps different agents distinct.
+  let h = 0;
+  for (let i = 0; i < agentId.length; i++) h = (h * 31 + agentId.charCodeAt(i)) >>> 0;
+  const rank = (t: string) => {
+    let r = h;
+    for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0;
+    return r;
+  };
+  const r01 = riskPreference / 100;
+  const score = (t: AssetTicker) => {
+    const vol = ASSET_BY_TICKER[t].vol;
+    return (1 - r01) * (1 - vol) + r01 * vol + 0.15 * ((rank(t) % 1000) / 1000);
+  };
+  const ordered = [...basket].sort((a, b) => score(b) - score(a));
+  // Exponential decay, normalized. The position-size slider drives the
+  // optimizer's concentration appetite (like risk interacting with the cap
+  // in the real solver): Tiny → near-equal weights, Heavy → steep decay
+  // into the top holdings. The cap below then enforces the hard bound.
+  const s = maxPositionSize / 100;
+  const decay = ordered.length > 10
+    ? 0.99 - s * 0.19    // 25 assets: top ≈ 4.5% (Tiny) … ≈ 20% (Heavy)
+    : 0.95 - s * 0.30;   // small baskets: near-equal … strongly concentrated
+  const raw = ordered.map((_, i) => Math.pow(decay, i));
+  let total = raw.reduce((a, b) => a + b, 0);
+  let w = raw.map(v => v / total);
+
+  // Apply the per-asset cap (relative to basket size — see strategy.ts
+  // maxPositionCapPct): clamp and water-fill the excess onto uncapped
+  // holdings until everything respects the cap.
+  const n = ordered.length;
+  const floor = 1 / n;
+  const cap = floor + (maxPositionSize / 100) * (Math.max(0.5, floor) - floor);
+  for (let pass = 0; pass < 10; pass++) {
+    const excess = w.reduce((a, v) => a + Math.max(0, v - cap), 0);
+    if (excess < 1e-6) break;
+    const uncappedSum = w.reduce((a, v) => a + (v < cap ? v : 0), 0);
+    w = w.map(v => v >= cap ? cap : v + (uncappedSum > 0 ? (v / uncappedSum) * excess : 0));
+  }
+
+  let pctLeft = 100;
+  return ordered.map((ticker, i) => {
+    const pct = i === ordered.length - 1
+      ? Math.round(pctLeft * 10) / 10
+      : Math.round(w[i] * 1000) / 10;
+    pctLeft -= pct;
+    return { ticker, pct, usd: Math.round(pct * 100) };
+  });
 }

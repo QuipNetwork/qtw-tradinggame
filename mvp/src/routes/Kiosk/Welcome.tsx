@@ -1,20 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization } from '../../api';
+import { getAgent, requestOptimization, assetIconSrc, assetColor } from '../../api';
 import { renderGlyph, renderFakeQR, strHash, pickStyle } from '../../utils/glyph';
-import { computeWeights, labelFor, slidersToArray } from '../../utils/strategy';
+import { labelFor, glyphParams } from '../../utils/strategy';
+import KioskStage from './Stage';
 
 const BANKROLL = 10000;
-
-const ASSET_GLYPH_IDS = ['crypto-btc', 'crypto-eth', 'crypto-sol', 'crypto-usdc'] as const;
-const ASSET_TICKERS = ['BTC', 'ETH', 'SOL', 'USDC'] as const;
-const ASSET_GRADIENTS = [
-  'linear-gradient(135deg, #f7931a, #ffb347)',
-  'linear-gradient(135deg, #627eea, #8aa2f9)',
-  'linear-gradient(135deg, #14F195, #9945FF)',
-  'linear-gradient(135deg, #2775ca, #4f9ddc)',
-] as const;
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
@@ -45,11 +37,7 @@ export default function KioskWelcome() {
     const style = pickStyle(seed);
     renderGlyph(glyphRef.current, Object.assign({
       seed,
-      p1: agent.sliders.tradingActivity / 100,
-      p2: agent.sliders.riskPreference / 100,
-      p3: agent.sliders.tradeSize / 100,
-      p4: agent.sliders.holdingStyle / 100,
-      p5: agent.sliders.diversification / 100,
+      ...glyphParams(agent.sliders),
       cell: 6,
     }, style));
   }, [agent]);
@@ -62,9 +50,8 @@ export default function KioskWelcome() {
   if (!agentId) return <Navigate to="/kiosk" replace />;
   if (!agent) return null;
 
-  const sliders = slidersToArray(agent.sliders).map(v => v / 100) as [number, number, number, number, number];
-  const w = computeWeights(...sliders);
-  const allocPcts = [w[0], w[1], w[2], w[4]]; // BTC, ETH, SOL, USDC (reserve)
+  const portfolio = result?.portfolio ?? [];
+  const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');
 
   const isQpu = result?.providerType === 'QPU';
   const solveTime = result?.solveTime ?? 0.42;
@@ -73,7 +60,8 @@ export default function KioskWelcome() {
   const cBarPct = isQpu ? 100 : Math.max(4, (classicalTime / solveTime) * 100);
 
   return (
-    <div className="qs-v4-mock kiosk-welcome-v4">
+    <KioskStage>
+    <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
 
       <div className="v4m-nav">
         <div className="v4m-mark">
@@ -81,7 +69,7 @@ export default function KioskWelcome() {
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up · Day 1</span>
+        <span className="v4m-pill">Live · Sign-up</span>
       </div>
 
       <div className="v4m-hero">
@@ -97,7 +85,10 @@ export default function KioskWelcome() {
 
           <span className="v4m-route-tag">{result?.providerType ?? 'QPU'}</span>
           <div className="v4m-main-hero">
-            {result?.provider ?? 'D-Wave'} <span className="it accent">Advantage.</span>
+            {/* Last word of the provider name gets the italic accent:
+                "D-Wave Advantage" → D-Wave <it>Advantage.</it>; "Atlas-9" → <it>Atlas-9.</it> */}
+            {providerWords.length > 1 && providerWords.slice(0, -1).join(' ') + ' '}
+            <span className="it accent">{providerWords[providerWords.length - 1]}.</span>
           </div>
           <div className="v4m-panel-meta" style={{ marginTop: 6 }}></div>
 
@@ -114,7 +105,7 @@ export default function KioskWelcome() {
 
           <div className="v4m-race">
             <div className="v4m-race-row">
-              <span className="v4m-race-label q">{(result?.provider ?? 'D-Wave').split(' ')[0]} · QPU</span>
+              <span className="v4m-race-label q">{(result?.provider ?? 'D-Wave').split(' ')[0]} · {result?.providerType ?? 'QPU'}</span>
               <div className="v4m-race-bar"><div className="v4m-race-fill q" style={{ width: `${qBarPct}%` }}></div></div>
               <span className="v4m-race-time">{(isQpu ? solveTime : classicalTime).toFixed(2)}s</span>
             </div>
@@ -132,7 +123,6 @@ export default function KioskWelcome() {
             <canvas ref={glyphRef} className="v4m-agent-glyph" width={220} height={220} aria-label="Your generated agent glyph"></canvas>
             <div className="v4m-agent-ident">
               <div className="v4m-agent-name">{agent.name}.</div>
-              <div className="v4m-agent-handle">{agent.handle}</div>
             </div>
             <div className="v4m-agent-bankroll">
               <div className="v4m-agent-bankroll-lbl">Bankroll</div>
@@ -140,37 +130,33 @@ export default function KioskWelcome() {
             </div>
           </div>
 
-          <div className="v4m-agent-grid">
+          {/* Strategy recap — compact horizontal strip (3 sliders) */}
+          <div className="v4m-strat-strip">
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Rebalance frequency</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.rebalanceFrequency)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Max position size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.maxPositionSize)}</span></div>
+          </div>
 
-            <div className="v4m-agent-col">
-              <span className="v4m-section-eyebrow">Your strategy</span>
-              <div className="v4m-strat-list">
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Trading activity</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.tradingActivity)}</span></div>
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Trade size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.tradeSize)}</span></div>
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Holding style</span><span className="v4m-strat-val">{labelFor(3, agent.sliders.holdingStyle)}</span></div>
-                <div className="v4m-strat-row"><span className="v4m-strat-label">Diversification</span><span className="v4m-strat-val">{labelFor(4, agent.sliders.diversification)}</span></div>
-              </div>
+          {/* Portfolio — full width; holdings flow into two columns */}
+          <div className="v4m-portfolio-block">
+            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}</span>
+            <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
+              {portfolio.map(entry => (
+                <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
+              ))}
             </div>
-
-            <div className="v4m-agent-col">
-              <span className="v4m-section-eyebrow">Your portfolio</span>
-              <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
-                {allocPcts.map((pct, i) => (
-                  <span key={i} style={{ width: `${(pct * 100).toFixed(2)}%`, background: ASSET_GRADIENTS[i] }}></span>
-                ))}
-              </div>
-
-              {ASSET_TICKERS.map((ticker, i) => (
-                <div className="v4m-alloc-row" key={ticker}>
-                  <svg className="v4m-alloc-icon" viewBox="0 0 32 32"><use href={`#${ASSET_GLYPH_IDS[i]}`} /></svg>
-                  <span className="v4m-alloc-name">{ticker}</span>
-                  <span className="v4m-alloc-pct">{(allocPcts[i] * 100).toFixed(1)}%</span>
-                  <span className="v4m-alloc-usd">${Math.round(allocPcts[i] * BANKROLL).toLocaleString()}</span>
+            {/* >12 holdings switches to the dense three-column grid so even a
+                full 25-asset basket fits the iPad canvas */}
+            <div className={`v4m-alloc-grid${portfolio.length > 12 ? ' dense' : ''}`}>
+              {portfolio.map(entry => (
+                <div className="v4m-alloc-row" key={entry.ticker}>
+                  <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
+                  <span className="v4m-alloc-name">{entry.ticker}</span>
+                  <span className="v4m-alloc-pct">{entry.pct.toFixed(1)}%</span>
+                  <span className="v4m-alloc-usd">${entry.usd.toLocaleString()}</span>
                 </div>
               ))}
             </div>
-
           </div>
 
           <div className="v4m-agent-qr-row">
@@ -185,5 +171,6 @@ export default function KioskWelcome() {
 
       </div>
     </div>
+    </KioskStage>
   );
 }

@@ -96,14 +96,15 @@
       <li><a href="#inspiration"><span class="num">02</span>Refs</a></li>
       <li><a href="#flow"><span class="num">03</span>Flow</a></li>
       <li><a href="#mockups"><span class="num">04</span>Mockups</a></li>
-      <li><a href="#bigscreen"><span class="num">05</span>Big screen</a></li>
-      <li><a href="#scope"><span class="num">06</span>Scope</a></li>
-      <li><a href="#params"><span class="num">07</span>Sliders</a></li>
-      <li><a href="#arch"><span class="num">08</span>Arch</a></li>
-      <li><a href="#api"><span class="num">09</span>API</a></li>
-      <li><a href="#hardware"><span class="num">10</span>Hardware</a></li>
-      <li><a href="#playground"><span class="num">11</span>Playground</a></li>
-      <li><a href="#tbd"><span class="num">12</span>TBDs</a></li>
+      <li><a href="#assets"><span class="num">05</span>Assets</a></li>
+      <li><a href="#bigscreen"><span class="num">06</span>Big screen</a></li>
+      <li><a href="#scope"><span class="num">07</span>Scope</a></li>
+      <li><a href="#params"><span class="num">08</span>Sliders</a></li>
+      <li><a href="#arch"><span class="num">09</span>Arch</a></li>
+      <li><a href="#api"><span class="num">10</span>API</a></li>
+      <li><a href="#hardware"><span class="num">11</span>Hardware</a></li>
+      <li><a href="#playground"><span class="num">12</span>Playground</a></li>
+      <li><a href="#tbd"><span class="num">13</span>TBDs</a></li>
     </ul>
   </div>
 </nav>
@@ -134,8 +135,8 @@
   <h2>What we're building</h2>
   <div class="grid-2">
     <div>
-      <p class="lede">Attendees walk up to a kiosk, name an agent, set five strategy sliders, and submit. That submission is the competition entry. We're building a similar activation to <a href="#inspiration">Base + Coinbase at Consensys Miami</a> — see the reference screens below for context.</p>
-      <p>The five sliders parameterize a <strong>portfolio optimization problem</strong>. The server dispatches the job to Quip Network, which routes it to available providers — D-Wave (quantum) and one or more classical solvers. The first provider to return a valid optimum wins the job, and that solution becomes the agent's portfolio until the next retune.</p>
+      <p class="lede">Attendees walk up to a kiosk, name an agent, pick their asset basket, set three strategy sliders, and submit. That submission is the competition entry. We're building a similar activation to <a href="#inspiration">Base + Coinbase at Consensys Miami</a> — see the reference screens below for context.</p>
+      <p>The basket and sliders parameterize a <strong>portfolio optimization problem</strong>. The server dispatches the job to Quip Network, which routes it to available providers — D-Wave (quantum) and one or more classical solvers. The first provider to return a valid optimum wins the job, and that solution becomes the agent's portfolio until the next retune.</p>
       <p>Each attendee receives a <strong>QR-coded profile URL</strong> for use on their phone for the duration of the conference. The phone profile shows live P&amp;L and lets the user adjust sliders; every adjustment triggers a new optimization through Quip Network.</p>
     </div>
 
@@ -164,7 +165,7 @@
       <img src="reference-files/IMG_3898 2.png" alt="Base sign-up kiosk laptop" loading="lazy">
       <div class="cap">Sign-up kiosk</div>
     </button>
-    <button class="thumb" data-img="reference-files/IMG_3898 1.png" data-cap="Sign-up TV output · Base. The kiosk's sign-up flow mirrored on a screen behind the booth — sliders, persona prompt, supported-assets sidebar. Our equivalent uses the same 5 sliders but Quip-branded styling and a generative glyph in place of the cartoon avatar.">
+    <button class="thumb" data-img="reference-files/IMG_3898 1.png" data-cap="Sign-up TV output · Base. The kiosk's sign-up flow mirrored on a screen behind the booth — sliders, persona prompt, supported-assets sidebar. Our equivalent uses a basket selector + 3 sliders with Quip-branded styling and a generative glyph in place of the cartoon avatar.">
       <img src="reference-files/IMG_3898 1.png" alt="Base sign-up flow on a TV output" loading="lazy">
       <div class="cap">Sign-up TV output</div>
     </button>
@@ -201,7 +202,7 @@
       <rect x="0" y="40" width="200" height="140" rx="8" fill="white" stroke="#e4e4e7"/>
       <text x="14" y="62" font-size="11" font-family="JetBrains Mono, monospace" fill="#71717a">STEP 01 · BOOTH</text>
       <text x="14" y="92" font-size="15" font-weight="600" fill="#09090b">Sign up</text>
-      <text x="14" y="112" font-size="12" fill="#52525b">Name + (optional) X handle</text>
+      <text x="14" y="112" font-size="12" fill="#52525b">Name + email</text>
       <text x="14" y="128" font-size="12" fill="#52525b">at the kiosk laptop</text>
       <text x="14" y="160" font-size="11" fill="#a1a1aa">~20 sec</text>
 
@@ -211,9 +212,9 @@
       <!-- 2 -->
       <rect x="232" y="40" width="200" height="140" rx="8" fill="white" stroke="#e4e4e7"/>
       <text x="246" y="62" font-size="11" font-family="JetBrains Mono, monospace" fill="#71717a">STEP 02 · BOOTH</text>
-      <text x="246" y="92" font-size="15" font-weight="600" fill="#09090b">Tune 5 sliders</text>
-      <text x="246" y="112" font-size="12" fill="#52525b">Activity, Risk, Size,</text>
-      <text x="246" y="128" font-size="12" fill="#52525b">Holding, Diversification</text>
+      <text x="246" y="92" font-size="15" font-weight="600" fill="#09090b">Pick basket, tune sliders</text>
+      <text x="246" y="112" font-size="12" fill="#52525b">25 assets · Activity,</text>
+      <text x="246" y="128" font-size="12" fill="#52525b">Risk, Position cap</text>
       <text x="246" y="160" font-size="11" fill="#a1a1aa">~30 sec</text>
 
       <line x1="440" y1="110" x2="458" y2="110" stroke="#ff6467" stroke-width="2" marker-end="url(#arrow)"/>
@@ -257,13 +258,15 @@
   <p class="lede">Three surfaces, shown in order: the kiosk sign-up screen, the post-launch confirmation, and the personal phone profile.</p>
 
   <h3 style="margin-top: 36px; margin-bottom: 8px;">Kiosk · Sign-up &amp; tune</h3>
-  <p class="small" style="margin-bottom: 6px;">Single-page laptop kiosk. The user enters an agent name, adjusts five strategy sliders, and submits. The panel on the right previews the generative glyph used as the agent's identity on the leaderboard.</p>
-  <p class="small" style="margin-bottom: 12px; color: var(--zinc-500);"><span class="interactive-tag">Live</span> &nbsp;Type a name and drag the sliders below; the preview panel updates in real time.</p>
+  <p class="small" style="margin-bottom: 6px;">Single-page iPad kiosk (9.7", 1024×768). The user picks their tradable basket from the 25-asset universe (14 crypto + 11 stocks), enters an agent name and email, adjusts three strategy sliders, and submits. The panel on the right previews the generative glyph used as the agent's identity on the leaderboard.</p>
+  <p class="small" style="margin-bottom: 12px; color: var(--zinc-500);"><span class="interactive-tag">Live</span> &nbsp;Toggle assets (All / Clear / Auto-pick), type a name and drag the sliders below; the panels update in real time.</p>
 
   <div class="mockup-frame kiosk">
     <div class="chrome"><span class="net-status">Quip Network · Online</span></div>
     <div class="screen" style="padding: 0;">
-      <div class="qs-v4-mock kiosk-v4">
+      <!-- doc-stage: true 9.7" iPad canvas (1024×768) scaled to the doc column -->
+      <div class="doc-stage"><div class="doc-stage-canvas">
+      <div class="qs-v4-mock kiosk-v4 app-fit">
 
         <!-- v4 nav: wordmark + eyebrow + gradient pill -->
         <div class="v4m-nav">
@@ -272,7 +275,7 @@
             <div class="v4m-nav-divider"></div>
             <span class="v4m-eyebrow">Quantum Tech World 2026 &middot; Trading Competition</span>
           </div>
-          <span class="v4m-pill">Live &middot; Sign-up &middot; Day 1</span>
+          <span class="v4m-pill">Live &middot; Sign-up</span>
         </div>
 
         <!-- v4 hero: "Create your trading agent." -->
@@ -280,26 +283,70 @@
           <h1>Create your <span class="it">trading agent.</span></h1>
         </div>
 
-        <!-- 2-column body: form rows + preview rail -->
-        <div class="v4m-body">
+        <!-- Selector-top body: basket + slider band (left), identity rail (right) -->
+        <div class="v4m-body selector-top">
 
-          <div class="v4m-form-col">
-            <!-- Player name -->
-            <div class="v4m-field">
-              <label for="kiosk-name">Player name</label>
-              <input class="v4m-input" id="kiosk-name" type="text" value="Lattice Theory" />
-            </div>
-            <!-- X handle -->
-            <div class="v4m-field">
-              <label for="kiosk-handle">X handle (optional)</label>
-              <input class="v4m-input" id="kiosk-handle" type="text" placeholder="@yourhandle" />
+          <div class="v4m-main-col">
+
+          <!-- Asset selector — the player's tradable basket (14 crypto + 11 stocks) -->
+          <div class="v4m-mega v4m-selector-mega" aria-label="Asset selector">
+              <div class="v4m-mega-section v4m-selector-section">
+                <div class="v4m-selector-head">
+                  <span class="v4m-section-eyebrow eyebrow-step"><span class="v4m-step-chip">1</span>Pick your basket</span>
+                  <span class="v4m-selector-count" id="kiosk-basket-count">0/25</span>
+                </div>
+                <div class="v4m-selector-actions">
+                  <button type="button" class="v4m-selector-btn" data-basket-action="all">All</button>
+                  <button type="button" class="v4m-selector-btn" data-basket-action="none">Clear</button>
+                  <button type="button" class="v4m-selector-btn accent" data-basket-action="auto">Auto-pick</button>
+                </div>
+                <div class="v4m-pick-list" id="kiosk-pick-list">
+                  <div class="v4m-pick-group-label">Crypto &middot; 14</div>
+                  <div class="v4m-pick-grid">
+                    <button type="button" class="v4m-tile crypto" data-pick="BTC" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/btc.svg" alt=""><span class="v4m-tile-ticker">BTC</span><span class="v4m-tile-name">Bitcoin</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="ETH" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/eth.svg" alt=""><span class="v4m-tile-ticker">ETH</span><span class="v4m-tile-name">Ethereum</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="BNB" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/bnb.svg" alt=""><span class="v4m-tile-ticker">BNB</span><span class="v4m-tile-name">BNB</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="USDC" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/usdc.svg" alt=""><span class="v4m-tile-ticker">USDC</span><span class="v4m-tile-name">USD Coin</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="XRP" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/xrp.svg" alt=""><span class="v4m-tile-ticker">XRP</span><span class="v4m-tile-name">XRP</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="SOL" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/sol.png" alt=""><span class="v4m-tile-ticker">SOL</span><span class="v4m-tile-name">Solana</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="HYPE" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/hype.png" alt=""><span class="v4m-tile-ticker">HYPE</span><span class="v4m-tile-name">Hyperliquid</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="DOGE" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/doge.svg" alt=""><span class="v4m-tile-ticker">DOGE</span><span class="v4m-tile-name">Dogecoin</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="USDT" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/usdt.svg" alt=""><span class="v4m-tile-ticker">USDT</span><span class="v4m-tile-name">Tether</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="ZEC" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/zec.svg" alt=""><span class="v4m-tile-ticker">ZEC</span><span class="v4m-tile-name">Zcash</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="ALGO" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/algo.svg" alt=""><span class="v4m-tile-ticker">ALGO</span><span class="v4m-tile-name">Algorand</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="STRK" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/strk.png" alt=""><span class="v4m-tile-ticker">STRK</span><span class="v4m-tile-name">Starknet</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="FIL" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/fil.svg" alt=""><span class="v4m-tile-ticker">FIL</span><span class="v4m-tile-name">Filecoin</span></button>
+                    <button type="button" class="v4m-tile crypto" data-pick="RENDER" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/render.png" alt=""><span class="v4m-tile-ticker">RENDER</span><span class="v4m-tile-name">Render</span></button>
+                  </div>
+                  <div class="v4m-pick-group-label">Stocks &middot; 11</div>
+                  <div class="v4m-pick-grid">
+                    <button type="button" class="v4m-tile stock" data-pick="IONQ" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/ionq.png" alt=""><span class="v4m-tile-ticker">IONQ</span><span class="v4m-tile-name">IonQ</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="QBTS" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/qbts.png" alt=""><span class="v4m-tile-ticker">QBTS</span><span class="v4m-tile-name">D-Wave Quantum</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="RGTI" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/rgti.png" alt=""><span class="v4m-tile-ticker">RGTI</span><span class="v4m-tile-name">Rigetti Computing</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="QUBT" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/qubt.png" alt=""><span class="v4m-tile-ticker">QUBT</span><span class="v4m-tile-name">Quantum Computing</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="QNT" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/qnt.png" alt=""><span class="v4m-tile-ticker">QNT</span><span class="v4m-tile-name">Quantinuum</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="SAF" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/saf.png" alt=""><span class="v4m-tile-ticker">SAF</span><span class="v4m-tile-name">Safran</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="INDI" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/indi.png" alt=""><span class="v4m-tile-ticker">INDI</span><span class="v4m-tile-name">indie Semiconductor</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="BTQ" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/btq.png" alt=""><span class="v4m-tile-ticker">BTQ</span><span class="v4m-tile-name">BTQ Technologies</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="LAES" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/laes.png" alt=""><span class="v4m-tile-ticker">LAES</span><span class="v4m-tile-name">SEALSQ</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="ARQQ" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/arqq.png" alt=""><span class="v4m-tile-ticker">ARQQ</span><span class="v4m-tile-name">Arqit Quantum</span></button>
+                    <button type="button" class="v4m-tile stock" data-pick="SPCX" aria-pressed="false"><span class="v4m-tile-check" aria-hidden="true">✓</span><img class="v4m-tile-icon" src="shared-design/asset-icons/spcx.png" alt=""><span class="v4m-tile-ticker">SPCX</span><span class="v4m-tile-name">SpaceX</span></button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- 5 strategy sliders, leaderboard-row cadence -->
+          <!-- 5 strategy sliders — horizontal band beneath the basket -->
+          <div class="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
+            <div class="v4m-mega-section">
+              <div class="v4m-sliders-head">
+                <span class="v4m-section-eyebrow eyebrow-step"><span class="v4m-step-chip">2</span>Tune your strategy</span>
+              </div>
+              <div class="v4m-sliders-row">
+
             <div class="v4m-slider">
               <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Trading activity</span>
-                <span class="v4m-slider-val" data-kiosk-label="0">High</span>
+                <span class="v4m-slider-label">Rebalance frequency</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -308,11 +355,13 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="0" min="0" max="100" value="70" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="0">Every 2h</span>
+              </div>
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
                 <span class="v4m-slider-label">Risk preference</span>
-                <span class="v4m-slider-val" data-kiosk-label="1">Aggressive</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -321,11 +370,13 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="1" min="0" max="100" value="78" />
               </div>
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="1">Aggressive</span>
+              </div>
             </div>
             <div class="v4m-slider">
               <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Trade size</span>
-                <span class="v4m-slider-val" data-kiosk-label="2">Medium</span>
+                <span class="v4m-slider-label">Max position size</span>
               </div>
               <div class="v4m-slider-shell">
                 <div class="v4m-slider-track">
@@ -334,81 +385,43 @@
                 </div>
                 <input type="range" class="range-overlay" data-kiosk="2" min="0" max="100" value="50" />
               </div>
-            </div>
-            <div class="v4m-slider">
-              <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Holding style</span>
-                <span class="v4m-slider-val" data-kiosk-label="3">Patient</span>
-              </div>
-              <div class="v4m-slider-shell">
-                <div class="v4m-slider-track">
-                  <div class="v4m-slider-fill" data-kiosk-track="3" style="width: 30%"></div>
-                  <div class="v4m-slider-knob" data-kiosk-knob="3" style="left: 30%"></div>
-                </div>
-                <input type="range" class="range-overlay" data-kiosk="3" min="0" max="100" value="30" />
+              <div class="v4m-slider-bottom">
+                <span class="v4m-slider-val" data-kiosk-label="2">Medium</span>
               </div>
             </div>
-            <div class="v4m-slider">
-              <div class="v4m-slider-top">
-                <span class="v4m-slider-label">Diversification</span>
-                <span class="v4m-slider-val" data-kiosk-label="4">Balanced</span>
-              </div>
-              <div class="v4m-slider-shell">
-                <div class="v4m-slider-track">
-                  <div class="v4m-slider-fill" data-kiosk-track="4" style="width: 55%"></div>
-                  <div class="v4m-slider-knob" data-kiosk-knob="4" style="left: 55%"></div>
-                </div>
-                <input type="range" class="range-overlay" data-kiosk="4" min="0" max="100" value="55" />
+
               </div>
             </div>
           </div>
 
-          <!-- v4-mega rail: agent identity (pattern hidden until launch) -->
-          <aside class="v4m-rail-col" aria-label="Your agent">
-            <div class="v4m-mega">
-              <div class="v4m-mega-section">
-                <span class="v4m-section-eyebrow cyan-dot">Your Agent</span>
-                <div class="v4m-preview v4m-preview-mystery">
-                  <div class="v4m-preview-mystery-box" aria-hidden="true">
-                    <svg class="v4m-preview-butterfly" viewBox="219 4 106 103" xmlns="http://www.w3.org/2000/svg">
-                      <path fill-rule="evenodd" clip-rule="evenodd" d="M321.271 5.47445C322.032 5.0428 322.955 5.57248 323.09 6.3224C323.091 6.32628 323.096 6.32655 323.097 6.32272C323.099 6.31833 323.105 6.31974 323.105 6.32428C323.103 6.34225 323.1 6.36038 323.098 6.37837V6.38025C323.115 6.5118 323.107 6.64924 323.069 6.78891C323.05 6.86034 323.031 6.93194 323.021 7.00527C322.989 7.26132 322.954 7.52093 322.917 7.78351C322.906 7.85834 322.908 7.93466 322.9 8.00988C322.898 8.03536 322.894 8.06124 322.888 8.08742C322.873 8.15382 322.854 8.21713 322.844 8.2844C320.291 25.3798 312.365 55.1549 302.309 55.3027C312.761 55.4599 323.089 87.7134 323.111 104.053C323.11 104.06 323.101 104.06 323.099 104.054C323.097 104.048 323.088 104.049 323.087 104.055C322.944 104.798 322.027 105.318 321.271 104.889C319.358 103.803 317.047 102.613 314.551 101.327C304.617 96.2118 291.74 89.5808 289.239 81.908C289.123 81.5509 288.83 81.2748 288.462 81.1998C284.033 80.2969 280.783 78.5915 278.4 76.3941C277.996 76.0224 277.364 76.0222 277.006 76.4375C275.425 78.2706 274.028 80.4359 273.091 82.1187C272.692 82.8344 271.578 82.8491 271.171 82.1384C270.206 80.4569 268.784 78.2671 267.153 76.4244C266.794 76.0179 266.169 76.0226 265.77 76.3906C263.386 78.5898 260.135 80.2965 255.703 81.1998C255.336 81.2748 255.043 81.5509 254.926 81.908C252.426 89.5808 239.549 96.2115 229.615 101.327C227.119 102.613 224.808 103.803 222.895 104.889C222.141 105.317 221.226 104.8 221.08 104.06C221.079 104.054 221.071 104.054 221.069 104.059C221.068 104.065 221.059 104.064 221.059 104.058C221.059 104.005 221.06 103.951 221.06 103.898C221.059 103.865 221.059 103.832 221.061 103.798C221.222 87.3799 231.462 55.4603 241.86 55.3039C231.807 55.1562 223.885 25.4003 221.328 8.30223C221.317 8.23026 221.296 8.16275 221.28 8.0918C221.273 8.06363 221.269 8.03568 221.266 8.00832C221.259 7.92871 221.261 7.84799 221.25 7.76881C221.215 7.51775 221.181 7.26944 221.15 7.02435C221.14 6.94732 221.119 6.87222 221.098 6.79735C221.057 6.64966 221.049 6.50432 221.068 6.36587V6.36399C221.067 6.34939 221.065 6.33479 221.063 6.32022C221.063 6.31616 221.069 6.31474 221.07 6.31865C221.071 6.322 221.076 6.32177 221.077 6.31834C221.214 5.57053 222.136 5.0435 222.895 5.47445C224.808 6.56107 227.119 7.75112 229.615 9.03669C239.549 14.1521 252.426 20.7832 254.926 28.4559C255.043 28.8131 255.336 29.0892 255.703 29.1641C260.218 30.0844 263.508 31.8382 265.903 34.0971C266.304 34.4755 266.941 34.4807 267.302 34.0643C268.87 32.2586 270.235 30.1516 271.17 28.5219C271.578 27.8114 272.692 27.8261 273.091 28.5416C274 30.1717 275.339 32.2544 276.859 34.0493C277.219 34.4742 277.863 34.4736 278.268 34.0918C280.663 31.8354 283.951 30.0837 288.463 29.1641C288.83 29.0891 289.123 28.813 289.239 28.4559C291.74 20.7831 304.617 14.1521 314.551 9.03669C317.047 7.75113 319.358 6.56107 321.271 5.47445ZM268.733 60.9185C268.855 60.1338 268.194 59.467 267.408 59.5722C265.297 59.8545 263.43 60.3681 261.889 61.2124C259.966 62.2666 258.395 63.9135 257.501 66.7654C257.082 68.1024 255.923 69.0641 254.545 69.2327L254.412 69.2468C252.173 69.435 249.637 70.5199 246.865 72.5661C244.112 74.5986 241.328 77.4307 238.635 80.7665C238.007 81.5443 237.388 82.3446 236.779 83.1621C235.92 84.3163 237.425 85.7611 238.637 84.9859C243.105 82.1268 248.01 79.7201 253.177 78.2989C263.83 75.369 267.743 67.2975 268.733 60.9185ZM276.584 59.5722C275.798 59.467 275.137 60.1339 275.259 60.9185C276.249 67.2975 280.162 75.369 290.815 78.2989C295.982 79.7201 300.887 82.1269 305.355 84.9859C306.567 85.7612 308.072 84.3163 307.213 83.1621C306.604 82.3446 305.985 81.5443 305.357 80.7665C302.664 77.4307 299.88 74.5986 297.127 72.5661C294.355 70.52 291.819 69.435 289.58 69.2468L289.446 69.2327C288.069 69.064 286.91 68.1023 286.491 66.7654C285.597 63.9135 284.026 62.2666 282.102 61.2124C280.562 60.3682 278.695 59.8545 276.584 59.5722ZM299.855 62.3837C299.602 61.3685 296.996 62.1146 296.27 62.8668C295.523 63.6395 296.604 66.7061 297.545 67.2254C298.084 67.5231 298.617 67.8454 299.145 68.19C300.038 68.7732 301.534 67.6198 301.164 66.6188C300.584 65.0464 300.166 63.6299 299.855 62.3837ZM247.904 62.8727C247.176 62.1199 244.566 61.3756 244.312 62.3921C244.002 63.6359 243.584 65.0491 243.005 66.6175C242.636 67.6184 244.131 68.7712 245.024 68.1881C245.554 67.8421 246.089 67.5188 246.631 67.2201C247.572 66.7008 248.652 63.6458 247.904 62.8727ZM256.505 50.2205C255.824 49.4223 253.032 49.6155 252.378 50.4363C250.348 52.9873 247.078 54.6555 245.2 55.2605C245.192 55.2629 245.186 55.2674 245.181 55.2733C245.165 55.2911 245.166 55.3183 245.181 55.3361C245.187 55.342 245.193 55.3468 245.2 55.3493C247.08 55.9548 250.355 57.5932 252.385 60.1256C253.039 60.9418 255.783 61.1243 256.457 60.3241C259.516 56.6915 264.243 55.5414 269.001 55.247C264.268 54.953 259.566 53.8102 256.505 50.2205ZM291.796 50.4428C291.142 49.6222 288.337 49.4285 287.656 50.2268C284.595 53.8114 279.896 54.9532 275.166 55.247C279.92 55.5412 284.642 56.6897 287.702 60.3154C288.377 61.1155 291.135 60.9324 291.791 60.1162C293.821 57.5887 297.091 55.9532 298.969 55.3483C298.976 55.3459 298.983 55.3411 298.988 55.3352C299.004 55.3173 299.004 55.29 298.988 55.272C298.983 55.2661 298.977 55.2616 298.969 55.2592C297.093 54.6548 293.827 52.9894 291.796 50.4428ZM238.637 25.3374C237.425 24.5623 235.92 26.007 236.779 27.1612C237.388 27.9787 238.007 28.779 238.635 29.5569C241.328 32.8927 244.112 35.725 246.865 37.7575C249.637 39.8037 252.173 40.8883 254.412 41.0765L254.545 41.0906C255.923 41.2592 257.082 42.2212 257.501 43.5582C258.395 46.41 259.966 48.0567 261.889 49.1109C263.43 49.9552 265.297 50.4688 267.408 50.7511C268.194 50.8563 268.855 50.1897 268.733 49.4051C267.743 43.0261 263.83 34.9543 253.177 32.0244C248.01 30.6032 243.105 28.1965 238.637 25.3374ZM307.213 27.1612C308.072 26.007 306.567 24.5621 305.355 25.3374C300.887 28.1964 295.982 30.6032 290.815 32.0244C280.162 34.9543 276.249 43.0261 275.259 49.4051C275.137 50.1897 275.798 50.8563 276.584 50.7511C278.695 50.4688 280.562 49.9551 282.102 49.1109C284.026 48.0567 285.597 46.4101 286.491 43.5582C286.91 42.2213 288.069 41.2593 289.446 41.0906L289.58 41.0765C291.819 40.8883 294.355 39.8037 297.127 37.7575C299.88 35.725 302.664 32.8927 305.357 29.5569C305.985 28.779 306.604 27.9787 307.213 27.1612ZM244.994 42.1562C244.09 41.564 242.52 42.7809 242.904 43.7918C243.702 45.892 244.206 47.7124 244.547 49.2281C244.731 50.043 246.233 50.1287 246.649 49.4042C248.051 46.9568 250.131 45.8512 251.894 45.5111C252.016 45.4875 252.03 45.2045 251.909 45.1744C249.509 44.6515 247.199 43.6003 244.994 42.1562ZM301.264 43.7905C301.648 42.7796 300.078 41.5622 299.173 42.1546C296.972 43.5967 294.667 44.6472 292.271 45.1712C292.148 45.2018 292.161 45.4875 292.285 45.5117C294.043 45.8535 296.113 46.9563 297.513 49.3898C297.931 50.1163 299.441 50.0302 299.625 49.2125C299.966 47.6997 300.469 45.8841 301.264 43.7905Z" fill="currentColor"/>
-                    </svg>
-                  </div>
-                  <div class="v4m-preview-name" id="kiosk-preview-name">Lattice Theory</div>
-                  <div class="v4m-preview-handle" id="kiosk-preview-handle">@latticetheory</div>
-                  <div class="v4m-preview-mystery-caption">Identity revealed at launch</div>
-                </div>
-              </div>
-              <div class="v4m-mega-section">
-                <span class="v4m-section-eyebrow">Routing to</span>
-                <div class="v4m-pr q">
-                  <span class="v4m-tag">QPU</span>
-                  <span class="v4m-pr-name">D-Wave Advantage</span>
-                  <span class="v4m-pr-meta">Quantum</span>
-                </div>
-                <div class="v4m-pr c">
-                  <span class="v4m-tag">CPU</span>
-                  <span class="v4m-pr-name">Classical baseline</span>
-                  <span class="v4m-pr-meta">MILP</span>
-                </div>
-              </div>
-            </div>
-          </aside>
+          </div>
 
-          <!-- v4-mega rail: indicative basket (assets traded) -->
-          <aside class="v4m-rail-col v4m-assets-rail" aria-label="Supported assets">
+          <!-- v4-mega rail: step 3 details card + agent identity card -->
+          <aside class="v4m-rail-col" aria-label="Your details and agent">
             <div class="v4m-mega">
               <div class="v4m-mega-section">
-                <span class="v4m-section-eyebrow cyan-dot">Supported assets</span>
-                <div class="v4m-asset-list">
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-btc"/></svg><span class="v4m-asset-name">BTC</span><span class="v4m-asset-change up">+2.1%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-eth"/></svg><span class="v4m-asset-name">ETH</span><span class="v4m-asset-change up">+1.4%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-sol"/></svg><span class="v4m-asset-name">SOL</span><span class="v4m-asset-change up">+3.0%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-link"/></svg><span class="v4m-asset-name">LINK</span><span class="v4m-asset-change down">−0.6%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-uni"/></svg><span class="v4m-asset-name">UNI</span><span class="v4m-asset-change up">+0.3%</span></div>
-                  <div class="v4m-asset"><svg class="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-usdc"/></svg><span class="v4m-asset-name">USDC</span><span class="v4m-asset-change flat">±0.0%</span></div>
+                <span class="v4m-section-eyebrow eyebrow-step"><span class="v4m-step-chip">3</span>Your details</span>
+                <div class="v4m-field">
+                  <label for="kiosk-name">Player name (required)</label>
+                  <input class="v4m-input" id="kiosk-name" type="text" value="Lattice Theory" />
                 </div>
-                <div class="v4m-asset-note">Final basket TBD</div>
+                <div class="v4m-field">
+                  <label for="kiosk-email">Email (required)</label>
+                  <input class="v4m-input" id="kiosk-email" type="email" placeholder="you@example.com" />
+                  <div class="v4m-field-hint">So we can reach you if you win</div>
+                </div>
+                <button type="button" class="v4m-check-row v4m-optin-row" data-optin><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Sign me up for updates from Quip Network</span></button>
+                <div class="v4m-field v4m-field-checklist">
+                  <label>Would you like someone from our team to reach out?<span class="opt">Optional</span></label>
+                  <div class="v4m-checklist">
+                    <button type="button" class="v4m-check-row"><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Yes, to learn about quantum computing</span></button>
+                    <button type="button" class="v4m-check-row"><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Yes, to buy compute</span></button>
+                    <button type="button" class="v4m-check-row"><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Yes, to provide compute</span></button>
+                    <button type="button" class="v4m-check-row"><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Yes, to build quantum applications</span></button>
+                    <button type="button" class="v4m-check-row"><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Yes, to partner with Quip Network</span></button>
+                    <button type="button" class="v4m-check-row"><span class="v4m-check-box" aria-hidden="true"></span><span class="v4m-check-label">Yes, to learn about post-quantum cryptography</span></button>
+                  </div>
+                </div>
               </div>
             </div>
           </aside>
@@ -418,23 +431,26 @@
         <!-- CTA strip -->
         <div class="v4m-cta-bar">
           <button class="v4m-cta" id="kiosk-launch">
-            <span>Create your agent</span>
+            <span class="v4m-cta-label"><span class="v4m-step-chip cta">4</span>Create your agent</span>
             <span class="v4m-cta-arrow">→</span>
           </button>
-          <div class="v4m-cta-sub">Your unique identity is revealed once you launch &middot; ~1 second to first job</div>
+          <div class="v4m-cta-sub" id="kiosk-cta-sub" style="display: none;"></div>
         </div>
 
       </div>
+      </div></div>
     </div>
   </div>
 
   <h3 style="margin-top: 50px; margin-bottom: 14px;">Kiosk · Strategy returned <span class="interactive-tag" style="margin-left: 8px;">Live · click replay</span></h3>
-  <p class="small" style="margin-bottom: 12px;">After the user submits, the kiosk displays this confirmation screen for ~5 seconds. The primary panel shows the routing result: provider, solve time, and the quantum-vs-classical race. The portfolio breakdown and QR appear below. The big-screen welcome splash fires on the same event.</p>
+  <p class="small" style="margin-bottom: 12px;">After the user submits, the kiosk displays this confirmation screen for ~5 seconds. The primary panel shows the routing result: provider, solve time, and the quantum-vs-classical race. The portfolio below is a <strong>true simulation</strong> — it recomputes live from the basket and sliders set in the sign-up mock above (toggle assets or drag Max position size and watch it re-allocate). The big-screen welcome splash fires on the same event.</p>
 
   <div class="mockup-frame kiosk">
     <div class="chrome"><span class="net-status">Quip Network · Routed</span></div>
     <div class="screen" style="padding: 0;">
-      <div class="qs-v4-mock kiosk-welcome-v4" id="kiosk-routing-hero">
+      <!-- doc-stage: true 9.7" iPad canvas (1024×768) scaled to the doc column -->
+      <div class="doc-stage"><div class="doc-stage-canvas">
+      <div class="qs-v4-mock kiosk-welcome-v4 app-fit" id="kiosk-routing-hero">
 
         <!-- v4 nav -->
         <div class="v4m-nav">
@@ -443,7 +459,7 @@
             <div class="v4m-nav-divider"></div>
             <span class="v4m-eyebrow">Quantum Tech World 2026 &middot; Trading Competition</span>
           </div>
-          <span class="v4m-pill">Live &middot; Sign-up &middot; Day 1</span>
+          <span class="v4m-pill">Live &middot; Sign-up</span>
         </div>
 
         <!-- v4 hero -->
@@ -499,7 +515,6 @@
               <canvas id="welcome-strat-glyph" class="v4m-agent-glyph" width="220" height="220" aria-label="Your generated agent glyph"></canvas>
               <div class="v4m-agent-ident">
                 <div class="v4m-agent-name" id="strat-name">Lattice Theory.</div>
-                <div class="v4m-agent-handle" id="strat-handle-line">@latticetheory</div>
               </div>
               <div class="v4m-agent-bankroll">
                 <div class="v4m-agent-bankroll-lbl">Bankroll</div>
@@ -507,55 +522,69 @@
               </div>
             </div>
 
-            <!-- Sub-columns: strategy (left) + portfolio (right) -->
-            <div class="v4m-agent-grid">
+            <!-- Strategy recap — compact strip; the portfolio gets the full card width -->
+            <div class="v4m-strat-strip">
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Rebalance frequency</span><span class="v4m-strat-val" data-strat-slider="0">Every 2h</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Risk preference</span><span class="v4m-strat-val" data-strat-slider="1">Aggressive</span></div>
+              <div class="v4m-strat-cell"><span class="v4m-strat-strip-label">Max position size</span><span class="v4m-strat-val" data-strat-slider="2">Medium</span></div>
+            </div>
 
-              <div class="v4m-agent-col">
-                <span class="v4m-section-eyebrow">Your strategy</span>
-                <div class="v4m-strat-list">
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Trading activity</span><span class="v4m-strat-val">High</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Risk preference</span><span class="v4m-strat-val">Aggressive</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Trade size</span><span class="v4m-strat-val">Medium</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Holding style</span><span class="v4m-strat-val">Patient</span></div>
-                  <div class="v4m-strat-row"><span class="v4m-strat-label">Diversification</span><span class="v4m-strat-val">Balanced</span></div>
-                </div>
+            <div class="v4m-portfolio-block">
+              <span class="v4m-section-eyebrow">Your portfolio &middot; 25 holdings</span>
+              <div class="v4m-alloc-stack" style="margin-top: 10px;">
+                <span style="width: 8.4%; background: #E11D2E;"></span>
+                <span style="width: 7.8%; background: #18181B;"></span>
+                <span style="width: 7.2%; background: #00C2CB;"></span>
+                <span style="width: 6.7%; background: #C2A633;"></span>
+                <span style="width: 6.3%; background: #4FD1B5;"></span>
+                <span style="width: 5.8%; background: #7C3AED;"></span>
+                <span style="width: 5.4%; background: #FF8200;"></span>
+                <span style="width: 5.0%; background: #2AA8E0;"></span>
+                <span style="width: 4.7%; background: #008CD7;"></span>
+                <span style="width: 4.4%; background: #1E6FD9;"></span>
+                <span style="width: 4.0%; background: #00A7B5;"></span>
+                <span style="width: 3.8%; background: #005288;"></span>
+                <span style="width: 3.5%; background: #EC796B;"></span>
+                <span style="width: 3.3%; background: #2775CA;"></span>
+                <span style="width: 3.0%; background: #26A17B;"></span>
+                <span style="width: 2.8%; background: #F3BA2F;"></span>
+                <span style="width: 2.6%; background: #F7931A;"></span>
+                <span style="width: 2.4%; background: #18181B;"></span>
+                <span style="width: 2.3%; background: #627EEA;"></span>
+                <span style="width: 2.1%; background: #0090FF;"></span>
+                <span style="width: 2.0%; background: #101820;"></span>
+                <span style="width: 1.8%; background: #002F87;"></span>
+                <span style="width: 1.7%; background: #9945FF;"></span>
+                <span style="width: 1.6%; background: #23292F;"></span>
+                <span style="width: 1.4%; background: #F4B728;"></span>
               </div>
-
-              <div class="v4m-agent-col">
-                <span class="v4m-section-eyebrow">Your portfolio</span>
-                <div class="v4m-alloc-stack" style="margin-top: 10px;">
-                  <span data-strat-bar="0" style="width: 42%; background: linear-gradient(135deg, #f7931a, #ffb347);"></span>
-                  <span data-strat-bar="1" style="width: 28%; background: linear-gradient(135deg, #627eea, #8aa2f9);"></span>
-                  <span data-strat-bar="2" style="width: 22%; background: linear-gradient(135deg, #14F195, #9945FF);"></span>
-                  <span data-strat-bar="3" style="width: 8%; background: linear-gradient(135deg, #2775ca, #4f9ddc);"></span>
-                </div>
-
-                <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-btc"/></svg>
-                  <span class="v4m-alloc-name">BTC</span>
-                  <span class="v4m-alloc-pct" data-strat-pct="0">42.0%</span>
-                  <span class="v4m-alloc-usd" data-strat-dollar="0">$4,200</span>
-                </div>
-                <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-eth"/></svg>
-                  <span class="v4m-alloc-name">ETH</span>
-                  <span class="v4m-alloc-pct" data-strat-pct="1">28.0%</span>
-                  <span class="v4m-alloc-usd" data-strat-dollar="1">$2,800</span>
-                </div>
-                <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-sol"/></svg>
-                  <span class="v4m-alloc-name">SOL</span>
-                  <span class="v4m-alloc-pct" data-strat-pct="2">22.0%</span>
-                  <span class="v4m-alloc-usd" data-strat-dollar="2">$2,200</span>
-                </div>
-                <div class="v4m-alloc-row">
-                  <svg class="v4m-alloc-icon" viewBox="0 0 32 32"><use href="#crypto-usdc"/></svg>
-                  <span class="v4m-alloc-name">USDC</span>
-                  <span class="v4m-alloc-pct" data-strat-pct="3">8.0%</span>
-                  <span class="v4m-alloc-usd" data-strat-dollar="3">$800</span>
-                </div>
+              <div class="v4m-alloc-grid dense">
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/render.png" alt=""><span class="v4m-alloc-name">RENDER</span><span class="v4m-alloc-pct">8.4%</span><span class="v4m-alloc-usd">$840</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/algo.svg" alt=""><span class="v4m-alloc-name">ALGO</span><span class="v4m-alloc-pct">7.8%</span><span class="v4m-alloc-usd">$780</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/arqq.png" alt=""><span class="v4m-alloc-name">ARQQ</span><span class="v4m-alloc-pct">7.2%</span><span class="v4m-alloc-usd">$720</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/doge.svg" alt=""><span class="v4m-alloc-name">DOGE</span><span class="v4m-alloc-pct">6.7%</span><span class="v4m-alloc-usd">$670</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/hype.png" alt=""><span class="v4m-alloc-name">HYPE</span><span class="v4m-alloc-pct">6.3%</span><span class="v4m-alloc-usd">$630</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/indi.png" alt=""><span class="v4m-alloc-name">INDI</span><span class="v4m-alloc-pct">5.8%</span><span class="v4m-alloc-usd">$580</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/ionq.png" alt=""><span class="v4m-alloc-name">IONQ</span><span class="v4m-alloc-pct">5.4%</span><span class="v4m-alloc-usd">$540</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/laes.png" alt=""><span class="v4m-alloc-name">LAES</span><span class="v4m-alloc-pct">5.0%</span><span class="v4m-alloc-usd">$500</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/qbts.png" alt=""><span class="v4m-alloc-name">QBTS</span><span class="v4m-alloc-pct">4.7%</span><span class="v4m-alloc-usd">$470</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/qubt.png" alt=""><span class="v4m-alloc-name">QUBT</span><span class="v4m-alloc-pct">4.4%</span><span class="v4m-alloc-usd">$440</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/rgti.png" alt=""><span class="v4m-alloc-name">RGTI</span><span class="v4m-alloc-pct">4.0%</span><span class="v4m-alloc-usd">$400</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/spcx.png" alt=""><span class="v4m-alloc-name">SPCX</span><span class="v4m-alloc-pct">3.8%</span><span class="v4m-alloc-usd">$380</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/strk.png" alt=""><span class="v4m-alloc-name">STRK</span><span class="v4m-alloc-pct">3.5%</span><span class="v4m-alloc-usd">$350</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/usdc.svg" alt=""><span class="v4m-alloc-name">USDC</span><span class="v4m-alloc-pct">3.3%</span><span class="v4m-alloc-usd">$330</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/usdt.svg" alt=""><span class="v4m-alloc-name">USDT</span><span class="v4m-alloc-pct">3.0%</span><span class="v4m-alloc-usd">$300</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/bnb.svg" alt=""><span class="v4m-alloc-name">BNB</span><span class="v4m-alloc-pct">2.8%</span><span class="v4m-alloc-usd">$280</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/btc.svg" alt=""><span class="v4m-alloc-name">BTC</span><span class="v4m-alloc-pct">2.6%</span><span class="v4m-alloc-usd">$260</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/btq.png" alt=""><span class="v4m-alloc-name">BTQ</span><span class="v4m-alloc-pct">2.4%</span><span class="v4m-alloc-usd">$240</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/eth.svg" alt=""><span class="v4m-alloc-name">ETH</span><span class="v4m-alloc-pct">2.3%</span><span class="v4m-alloc-usd">$229</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/fil.svg" alt=""><span class="v4m-alloc-name">FIL</span><span class="v4m-alloc-pct">2.1%</span><span class="v4m-alloc-usd">$210</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/qnt.png" alt=""><span class="v4m-alloc-name">QNT</span><span class="v4m-alloc-pct">2.0%</span><span class="v4m-alloc-usd">$200</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/saf.png" alt=""><span class="v4m-alloc-name">SAF</span><span class="v4m-alloc-pct">1.8%</span><span class="v4m-alloc-usd">$180</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/sol.png" alt=""><span class="v4m-alloc-name">SOL</span><span class="v4m-alloc-pct">1.7%</span><span class="v4m-alloc-usd">$170</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/xrp.svg" alt=""><span class="v4m-alloc-name">XRP</span><span class="v4m-alloc-pct">1.6%</span><span class="v4m-alloc-usd">$160</span></div>
+                <div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/zec.svg" alt=""><span class="v4m-alloc-name">ZEC</span><span class="v4m-alloc-pct">1.4%</span><span class="v4m-alloc-usd">$140</span></div>
               </div>
-
             </div>
 
             <!-- Footer: QR code + scan caption -->
@@ -572,6 +601,7 @@
         </div>
 
       </div>
+      </div></div>
     </div>
   </div>
 
@@ -602,7 +632,6 @@
         <div class="v4m-phone-head">
           <div>
             <div class="v4m-phone-name" id="phone-name">Lattice Theory</div>
-            <div class="v4m-phone-handle">@latticetheory</div>
           </div>
           <canvas id="phone-glyph" width="56" height="56"></canvas>
           <div class="v4m-phone-rank" style="grid-column: 1 / 3; margin-top: 4px; justify-self: start;">
@@ -658,7 +687,7 @@
         <div>
           <div class="v4m-section-eyebrow" style="margin-bottom: 8px;">Strategy &middot; Drag to Retune</div>
           <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Trading activity</span><span class="v4m-slider-val" data-phone-label="0">High</span></div>
+            <div class="v4m-slider-top"><span class="v4m-slider-label">Rebalance frequency</span><span class="v4m-slider-val" data-phone-label="0">Every 2h</span></div>
             <div class="v4m-slider-shell">
               <div class="v4m-slider-track">
                 <div class="v4m-slider-fill" data-phone-fill="0" style="width: 70%"></div>
@@ -678,33 +707,13 @@
             </div>
           </div>
           <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Trade size</span><span class="v4m-slider-val" data-phone-label="2">Medium</span></div>
+            <div class="v4m-slider-top"><span class="v4m-slider-label">Max position size</span><span class="v4m-slider-val" data-phone-label="2">Medium</span></div>
             <div class="v4m-slider-shell">
               <div class="v4m-slider-track">
                 <div class="v4m-slider-fill" data-phone-fill="2" style="width: 50%"></div>
                 <div class="v4m-slider-knob" style="left: 50%"></div>
               </div>
               <input type="range" class="range-overlay" data-phone="2" min="0" max="100" value="50" />
-            </div>
-          </div>
-          <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Holding style</span><span class="v4m-slider-val" data-phone-label="3">Patient</span></div>
-            <div class="v4m-slider-shell">
-              <div class="v4m-slider-track">
-                <div class="v4m-slider-fill" data-phone-fill="3" style="width: 30%"></div>
-                <div class="v4m-slider-knob" style="left: 30%"></div>
-              </div>
-              <input type="range" class="range-overlay" data-phone="3" min="0" max="100" value="30" />
-            </div>
-          </div>
-          <div class="v4m-slider">
-            <div class="v4m-slider-top"><span class="v4m-slider-label">Diversification</span><span class="v4m-slider-val" data-phone-label="4">Balanced</span></div>
-            <div class="v4m-slider-shell">
-              <div class="v4m-slider-track">
-                <div class="v4m-slider-fill" data-phone-fill="4" style="width: 55%"></div>
-                <div class="v4m-slider-knob" style="left: 55%"></div>
-              </div>
-              <input type="range" class="range-overlay" data-phone="4" min="0" max="100" value="55" />
             </div>
           </div>
         </div>
@@ -724,9 +733,51 @@
   </div>
 </section>
 
+<!-- ================================================ ASSET ICONS -->
+<section id="assets">
+  <div class="kicker">05 · Asset icons</div>
+  <h2>The 25-asset universe</h2>
+  <p class="lede">Icon audit for every tradable asset — 14 crypto + 11 stocks. Crypto marks come from the open-source <a href="https://github.com/spothq/cryptocurrency-icons">spothq/cryptocurrency-icons</a> set, with HYPE, STRK, RENDER and SOL pulled from <a href="https://www.coingecko.com">CoinGecko's</a> asset images; stock marks come from each company's own favicon via Google's favicon service (IONQ, RGTI, QUBT, QNT, INDI, BTQ, LAES, ARQQ) and from official X/Twitter brand avatars where favicons were too small (QBTS&nbsp;/&nbsp;D-Wave, SAF&nbsp;/&nbsp;Safran, SPCX&nbsp;/&nbsp;SpaceX). All marks are property of their respective owners — event display use. Review and flag any to swap before they ship in the portfolio views. <a href="shared-design/asset-icons/qtw-asset-icons.zip" download><strong>Download all 25 as 256×256 PNGs (zip)</strong></a>.</p>
+
+  <h3 style="margin: 24px 0 10px;">Crypto · 14</h3>
+  <div class="icon-audit">
+    <div class="icon-card"><img src="shared-design/asset-icons/btc.svg" alt="BTC icon"><div class="icon-card-ticker">BTC</div><div class="icon-card-name">Bitcoin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/eth.svg" alt="ETH icon"><div class="icon-card-ticker">ETH</div><div class="icon-card-name">Ethereum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/bnb.svg" alt="BNB icon"><div class="icon-card-ticker">BNB</div><div class="icon-card-name">BNB</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/usdc.svg" alt="USDC icon"><div class="icon-card-ticker">USDC</div><div class="icon-card-name">USD Coin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/xrp.svg" alt="XRP icon"><div class="icon-card-ticker">XRP</div><div class="icon-card-name">XRP</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/sol.png" alt="SOL icon"><div class="icon-card-ticker">SOL</div><div class="icon-card-name">Solana</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/hype.png" alt="HYPE icon"><div class="icon-card-ticker">HYPE</div><div class="icon-card-name">Hyperliquid</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/doge.svg" alt="DOGE icon"><div class="icon-card-ticker">DOGE</div><div class="icon-card-name">Dogecoin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/usdt.svg" alt="USDT icon"><div class="icon-card-ticker">USDT</div><div class="icon-card-name">Tether</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/zec.svg" alt="ZEC icon"><div class="icon-card-ticker">ZEC</div><div class="icon-card-name">Zcash</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/algo.svg" alt="ALGO icon"><div class="icon-card-ticker">ALGO</div><div class="icon-card-name">Algorand</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/strk.png" alt="STRK icon"><div class="icon-card-ticker">STRK</div><div class="icon-card-name">Starknet</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/fil.svg" alt="FIL icon"><div class="icon-card-ticker">FIL</div><div class="icon-card-name">Filecoin</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/render.png" alt="RENDER icon"><div class="icon-card-ticker">RENDER</div><div class="icon-card-name">Render</div></div>
+  </div>
+
+  <h3 style="margin: 28px 0 10px;">Stocks · 11</h3>
+  <div class="icon-audit">
+    <div class="icon-card"><img src="shared-design/asset-icons/ionq.png" alt="IONQ icon"><div class="icon-card-ticker">IONQ</div><div class="icon-card-name">IonQ</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/qbts.png" alt="QBTS icon"><div class="icon-card-ticker">QBTS</div><div class="icon-card-name">D-Wave Quantum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/rgti.png" alt="RGTI icon"><div class="icon-card-ticker">RGTI</div><div class="icon-card-name">Rigetti Computing</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/qubt.png" alt="QUBT icon"><div class="icon-card-ticker">QUBT</div><div class="icon-card-name">Quantum Computing</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/qnt.png" alt="QNT icon"><div class="icon-card-ticker">QNT</div><div class="icon-card-name">Quantinuum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/saf.png" alt="SAF icon"><div class="icon-card-ticker">SAF</div><div class="icon-card-name">Safran</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/indi.png" alt="INDI icon"><div class="icon-card-ticker">INDI</div><div class="icon-card-name">indie Semiconductor</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/btq.png" alt="BTQ icon"><div class="icon-card-ticker">BTQ</div><div class="icon-card-name">BTQ Technologies</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/laes.png" alt="LAES icon"><div class="icon-card-ticker">LAES</div><div class="icon-card-name">SEALSQ</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/arqq.png" alt="ARQQ icon"><div class="icon-card-ticker">ARQQ</div><div class="icon-card-name">Arqit Quantum</div></div>
+    <div class="icon-card"><img src="shared-design/asset-icons/spcx.png" alt="SPCX icon"><div class="icon-card-ticker">SPCX</div><div class="icon-card-name">SpaceX</div></div>
+  </div>
+
+  <p class="small" style="margin-top: 16px; color: var(--zinc-500);">The zip normalizes every mark to a transparent 256×256 PNG named by ticker (BTC.png … SPCX.png); the in-app icons under <code>shared-design/asset-icons/</code> keep their original formats.</p>
+</section>
+
 <!-- ================================================ BIGSCREEN -->
 <section id="bigscreen">
-  <div class="kicker">05 · Big-screen behavior</div>
+  <div class="kicker">06 · Big-screen behavior</div>
   <h2>Booth TV rotation</h2>
   <p class="lede">The booth TV has four states. <strong>State A</strong> (top-10 leaderboard) is the default view and reappears between every other state. <strong>State B</strong> spotlights and <strong>state C</strong> intros rotate on a timer. <strong>State D</strong> (new-agent welcome) interrupts the rotation whenever a kiosk submits a new agent.</p>
   <p class="small" style="margin-top: -8px; margin-bottom: 18px; color: var(--coral);">Strategy adjustments do <strong>not</strong> trigger a big-screen change. The screen reacts only to new signups, not to ongoing retunes.</p>
@@ -980,7 +1031,7 @@
           <div class="qs-hero-left">
             <div class="left">
               <h1>Rank 02 · <span class="it" id="tv-spot-name">Bra-Ket Boy.</span></h1>
-              <div class="spot-handle" id="tv-spot-handle">@braket · 02h 14m on the board</div>
+              <div class="spot-handle" id="tv-spot-handle">02h 14m on the board</div>
             </div>
             <div class="right">
               <div class="lbl" style="font-family:'JetBrains Mono',monospace;font-size:1.3cqh;letter-spacing:0.18em;text-transform:uppercase;color:#71717b;">Spotlight</div>
@@ -1136,12 +1187,12 @@
               <div class="sdf-input sdf-input-placeholder">Your name</div>
             </div>
             <div class="sdf-field">
-              <label>X handle (optional)</label>
-              <div class="sdf-input sdf-input-placeholder">Your handle</div>
+              <label>Email (required)</label>
+              <div class="sdf-input sdf-input-placeholder">you@example.com</div>
             </div>
 
             <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Trading activity</span><span class="sdf-val">High</span></div>
+              <div class="sdf-slider-top"><span class="sdf-label">Rebalance frequency</span><span class="sdf-val">Every 2h</span></div>
               <div class="sdf-track"><div class="sdf-fill" style="width: 70%"></div><div class="sdf-knob" style="left: 70%"></div></div>
             </div>
             <div class="sdf-slider">
@@ -1149,32 +1200,43 @@
               <div class="sdf-track"><div class="sdf-fill" style="width: 78%"></div><div class="sdf-knob" style="left: 78%"></div></div>
             </div>
             <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Trade size</span><span class="sdf-val">Medium</span></div>
+              <div class="sdf-slider-top"><span class="sdf-label">Max position size</span><span class="sdf-val">Medium</span></div>
               <div class="sdf-track"><div class="sdf-fill" style="width: 50%"></div><div class="sdf-knob" style="left: 50%"></div></div>
-            </div>
-            <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Holding style</span><span class="sdf-val">Patient</span></div>
-              <div class="sdf-track"><div class="sdf-fill" style="width: 30%"></div><div class="sdf-knob" style="left: 30%"></div></div>
-            </div>
-            <div class="sdf-slider">
-              <div class="sdf-slider-top"><span class="sdf-label">Diversification</span><span class="sdf-val">Balanced</span></div>
-              <div class="sdf-track"><div class="sdf-fill" style="width: 55%"></div><div class="sdf-knob" style="left: 55%"></div></div>
             </div>
 
           </div>
 
           <!-- Supported assets column -->
           <div class="state-d-assets">
-            <div class="state-d-eyebrow cyan-dot">Supported assets</div>
-            <div class="state-d-asset-list">
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-btc"/></svg><span class="sda-ticker">BTC</span><span class="sda-change up">+2.1%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-eth"/></svg><span class="sda-ticker">ETH</span><span class="sda-change up">+1.4%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-sol"/></svg><span class="sda-ticker">SOL</span><span class="sda-change up">+3.0%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-link"/></svg><span class="sda-ticker">LINK</span><span class="sda-change down">&minus;0.6%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-uni"/></svg><span class="sda-ticker">UNI</span><span class="sda-change up">+0.3%</span></div>
-              <div class="sda-row"><svg class="sda-glyph" viewBox="0 0 32 32"><use href="#crypto-usdc"/></svg><span class="sda-ticker">USDC</span><span class="sda-change flat">&plusmn;0.0%</span></div>
+            <div class="state-d-eyebrow cyan-dot">Supported assets &middot; 25</div>
+            <div class="state-d-asset-list all">
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/btc.svg" alt=""><span class="sda-ticker">BTC</span><span class="sda-change up">+0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/eth.svg" alt=""><span class="sda-ticker">ETH</span><span class="sda-change up">+2.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/bnb.svg" alt=""><span class="sda-ticker">BNB</span><span class="sda-change up">+0.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/usdc.svg" alt=""><span class="sda-ticker">USDC</span><span class="sda-change down">&minus;1.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/xrp.svg" alt=""><span class="sda-ticker">XRP</span><span class="sda-change down">&minus;0.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/sol.png" alt=""><span class="sda-ticker">SOL</span><span class="sda-change up">+3.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/hype.png" alt=""><span class="sda-ticker">HYPE</span><span class="sda-change down">&minus;2.5%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/doge.svg" alt=""><span class="sda-ticker">DOGE</span><span class="sda-change down">&minus;0.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/usdt.svg" alt=""><span class="sda-ticker">USDT</span><span class="sda-change up">+0.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/zec.svg" alt=""><span class="sda-ticker">ZEC</span><span class="sda-change down">&minus;2.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/algo.svg" alt=""><span class="sda-ticker">ALGO</span><span class="sda-change down">&minus;1.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/strk.png" alt=""><span class="sda-ticker">STRK</span><span class="sda-change up">+0.5%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/fil.svg" alt=""><span class="sda-ticker">FIL</span><span class="sda-change down">&minus;2.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/render.png" alt=""><span class="sda-ticker">RENDER</span><span class="sda-change up">+2.3%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/ionq.png" alt=""><span class="sda-ticker">IONQ</span><span class="sda-change down">&minus;2.4%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qbts.png" alt=""><span class="sda-ticker">QBTS</span><span class="sda-change down">&minus;0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/rgti.png" alt=""><span class="sda-ticker">RGTI</span><span class="sda-change down">&minus;0.7%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qubt.png" alt=""><span class="sda-ticker">QUBT</span><span class="sda-change up">+0.6%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/qnt.png" alt=""><span class="sda-ticker">QNT</span><span class="sda-change down">&minus;2.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/saf.png" alt=""><span class="sda-ticker">SAF</span><span class="sda-change up">+1.9%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/indi.png" alt=""><span class="sda-ticker">INDI</span><span class="sda-change down">&minus;2.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/btq.png" alt=""><span class="sda-ticker">BTQ</span><span class="sda-change up">+2.0%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/laes.png" alt=""><span class="sda-ticker">LAES</span><span class="sda-change down">&minus;2.2%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/arqq.png" alt=""><span class="sda-ticker">ARQQ</span><span class="sda-change up">+2.3%</span></div>
+              <div class="sda-row"><img class="sda-glyph" src="shared-design/asset-icons/spcx.png" alt=""><span class="sda-ticker">SPCX</span><span class="sda-change down">&minus;2.1%</span></div>
             </div>
-            <div class="state-d-asset-tail">Final basket TBD</div>
+            <div class="state-d-asset-tail">14 crypto &middot; 11 stocks &middot; pick your basket at the kiosk</div>
           </div>
 
         </div>
@@ -1212,7 +1274,6 @@
             <div class="welcome-stage">
               <canvas id="tv-welcome-glyph" class="welcome-glyph" width="260" height="260" aria-hidden="true"></canvas>
               <div class="welcome-name" id="tv-welcome-name">Lattice Theory</div>
-              <div class="welcome-handle" id="tv-welcome-handle">@latticetheory</div>
               <div class="welcome-caption">Portfolio optimized by <span class="it">Quip Network.</span></div>
             </div>
           </div>
@@ -1261,7 +1322,7 @@
 
 <!-- ================================================ SCOPE -->
 <section id="scope">
-  <div class="kicker">06 · MVP scope &amp; stretch</div>
+  <div class="kicker">07 · MVP scope &amp; stretch</div>
   <h2>MVP scope and stretch items</h2>
 
   <div class="grid-2" style="margin-top: 24px;">
@@ -1269,7 +1330,7 @@
       <span class="pill">MVP — required for QTW</span>
       <h3 style="margin-top: 12px;">Minimum required for the demo</h3>
       <ul>
-        <li>Kiosk sign-up: name, X handle, 5 sliders, optional notes, supported-asset preview</li>
+        <li>Kiosk sign-up: name, email, reach-out question (Luma taxonomy — consent + intent + segment, "No thanks" = opt out), 25-asset basket selector, 3 sliders</li>
         <li>Quip Network routing job on launch + on every slider re-tune</li>
         <li>Provider-provenance badge wherever a strategy is shown (kiosk return, phone, big-screen)</li>
         <li>Personal phone profile via QR-coded secret URL — live P&amp;L + retune</li>
@@ -1286,7 +1347,6 @@
       <span class="pill">Stretch — only if MVP is fully solid</span>
       <h3 style="margin-top: 12px;">Optional additions if capacity allows</h3>
       <ul>
-        <li>Hashtag-monitored Twitter/X feed sidebar on the big screen (human posts, not LLM)</li>
         <li>Aggregate "Quip today" stats panel: jobs routed, percent solved by quantum, median latency, total adjustments</li>
         <li>Per-agent strategy-history view (timeline of retunes and their providers)</li>
         <li>Public spectator URL (read-only mirror of the big screen) for remote viewers / livestream</li>
@@ -1298,15 +1358,21 @@
 
   <div class="card muted" style="margin-top: 24px;">
     <h3 style="margin-bottom: 8px;">Explicitly out of scope for v1</h3>
-    <p style="margin-bottom: 0;">LLM trash-talk trollbox · LLM-generated agent personas / backstories · cartoon avatars (we use generative glyphs instead) · in-app trading UI beyond the 5 sliders · real-money custody · cross-conference persistence (tournament resets each event).</p>
+    <p style="margin-bottom: 0;">LLM trash-talk trollbox · LLM-generated agent personas / backstories · cartoon avatars (we use generative glyphs instead) · in-app trading UI beyond the basket + 3 sliders · real-money custody · cross-conference persistence (tournament resets each event).</p>
   </div>
 </section>
 
 <!-- ================================================ PARAMS -->
 <section id="params">
-  <div class="kicker">07 · Slider → optimization mapping</div>
-  <h2>How the five sliders map to optimization parameters</h2>
-  <p class="lede">Slider labels follow Base's wording (kept for accessibility to non-quant visitors). Each slider maps to a real parameter in the optimization problem dispatched to Quip.</p>
+  <div class="kicker">08 · Slider → optimization mapping</div>
+  <h2>How the basket and sliders map to optimization parameters</h2>
+  <p class="lede">The solver <strong>allocates a portfolio — it does not execute trades</strong>. Every control the player touches is a parameter of that allocation problem, and each has a cleanly separated, observable job:</p>
+  <ul style="margin: 14px 0 0; padding-left: 22px; color: var(--zinc-600); line-height: 1.65;">
+    <li><strong>Asset basket</strong> — <em>what</em> the optimizer may hold (the universe).</li>
+    <li><strong>Rebalance frequency</strong> — <em>when</em> it re-optimizes (job cadence; this is also the knob that drives quantum-job volume and cost).</li>
+    <li><strong>Risk preference</strong> — <em>which</em> assets lead the allocation (risk aversion: conservative → low-volatility assets like stablecoins and large caps; aggressive → high-volatility small caps and memecoins).</li>
+    <li><strong>Max position size</strong> — <em>how concentrated</em> the leaders may get (per-asset cap, relative to basket size: from equal weight at 1/n up to ~50% in a single asset).</li>
+  </ul>
 
   <div style="overflow-x: auto; margin-top: 24px;">
     <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
@@ -1320,45 +1386,40 @@
       </thead>
       <tbody style="font-family: 'Inter', sans-serif;">
         <tr style="border-bottom: 1px solid var(--zinc-200);">
-          <td style="padding: 12px 8px; font-weight: 500;">Trading Activity</td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">How willing am I to flip positions?</td>
-          <td style="padding: 12px 8px;"><code>turnover_penalty λ_t</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Higher activity → lower penalty on deviations from a uniform baseline (more reshuffling allowed).</td>
+          <td style="padding: 12px 8px; font-weight: 500;">Rebalance Frequency</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">How often does my agent re-optimize?</td>
+          <td style="padding: 12px 8px;"><code>job cadence</code></td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Not a QUBO term — sets how often the server dispatches a fresh optimization job for this agent. Placeholder tiers: <strong>Daily / 8h / 4h / 2h / Hourly</strong> — hourly is the hard cap at the most aggressive setting, because QPU time costs real money. Over the 2-day activation (~10 booth hours/day) that's at most ~20 scheduled jobs per agent (+ manual retunes). The slider shows the cadence directly so players know exactly what they picked.</td>
         </tr>
         <tr style="border-bottom: 1px solid var(--zinc-200);">
           <td style="padding: 12px 8px; font-weight: 500;">Risk Preference</td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">How much volatility do I accept for return?</td>
           <td style="padding: 12px 8px;"><code>risk aversion γ</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">The classic mean-variance trade-off coefficient on the covariance term <code>w'Σw</code>.</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">The classic mean-variance trade-off coefficient on the covariance term <code>w'Σw</code>. Observable effect: conservative agents lead with low-volatility assets (USDC/USDT, Safran), aggressive agents lead with high-volatility ones (QUBT, RGTI, HYPE). The doc's live mock simulates this with placeholder per-asset volatility scores.</td>
         </tr>
         <tr style="border-bottom: 1px solid var(--zinc-200);">
-          <td style="padding: 12px 8px; font-weight: 500;">Trade Size</td>
+          <td style="padding: 12px 8px; font-weight: 500;">Max Position Size</td>
           <td style="padding: 12px 8px; color: var(--zinc-600);">How concentrated can a single position get?</td>
           <td style="padding: 12px 8px;"><code>max_weight w_max</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Per-asset upper bound. Higher → bolder bets allowed.</td>
-        </tr>
-        <tr style="border-bottom: 1px solid var(--zinc-200);">
-          <td style="padding: 12px 8px; font-weight: 500;">Holding Style</td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Diamond hands vs. quick exits.</td>
-          <td style="padding: 12px 8px;"><code>momentum window τ</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Shifts the lookback used to compute expected returns. Patient = longer τ; restless = shorter.</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Per-asset upper bound, <strong>relative to basket size</strong>: the slider sweeps from equal weight (1/n — an absolute cap below that is infeasible) up to ~50% in a single asset. A 25-asset basket at minimum = 4% each; a 4-asset basket at minimum = 25% each. The kiosk shows the computed cap live (e.g. "Medium · ≤27%").</td>
         </tr>
         <tr>
-          <td style="padding: 12px 8px; font-weight: 500;">Diversification</td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Spread bets vs. concentrate.</td>
-          <td style="padding: 12px 8px;"><code>cardinality K</code></td>
-          <td style="padding: 12px 8px; color: var(--zinc-600);">Min number of non-zero positions. This is the integrality constraint that makes the problem natively QUBO-shaped.</td>
+          <td style="padding: 12px 8px; font-weight: 500;">Asset basket</td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Which of the 25 assets the agent may trade.</td>
+          <td style="padding: 12px 8px;"><code>universe U</code></td>
+          <td style="padding: 12px 8px; color: var(--zinc-600);">Restricts the optimization to the player's selected assets. Replaces the old holding-style and diversification sliders — basket size is the diversification choice, made explicitly.</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <p class="small" style="margin-top: 18px;">Final coefficients and parameter ranges are owned by the optimization-model owner; tracked as a TBD below. The mapping above is a starting point.</p>
+  <p class="small" style="margin-top: 10px; color: var(--zinc-500);"><strong>Demo vs. real solver:</strong> the live mocks in this doc (and the MVP app) simulate these effects with placeholder per-asset volatility scores and a deterministic decay — directionally correct and good for demos. A real mean-variance solve is subtler: correlations in <code>Σ</code> matter (that's the point of the covariance term), so the production optimizer will produce portfolios these simulations only approximate. Two spec'd edge cases: with the cap at minimum the only feasible portfolio is equal weight across the basket (1/n each — a 25-asset basket at "Tiny" is exactly 4% per asset); and at "Heavy" with a large basket, tail assets can round to ~0% — "in the basket" means <em>eligible</em>, not <em>always held</em> (whether picks deserve a minimum allocation is an open TBD).</p>
 </section>
 
 <!-- ================================================ ARCHITECTURE -->
 <section id="arch">
-  <div class="kicker">08 · Architecture sketch</div>
+  <div class="kicker">09 · Architecture sketch</div>
   <h2>Component overview</h2>
 
   <div class="arch-diagram" style="margin-top: 24px;">
@@ -1494,7 +1555,7 @@
 
 <!-- ================================================ API CONTRACT -->
 <section id="api">
-  <div class="kicker">09 · API contract</div>
+  <div class="kicker">10 · API contract</div>
   <h2>Front-end ↔ back-end interface</h2>
   <p class="lede">The TypeScript contract lives in <code>mvp/src/api/</code> with a mock implementation behind it. To wire a real backend, implement the same four functions; the UI imports only the contract surface.</p>
 
@@ -1521,7 +1582,7 @@
 
 <!-- ================================================ HARDWARE & VENUE -->
 <section id="hardware">
-  <div class="kicker">10 · Hardware &amp; venue</div>
+  <div class="kicker">11 · Hardware &amp; venue</div>
   <h2>What we'll have onsite</h2>
   <p class="lede">The activation runs on two devices plus the booth TV.</p>
 
@@ -1552,7 +1613,7 @@
 
 <!-- ================================================ PLAYGROUND -->
 <section id="playground">
-  <div class="kicker">11 · Playground</div>
+  <div class="kicker">12 · Playground</div>
   <h2>Glyph generator</h2>
   <p class="lede">Enter a name, adjust the sliders, and click <strong>Generate glyph</strong>. The mapping below documents which inputs drive which visual properties.</p>
 
@@ -1573,7 +1634,7 @@
         <span></span>
       </div>
       <div class="row">
-        <label>Trading Activity</label>
+        <label>Rebalance Frequency</label>
         <input id="play-p1" type="range" min="0" max="100" value="70" />
         <span class="v" id="play-p1-v">70</span>
       </div>
@@ -1583,7 +1644,7 @@
         <span class="v" id="play-p2-v">78</span>
       </div>
       <div class="row">
-        <label>Trade Size</label>
+        <label>Max Position Size</label>
         <input id="play-p3" type="range" min="0" max="100" value="50" />
         <span class="v" id="play-p3-v">50</span>
       </div>
@@ -1614,7 +1675,7 @@
       <p>Each slider crosses a threshold that flips a high-level visual property. Crossing a threshold causes the glyph to re-pick its palette and pattern math, not just adjust texture.</p>
       <ul>
         <li><code>Risk Preference</code>palette family — <strong>cool</strong> (cyan / aurora / electric / forest), <strong>neutral</strong> (mixed / purple / sunset), or <strong>warm</strong> (coral / flare / ember / yellow)</li>
-        <li><code>Trade Size</code>generation mode — <strong>noise</strong> (organic dots), <strong>waves</strong> (geometric interference), or <strong>mandala</strong> (radial)</li>
+        <li><code>Max Position Size</code>generation mode — <strong>noise</strong> (organic dots), <strong>waves</strong> (geometric interference), or <strong>mandala</strong> (radial)</li>
         <li><code>Holding Style</code>radial symmetry — <strong>off</strong> (mirror) below 50, <strong>on</strong> above 50</li>
         <li><code>Diversification</code>ray count when radial — <strong>3 / 5 / 7 / 9</strong></li>
       </ul>
@@ -1623,9 +1684,9 @@
       <h4>LOW-LEVEL · within the chosen style</h4>
       <p>Within the style selected above, each slider also fine-tunes the texture. Same style + different slider values produces glyphs in the same family with different texture.</p>
       <ul>
-        <li><code>Trading Activity</code>frequency / scale of the pattern</li>
+        <li><code>Rebalance Frequency</code>frequency / scale of the pattern</li>
         <li><code>Risk Preference</code>also density / contrast threshold</li>
-        <li><code>Trade Size</code>also cell shape (square / circle / diamond)</li>
+        <li><code>Max Position Size</code>also cell shape (square / circle / diamond)</li>
         <li><code>Holding Style</code>also color drift across the canvas</li>
         <li><code>Name</code>seeds the noise + picks a specific palette inside the slider's family</li>
       </ul>
@@ -1636,7 +1697,7 @@
 
 <!-- ================================================ TBDs -->
 <section id="tbd">
-  <div class="kicker">12 · Open questions</div>
+  <div class="kicker">13 · Open questions</div>
   <h2>What still needs to be decided</h2>
 
   <div style="display: flex; gap: 14px; align-items: center; margin-top: 18px; margin-bottom: 8px; flex-wrap: wrap;">
@@ -1821,19 +1882,46 @@
     });
   }
 
-  // ─── Slider label sets ───
+  // ─── Slider label sets (3 sliders — holding style and diversification
+  // were dropped; the basket selection expresses those directly) ───
   const SLIDER_LABELS = [
-    ['Minimal', 'Low', 'Medium', 'High', 'Extreme'],
+    ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'],
     ['Conservative', 'Defensive', 'Balanced', 'Aggressive', 'Speculative'],
-    ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'],
-    ['Restless', 'Quick', 'Balanced', 'Patient', 'Diamond'],
-    ['Concentrated', 'Focused', 'Balanced', 'Spread', 'Wide']
+    ['Tiny', 'Small', 'Medium', 'Large', 'Heavy']
   ];
   function labelFor(idx, val) {
     const labels = SLIDER_LABELS[idx];
     const i = Math.min(labels.length - 1, Math.floor(val / 20));
     return labels[i];
   }
+
+  // ─── Reach-out checklist — multi-select; "No thanks" is the mutually
+  // exclusive opt-out. ───
+  const setRowCheck = row => {
+    const box = row.querySelector('.v4m-check-box');
+    if (box) box.textContent = row.classList.contains('on') ? '✓' : '';
+  };
+  const reachRows = Array.from(document.querySelectorAll('.kiosk-v4 .v4m-check-row:not([data-optin])'));
+  reachRows.forEach(row => {
+    row.addEventListener('click', () => { row.classList.toggle('on'); setRowCheck(row); });
+  });
+  // Standalone newsletter opt-in — independent toggle.
+  document.querySelectorAll('.kiosk-v4 .v4m-check-row[data-optin]').forEach(row => {
+    row.addEventListener('click', () => { row.classList.toggle('on'); setRowCheck(row); });
+  });
+
+  // ─── Scale the kiosk doc-stages to true iPad proportions (1024×768) ───
+  function fitDocStages() {
+    document.querySelectorAll('.doc-stage').forEach(stage => {
+      const canvas = stage.querySelector('.doc-stage-canvas');
+      if (!canvas) return;
+      const s = stage.clientWidth / 1024;
+      canvas.style.transform = 'scale(' + s + ')';
+      stage.style.height = Math.round(768 * s) + 'px';
+    });
+  }
+  fitDocStages();
+  window.addEventListener('resize', fitDocStages);
 
   // ─── Kiosk sign-up (live form) ───
   const kioskName = document.getElementById('kiosk-name');
@@ -1842,7 +1930,6 @@
     (a, b) => parseInt(a.dataset.kiosk, 10) - parseInt(b.dataset.kiosk, 10)
   );
 
-  const kioskHandleInput = document.getElementById('kiosk-handle');
   const kioskPreviewName = document.getElementById('kiosk-preview-name');
   const kioskPreviewHandle = document.getElementById('kiosk-preview-handle');
 
@@ -1864,18 +1951,12 @@
     if (kioskPreviewName) {
       kioskPreviewName.textContent = (kioskName.value || 'Player').trim() || 'Player';
     }
-    if (kioskPreviewHandle && kioskHandleInput) {
-      const h = (kioskHandleInput.value || '').trim();
-      if (h) {
-        kioskPreviewHandle.textContent = h.startsWith('@') ? h : '@' + h;
-      } else {
-        // No handle entered → derive one from the player name (e.g.
-        // "Lattice Theory" → "@latticetheory"). Keeps the preview personal
-        // as soon as the player starts typing their name.
-        const name = (kioskName && kioskName.value || 'Player').trim() || 'Player';
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
-        kioskPreviewHandle.textContent = '@' + (slug || 'player');
-      }
+    if (kioskPreviewHandle) {
+      // Display handle derives from the player name (e.g. "Lattice Theory"
+      // → "@latticetheory"). The email field is for contact, not display.
+      const name = (kioskName && kioskName.value || 'Player').trim() || 'Player';
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+      kioskPreviewHandle.textContent = '@' + (slug || 'player');
     }
   }
 
@@ -1893,68 +1974,159 @@
     });
   });
   if (kioskName) kioskName.addEventListener('input', () => { kioskUpdatePreviewText(); kioskRenderGlyph(); });
-  if (kioskHandleInput) kioskHandleInput.addEventListener('input', kioskUpdatePreviewText);
   kioskUpdatePreviewText();
   kioskRenderGlyph();
 
-  // ─── Compute portfolio weights from the 5 sliders (deterministic) ───
-  function computeWeights(p1, p2, p3, p4, p5) {
-    // p2 = risk; p5 = diversification. Higher risk - higher diversification = more concentration.
-    const concentration = Math.max(0, p2 - p5 * 0.5);
-    const top    = 0.30 + concentration * 0.40;
-    const second = top * (0.65 + p5 * 0.15);
-    const third  = top * (0.40 + p5 * 0.20);
-    const fourth = top * (0.20 + p5 * 0.20);
-    const sum = top + second + third + fourth;
-    // p1 = activity → less activity → more reserve (cash buffer)
-    const reserve = Math.max(0.05, Math.min(0.25, 0.12 - p1 * 0.06 + (1 - p2) * 0.10));
-    const scale = (1 - reserve) / sum;
-    return [top * scale, second * scale, third * scale, fourth * scale, reserve];
+  // ─── Kiosk asset selector (the player's tradable basket) ───
+  // Toggle any of the 25 assets; All / None / Auto-pick bulk actions.
+  // Auto-pick is a coin flip per asset (never returns an empty basket).
+  const kioskPicks = Array.from(document.querySelectorAll('#kiosk-pick-list .v4m-tile'));
+  const kioskBasketCount = document.getElementById('kiosk-basket-count');
+  const kioskCtaSub = document.getElementById('kiosk-cta-sub');
+  const kioskLaunchBtn = document.getElementById('kiosk-launch');
+
+  function kioskSetPick(el, on) {
+    el.classList.toggle('on', on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
+  function kioskUpdateBasket() {
+    const n = kioskPicks.filter(p => p.classList.contains('on')).length;
+    if (kioskBasketCount) kioskBasketCount.textContent = n + '/' + kioskPicks.length;
+    if (kioskLaunchBtn) kioskLaunchBtn.disabled = n === 0;
+    if (kioskCtaSub) {
+      kioskCtaSub.textContent = n === 0 ? 'Select at least one asset to launch' : '';
+      kioskCtaSub.style.display = n === 0 ? '' : 'none';
+    }
+  }
+  kioskPicks.forEach(p => {
+    p.addEventListener('click', () => {
+      kioskSetPick(p, !p.classList.contains('on'));
+      kioskUpdateBasket();
+      simulatePortfolio();
+    });
+  });
+  document.querySelectorAll('[data-basket-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.basketAction;
+      if (action === 'all') {
+        kioskPicks.forEach(p => kioskSetPick(p, true));
+      } else if (action === 'none') {
+        kioskPicks.forEach(p => kioskSetPick(p, false));
+      } else if (action === 'auto') {
+        kioskPicks.forEach(p => kioskSetPick(p, Math.random() < 0.5));
+        if (!kioskPicks.some(p => p.classList.contains('on'))) {
+          kioskSetPick(kioskPicks[Math.floor(Math.random() * kioskPicks.length)], true);
+        }
+      }
+      kioskUpdateBasket();
+      simulatePortfolio();
+    });
+  });
+  kioskUpdateBasket();
+
+  // ─── Compute portfolio weights from the 5 sliders (deterministic) ───
+  // ─── Live portfolio simulation — the strategy-return mock computes its
+  // allocation from the basket + sliders currently set in the sign-up mock
+  // (same math as the app mock: slider-driven decay + relative cap). ───
+  const DOC_ASSET_META = {
+    BTC: ['btc.svg', '#F7931A', 0.45], ETH: ['eth.svg', '#627EEA', 0.55], BNB: ['bnb.svg', '#F3BA2F', 0.50],
+    USDC: ['usdc.svg', '#2775CA', 0.02], XRP: ['xrp.svg', '#23292F', 0.65], SOL: ['sol.png', '#9945FF', 0.70],
+    HYPE: ['hype.png', '#4FD1B5', 0.90], DOGE: ['doge.svg', '#C2A633', 0.85], USDT: ['usdt.svg', '#26A17B', 0.02],
+    ZEC: ['zec.svg', '#F4B728', 0.75], ALGO: ['algo.svg', '#18181B', 0.70], STRK: ['strk.png', '#EC796B', 0.80],
+    FIL: ['fil.svg', '#0090FF', 0.70], RENDER: ['render.png', '#E11D2E', 0.80], IONQ: ['ionq.png', '#FF8200', 0.75],
+    QBTS: ['qbts.png', '#008CD7', 0.85], RGTI: ['rgti.png', '#00A7B5', 0.90], QUBT: ['qubt.png', '#1E6FD9', 0.95],
+    QNT: ['qnt.png', '#101820', 0.60], SAF: ['saf.png', '#002F87', 0.25], INDI: ['indi.png', '#7C3AED', 0.70],
+    BTQ: ['btq.png', '#18181B', 0.85], LAES: ['laes.png', '#2AA8E0', 0.90], ARQQ: ['arqq.png', '#00C2CB', 0.85],
+    SPCX: ['spcx.png', '#005288', 0.50]
+  };
+  function simulatePortfolio() {
+    const block = document.querySelector('#kiosk-routing-hero .v4m-portfolio-block');
+    if (!block) return;
+    const eyebrow = block.querySelector('.v4m-section-eyebrow');
+    const stackEl = block.querySelector('.v4m-alloc-stack');
+    const gridEl = block.querySelector('.v4m-alloc-grid');
+    const tiles = Array.from(document.querySelectorAll('#kiosk-pick-list .v4m-tile.on')).map(t => t.dataset.pick);
+    if (tiles.length === 0) {
+      eyebrow.innerHTML = 'Your portfolio &middot; no assets selected';
+      stackEl.innerHTML = '';
+      gridEl.innerHTML = '';
+      return;
+    }
+    // Deterministic per-player ordering, seeded by the player name.
+    const name = (kioskName && kioskName.value || 'Player').trim() || 'Player';
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    const rank = t => { let r = h; for (let i = 0; i < t.length; i++) r = (r * 33 + t.charCodeAt(i)) >>> 0; return r; };
+    // Risk preference tilts which assets lead: conservative → low-vol
+    // (stablecoins, large caps), aggressive → high-vol (small-cap quantum
+    // stocks, memecoins). Name-seeded jitter keeps players distinct.
+    const riskInput = document.querySelector('[data-kiosk="1"]');
+    const rv = (riskInput ? parseInt(riskInput.value, 10) : 50) / 100;
+    const score = t => {
+      const vol = DOC_ASSET_META[t][2];
+      return (1 - rv) * (1 - vol) + rv * vol + 0.15 * ((rank(t) % 1000) / 1000);
+    };
+    const ordered = tiles.slice().sort((a, b) => score(b) - score(a));
+    const sizeInput = document.querySelector('[data-kiosk="2"]');
+    const sv = (sizeInput ? parseInt(sizeInput.value, 10) : 50) / 100;
+    const n = ordered.length;
+    // Slider drives concentration appetite; the relative cap bounds it.
+    const decay = n > 10 ? 0.99 - sv * 0.19 : 0.95 - sv * 0.30;
+    const raw = ordered.map((_, i) => Math.pow(decay, i));
+    const total = raw.reduce((a, b) => a + b, 0);
+    let w = raw.map(v => v / total);
+    const fl = 1 / n;
+    const cap = fl + sv * (Math.max(0.5, fl) - fl);
+    for (let pass = 0; pass < 10; pass++) {
+      const excess = w.reduce((a, v) => a + Math.max(0, v - cap), 0);
+      if (excess < 1e-6) break;
+      const us = w.reduce((a, v) => a + (v < cap ? v : 0), 0);
+      w = w.map(v => v >= cap ? cap : v + (us > 0 ? (v / us) * excess : 0));
+    }
+    let pctLeft = 100;
+    const entries = ordered.map((t, i) => {
+      const pct = i === n - 1 ? Math.round(pctLeft * 10) / 10 : Math.round(w[i] * 1000) / 10;
+      pctLeft -= pct;
+      return { t, pct };
+    });
+    // mirror the current slider words into the strategy strip
+    kioskRanges.forEach((r, i) => {
+      const el = document.querySelector('[data-strat-slider="' + i + '"]');
+      if (el) el.textContent = labelFor(i, parseInt(r.value, 10));
+    });
+    eyebrow.innerHTML = 'Your portfolio &middot; ' + n + ' holding' + (n === 1 ? '' : 's');
+    stackEl.innerHTML = entries.map(e =>
+      '<span style="width:' + e.pct + '%; background:' + DOC_ASSET_META[e.t][1] + ';"></span>').join('');
+    gridEl.className = 'v4m-alloc-grid' + (n > 12 ? ' dense' : '');
+    gridEl.innerHTML = entries.map(e =>
+      '<div class="v4m-alloc-row"><img class="v4m-alloc-icon" src="shared-design/asset-icons/' + DOC_ASSET_META[e.t][0] + '" alt="">' +
+      '<span class="v4m-alloc-name">' + e.t + '</span>' +
+      '<span class="v4m-alloc-pct">' + e.pct.toFixed(1) + '%</span>' +
+      '<span class="v4m-alloc-usd">$' + Math.round(e.pct * 100).toLocaleString() + '</span></div>').join('');
+  }
+  kioskRanges.forEach(r => r.addEventListener('input', simulatePortfolio));
+  simulatePortfolio();
 
   // ─── Kiosk launch button — updates strategy-return downstream ───
   const kioskLaunch = document.getElementById('kiosk-launch');
   const stratName = document.getElementById('strat-name');
-  const stratHandleLine = document.getElementById('strat-handle-line');
   const qrGlyphEl = document.getElementById('qr-glyph');
   const stratHero = document.getElementById('kiosk-routing-hero');
-  const kioskHandle = document.getElementById('kiosk-handle');
 
   function applyKioskInputsToStrategyReturn() {
     if (!kioskName || !stratName) return;
     const name = (kioskName.value || 'Player').trim() || 'Player';
-    const handleRaw = (kioskHandle && kioskHandle.value || '').trim();
-    const handle = handleRaw ? (handleRaw.startsWith('@') ? handleRaw : '@' + handleRaw) : '@anon';
+    // Display handle is derived from the player name (email is not shown).
+    const handle = '@' + (name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'player');
 
     stratName.textContent = name;
-    if (stratHandleLine) {
-      stratHandleLine.innerHTML = `${handle} &middot; bankroll <code>$10,000</code>`;
-    }
 
     // Re-render the QR with the player's profile URL seed (different per name+handle).
     if (qrGlyphEl) {
       renderFakeQR(qrGlyphEl, 'qtw.quip.network/p/' + name + handle);
     }
 
-    // Update portfolio weights from current slider values.
-    const vals = kioskRanges.map(r => parseInt(r.value, 10) / 100);
-    const w = computeWeights(vals[0], vals[1], vals[2], vals[3], vals[4]);
-    const bankroll = 10000;
-    for (let i = 0; i < 4; i++) {
-      const pctEl = document.querySelector(`[data-strat-pct="${i}"]`);
-      const dolEl = document.querySelector(`[data-strat-dollar="${i}"]`);
-      const barEl = document.querySelector(`[data-strat-bar="${i}"]`);
-      if (pctEl) pctEl.textContent = (w[i] * 100).toFixed(1) + '%';
-      if (dolEl) dolEl.textContent = '$' + Math.round(w[i] * bankroll).toLocaleString();
-      if (barEl) barEl.style.width = (w[i] * 100).toFixed(2) + '%';
-    }
-    // The 4th slot is the cash-equivalent reserve (USDC).
-    const usdcPctEl = document.querySelector(`[data-strat-pct="3"]`);
-    const usdcDolEl = document.querySelector(`[data-strat-dollar="3"]`);
-    const usdcBarEl = document.querySelector(`[data-strat-bar="3"]`);
-    if (usdcPctEl) usdcPctEl.textContent = (w[4] * 100).toFixed(1) + '%';
-    if (usdcDolEl) usdcDolEl.textContent = '$' + Math.round(w[4] * bankroll).toLocaleString();
-    if (usdcBarEl) usdcBarEl.style.width = (w[4] * 100).toFixed(2) + '%';
+    simulatePortfolio();
 
     // Fire a fresh routing simulation in the hero card.
     if (typeof renderKioskRouting === 'function') {
@@ -2333,7 +2505,7 @@
     'linear-gradient(135deg, #ff007a, #ff5da2)',  // UNI
     'linear-gradient(135deg, #2775ca, #4f9ddc)'   // USDC
   ];
-  const ASSET_TICKERS = ['BTC', 'ETH', 'SOL', 'LINK', 'UNI'];
+  const ASSET_TICKERS = ['BTC', 'ETH', 'SOL', 'HYPE', 'IONQ'];
 
   function holdingsForAgent(agent) {
     const seed = agent.seed;
@@ -2384,7 +2556,7 @@
     if (!$('tv-spot-rank')) return;
     $('tv-spot-rank').textContent = '#' + agent.rank;
     $('tv-spot-name').textContent = agent.name;
-    $('tv-spot-handle').textContent = (agent.handle ? agent.handle + ' · ' : '') + 'rank #' + agent.rank + ' · ' + agent.hours + ' on the board';
+    $('tv-spot-handle').textContent = 'rank #' + agent.rank + ' · ' + agent.hours + ' on the board';
     $('tv-spot-provider').textContent = 'Solved by D-Wave Advantage';
     $('tv-spot-total').textContent = '$' + agent.total.toLocaleString();
 

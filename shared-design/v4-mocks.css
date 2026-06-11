@@ -3846,6 +3846,15 @@
     text-transform: uppercase;
     color: #71717b;
   }
+  /* Pre-submit framing: these are race candidates, not a chosen destination —
+     the winner is revealed on the strategy-return screen. */
+  .qs-v4-mock .v4m-pr-note {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: #71717b;
+    padding-top: 8px;
+  }
 
   /* Merged rail box (v4-mega equivalent — transparent so it floats
      against the #fafafa screen, with hairline dividers between sections) */
@@ -3918,6 +3927,454 @@
     color: #a1a1aa;
     padding-top: 14px;
   }
+  /* ─── Asset selector layout (.selector-top): the basket spans the top of
+     the main column with the slider band below it; the identity rail
+     (name, handle, preview, routing) sits on the right. ─── */
+  .kiosk-v4 .v4m-body.selector-top {
+    grid-template-columns: 1fr 0.34fr;
+  }
+  .kiosk-v4 .v4m-main-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    min-height: 0;
+  }
+  .kiosk-v4 .v4m-selector-mega {
+    flex: 1;
+    min-height: 0;
+  }
+  .kiosk-v4 .v4m-selector-mega .v4m-selector-section {
+    flex: 1;
+    min-height: 0;
+  }
+  .kiosk-v4 .v4m-selector-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  /* Numbered step chips — ① basket ② sliders ③ details ④ create */
+  .kiosk-v4 .v4m-step-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #0891B2;
+    color: white;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  .kiosk-v4 .v4m-section-eyebrow.eyebrow-step {
+    display: inline-flex;
+    align-items: center;
+  }
+  .kiosk-v4 .v4m-sliders-head {
+    margin-bottom: 10px;
+  }
+  .kiosk-v4 .v4m-rail-col {
+    gap: 14px;
+  }
+  /* The rail's single card fills the column height (bottom aligns with the
+     slider band), content top-aligned. */
+  .kiosk-v4 .v4m-rail-col .v4m-mega {
+    flex: 1;
+    min-height: 0;
+  }
+  .kiosk-v4 .v4m-rail-col .v4m-mega .v4m-mega-section {
+    flex: 1;
+  }
+  .kiosk-v4 .v4m-cta .v4m-cta-label {
+    display: inline-flex;
+    align-items: center;
+  }
+  .kiosk-v4 .v4m-cta .v4m-step-chip.cta {
+    background: white;
+    color: #0891B2;
+  }
+  .kiosk-v4 .v4m-cta:disabled .v4m-step-chip.cta {
+    color: #71717b;
+  }
+  .kiosk-v4 .v4m-selector-count {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #0891B2;
+    font-variant-numeric: tabular-nums;
+  }
+  .kiosk-v4 .v4m-selector-actions {
+    display: flex;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .kiosk-v4 .v4m-selector-btn {
+    flex: 1;
+    background: white;
+    border: 1px solid #dbdbde;
+    padding: 7px 0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #3f3f46;
+    cursor: pointer;
+  }
+  .kiosk-v4 .v4m-selector-btn:hover {
+    border-color: #18181b;
+    color: #18181b;
+  }
+  .kiosk-v4 .v4m-selector-btn.accent {
+    background: #0891B2;
+    border-color: #0891B2;
+    color: white;
+  }
+  .kiosk-v4 .v4m-selector-btn.accent:hover {
+    background: #0E7490;
+    border-color: #0E7490;
+  }
+  .kiosk-v4 .v4m-pick-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .kiosk-v4 .v4m-pick-group-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    padding: 12px 0 6px;
+  }
+  /* Asset tiles — 7-up grid (crypto 7/7, stocks 7/4), big touch targets for
+     the iPad kiosk. Wide enough that company names spell out in full.
+     Crypto = cyan accents, stocks = ink accents. */
+  .kiosk-v4 .v4m-pick-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .kiosk-v4 .v4m-tile {
+    position: relative;
+    min-width: 0;        /* long asset names must not blow out the grid */
+    min-height: 80px;
+    overflow: hidden;
+    border: 1px solid #e4e4e7;
+    background: #f6f6f7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 5px 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Brand icon — dimmed to grayscale when the asset is not selected, so
+     the selected basket pops in full color and reads at a glance. */
+  .kiosk-v4 .v4m-tile .v4m-tile-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    border-radius: 6px;
+    filter: grayscale(1);
+    opacity: 0.45;
+    transition: filter 0.12s ease, opacity 0.12s ease;
+  }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-icon {
+    filter: none;
+    opacity: 1;
+  }
+  .kiosk-v4 .v4m-tile .v4m-tile-ticker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+  }
+  .kiosk-v4 .v4m-tile .v4m-tile-name {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.62rem;
+    line-height: 1.2;
+    color: #b3b3b9;
+    max-width: 100%;
+    text-align: center;
+    /* full names, wrapping to at most two lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* Class accent bar along the tile's bottom edge */
+  .kiosk-v4 .v4m-tile::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: #e4e4e7;
+  }
+  .kiosk-v4 .v4m-tile.crypto::after { background: #a5e8f5; }
+  .kiosk-v4 .v4m-tile.stock::after  { background: #d4d4d8; }
+  /* Selected state */
+  .kiosk-v4 .v4m-tile.on {
+    background: white;
+    border-color: #0891B2;
+    box-shadow: inset 0 0 0 1px #0891B2;
+  }
+  .kiosk-v4 .v4m-tile.on.stock {
+    border-color: #3f3f46;
+    box-shadow: inset 0 0 0 1px #3f3f46;
+  }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-ticker { color: #18181b; }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-name { color: #71717b; }
+  .kiosk-v4 .v4m-tile.on.crypto::after { background: #0891B2; }
+  .kiosk-v4 .v4m-tile.on.stock::after  { background: #3f3f46; }
+  .kiosk-v4 .v4m-tile-check {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    background: #0891B2;
+    color: white;
+    font-size: 9px;
+    line-height: 14px;
+    text-align: center;
+    display: none;
+  }
+  .kiosk-v4 .v4m-tile.on.stock .v4m-tile-check { background: #3f3f46; }
+  .kiosk-v4 .v4m-tile.on .v4m-tile-check { display: block; }
+  .kiosk-v4 .v4m-cta:disabled {
+    background: #d4d4d8;
+    cursor: not-allowed;
+  }
+
+  /* ─── Horizontal slider band — the three strategy sliders side by side
+     beneath the basket. Label on top, track in the middle, value below. ─── */
+  .kiosk-v4 .v4m-sliders-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .kiosk-v4 .v4m-sliders-row .v4m-slider {
+    border-bottom: none;
+    padding: 0;
+    min-width: 0;
+  }
+  .kiosk-v4 .v4m-sliders-row .v4m-slider-top {
+    margin-bottom: 8px;
+  }
+  .kiosk-v4 .v4m-sliders-row .v4m-slider-label {
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kiosk-v4 .v4m-sliders-row .v4m-slider-bottom {
+    margin-top: 8px;
+    text-align: right;
+  }
+  .kiosk-v4 .v4m-sliders-row .v4m-slider-val {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.88rem;
+    letter-spacing: -0.01em;
+    color: #0891B2;
+  }
+
+  /* Identity rail fields (player name / handle moved beside the preview) */
+  .kiosk-v4 .v4m-rail-col .v4m-field { padding: 10px 0; }
+  .kiosk-v4 .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
+  .kiosk-v4 .v4m-rail-col .v4m-field:last-child { border-bottom: none; padding-bottom: 0; }
+  .kiosk-v4 .v4m-rail-col .v4m-field input.v4m-input { font-size: 1.05rem; }
+  /* Interest dropdown — same serif voice as the text inputs */
+  .kiosk-v4 select.v4m-select {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    color: #18181b;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' fill='none' stroke='%2371717b' stroke-width='1.5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+    cursor: pointer;
+  }
+  .kiosk-v4 select.v4m-select:invalid,
+  .kiosk-v4 select.v4m-select option[value=""] { color: #a1a1aa; }
+  /* Reach-out options — single-column checklist (scan top-to-bottom, one line
+     each, sharp square checkboxes consistent with the rest of the app). */
+  .kiosk-v4 .v4m-field-checklist {
+    border-bottom: none;
+    border-top: 1px solid #18181b;   /* ink rule marks a new question, not another field */
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  /* The question reads as a question — Georgia italic (the app's prompt voice,
+     same as the slider labels) instead of the tiny uppercase mono field label. */
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: #18181b;
+    margin-bottom: 10px;
+  }
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label .opt {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    margin-left: 6px;
+  }
+  .kiosk-v4 .v4m-checklist {
+    display: flex;
+    flex-direction: column;
+    margin-top: 2px;
+  }
+  .kiosk-v4 .v4m-check-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 8px 4px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #ececef;
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s ease;
+  }
+  .kiosk-v4 .v4m-check-row:last-child { border-bottom: none; }
+  .kiosk-v4 .v4m-check-row:hover { background: #fafafa; }
+  .kiosk-v4 .v4m-check-row.on { background: rgba(8, 145, 178, 0.05); }
+  .kiosk-v4 .v4m-check-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #d4d4d8;
+    background: white;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    line-height: 1;
+    color: white;
+  }
+  .kiosk-v4 .v4m-check-row.on .v4m-check-box { background: #0891B2; border-color: #0891B2; }
+  .kiosk-v4 .v4m-check-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    line-height: 1.25;
+    color: #52525c;
+  }
+  .kiosk-v4 .v4m-check-row.on .v4m-check-label { color: #18181b; }
+  /* Standalone newsletter opt-in above the reach-out question — a single row.
+     (The reach-out question's ink top-rule provides the separation below it.) */
+  .kiosk-v4 .v4m-optin-row {
+    border-top: none;
+    border-bottom: none;
+  }
+  /* "No thanks" — quiet decline, set apart by a slightly heavier divider */
+  .kiosk-v4 .v4m-check-row.muted { border-top: 1px solid #ececef; }
+  .kiosk-v4 .v4m-check-row.muted .v4m-check-label { color: #a1a1aa; }
+  .kiosk-v4 .v4m-check-row.muted.on .v4m-check-box { background: #52525c; border-color: #52525c; }
+  .kiosk-v4 .v4m-check-row.muted.on { background: rgba(82, 82, 92, 0.05); }
+
+  /* Interest segment — choices laid out as selectable chips (single-select) */
+  .kiosk-v4 .v4m-field-chips { border-bottom: none; }
+  .kiosk-v4 .v4m-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* 2-column grid variant — packs long option labels into tidy rows so the
+     details card stays compact and the agent preview gets the room. */
+  .kiosk-v4 .v4m-chips-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .kiosk-v4 .v4m-chips-grid .v4m-chip {
+    width: 100%;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+  }
+  /* Sharp-cornered to match the app's other controls (asset tiles,
+     All/Clear/Auto-pick buttons) — no rounded pills. */
+  .kiosk-v4 .v4m-chip {
+    border: 1px solid #dbdbde;
+    background: white;
+    border-radius: 0;
+    padding: 7px 10px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    color: #3f3f46;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+  }
+  .kiosk-v4 .v4m-chip:hover { border-color: #18181b; color: #18181b; }
+  .kiosk-v4 .v4m-chip.on {
+    background: #0891B2;
+    border-color: #0891B2;
+    color: white;
+  }
+  /* "No thanks" opt-out reads as a quiet decline until chosen */
+  .kiosk-v4 .v4m-chip.v4m-chip-muted { color: #a1a1aa; }
+  .kiosk-v4 .v4m-chip.v4m-chip-muted.on {
+    background: #52525c;
+    border-color: #52525c;
+    color: white;
+  }
+  /* Marketing opt-in — explicit, unchecked by default */
+  .kiosk-v4 .v4m-optin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 12px;
+    cursor: pointer;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.74rem;
+    color: #52525c;
+  }
+  .kiosk-v4 .v4m-optin input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #0891B2;
+    flex-shrink: 0;
+  }
+
   .kiosk-v4 .v4m-form-col {
     border-top: 1px solid #18181b;
     background: transparent;
@@ -3952,6 +4409,14 @@
   .kiosk-v4 .v4m-field input.v4m-input::placeholder {
     color: #a1a1aa;
     font-style: italic;
+  }
+  /* Why-it's-required helper under a field (e.g. email → contacting winners) */
+  .kiosk-v4 .v4m-field .v4m-field-hint {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    color: #a1a1aa;
+    margin-top: 5px;
   }
   .kiosk-v4 .v4m-rail-col {
     display: flex;
@@ -4109,6 +4574,180 @@
   }
   .kiosk-v4 .v4m-step .v4m-step-count .v4m-step-active { color: #0891B2; }
 
+  /* ─── App mode (.app-fit): the kiosk screens are designed on a fixed
+     1024×768 canvas (9.7" iPad landscape) and rendered inside a scaling
+     stage (see the app's KioskStage). These compact-chrome rules apply
+     whenever the app renders the screen — NOT via a viewport media query,
+     because inside the fixed stage the viewport size is irrelevant.
+     The design-doc mock keeps its natural frame height and base styles.
+     NOTE: must stay AFTER the kiosk-v4 base rules to win the cascade. ─── */
+  .kiosk-v4.app-fit {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .kiosk-v4.app-fit .v4m-body {
+    flex: 1;
+    min-height: 0;
+  }
+  .kiosk-v4.app-fit .v4m-nav { padding: 10px 18px; }
+  .kiosk-v4.app-fit .v4m-hero { padding: 9px 18px 7px; }
+  .kiosk-v4.app-fit .v4m-hero h1 { font-size: 1.4rem; }
+  .kiosk-v4.app-fit .v4m-body.selector-top {
+    gap: 12px;
+    padding: 2px 18px 10px;
+  }
+  .kiosk-v4.app-fit .v4m-main-col { gap: 12px; }
+  .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 10px 14px; }
+  .kiosk-v4.app-fit .v4m-selector-actions { padding: 6px 0; }
+  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 5px 0 3px; }
+  .kiosk-v4.app-fit .v4m-tile { min-height: 72px; padding: 5px 5px 7px; }
+  .kiosk-v4.app-fit .v4m-tile .v4m-tile-name { font-size: 0.6rem; }
+  .kiosk-v4.app-fit .v4m-sliders-head { margin-bottom: 6px; }
+  .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
+  .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-bottom { margin-top: 6px; }
+  .kiosk-v4.app-fit .v4m-rail-col { gap: 12px; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-mega:first-child .v4m-mega-section { padding: 12px 14px; }
+  .kiosk-v4.app-fit .v4m-field { padding: 6px 0; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-field:first-child { padding-top: 0; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-field:last-child { padding-bottom: 0; }
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-field input.v4m-input { font-size: 1rem; }
+  .kiosk-v4.app-fit .v4m-check-row { padding: 7px 4px; }
+  .kiosk-v4.app-fit .v4m-field.v4m-field-checklist { padding-top: 10px; margin-top: 10px; }
+  .kiosk-v4.app-fit .v4m-field.v4m-field-checklist > label { margin-bottom: 8px; }
+  .kiosk-v4.app-fit .v4m-optin { padding-top: 8px; }
+  .kiosk-v4.app-fit .v4m-chips { gap: 5px; }
+  .kiosk-v4.app-fit .v4m-chip { padding: 5px 8px; font-size: 0.7rem; }
+  .kiosk-v4.app-fit .v4m-chips-grid .v4m-chip { min-height: 34px; }
+  /* Agent card — prominent centered preview filling its space. */
+  .kiosk-v4.app-fit .v4m-rail-col .v4m-mega:last-child .v4m-mega-section { padding: 8px 14px; }
+  .kiosk-v4.app-fit .v4m-preview { padding: 2px 10px; gap: 4px; }
+  .kiosk-v4.app-fit .v4m-preview-mystery-box { width: 72px; height: 72px; }
+  .kiosk-v4.app-fit .v4m-preview-butterfly { width: 40px; height: 40px; }
+  .kiosk-v4.app-fit .v4m-preview .v4m-preview-name { font-size: 1.18rem; margin-top: 6px; }
+  .kiosk-v4.app-fit .v4m-preview .v4m-preview-handle { margin-top: 3px; }
+  .kiosk-v4.app-fit .v4m-preview-mystery-caption { display: none; }
+  .kiosk-v4.app-fit .v4m-cta-bar { padding: 0 18px 10px; }
+  .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
+  .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
+
+  /* ─── App mode for the strategy-return screen — compact chrome so a
+     full 25-holding portfolio + QR fit the 1024×768 stage. ─── */
+  .kiosk-welcome-v4.app-fit {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-nav { padding: 10px 18px; }
+  .kiosk-welcome-v4.app-fit .v4m-hero { padding: 10px 18px 8px; }
+  .kiosk-welcome-v4.app-fit .v4m-hero h1 { font-size: 1.5rem; }
+  .kiosk-welcome-v4.app-fit .v4m-body {
+    flex: 1;
+    min-height: 0;
+    gap: 16px;
+    padding: 2px 18px 12px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-panel {
+    padding: 16px 18px;
+    gap: 12px;
+    min-height: 0;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-header {
+    gap: 14px;
+    padding-bottom: 12px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-strat-strip {
+    padding: 0 0 10px;
+    margin-bottom: 10px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-stack {
+    height: 12px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
+    padding-top: 12px;
+    margin-top: auto;   /* QR row anchors to the card bottom */
+  }
+  .kiosk-welcome-v4.app-fit .v4m-agent-qr {
+    width: 76px;
+    height: 76px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-main {
+    padding: 18px 18px 16px;
+  }
+
+  /* ─── Touch ergonomics (tablet / coarse pointer) ─── */
+  @media (pointer: coarse) {
+    .kiosk-v4 .v4m-slider .v4m-slider-knob {
+      width: 24px;
+      height: 24px;
+      margin-left: -12px;
+    }
+    .kiosk-v4 .v4m-slider .v4m-slider-shell {
+      padding: 16px 0;
+      margin: -16px 0;
+    }
+    .kiosk-v4 .v4m-selector-btn { padding: 11px 0; }
+  }
+
+  /* ─── Asset icon audit grid (design doc §05) ─── */
+  .icon-audit {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+  }
+  .icon-audit .icon-card {
+    border: 1px solid #e4e4e7;
+    background: white;
+    padding: 14px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .icon-audit .icon-card img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    border-radius: 10px;
+  }
+  .icon-audit .icon-card .icon-card-ticker {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #18181b;
+  }
+  .icon-audit .icon-card .icon-card-name {
+    font-size: 0.68rem;
+    color: #71717b;
+    line-height: 1.25;
+  }
+  @media (max-width: 900px) {
+    .icon-audit { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* ─── doc-stage: render a kiosk mock inside a true 1024×768 iPad canvas,
+     scaled to fit the design-doc column. The doc's script sets the scale
+     transform and the stage height (width / 1024 × 768). ─── */
+  .doc-stage {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  .doc-stage-canvas {
+    width: 1024px;
+    height: 768px;
+    transform-origin: top left;
+    display: flex;
+    flex-direction: column;
+  }
+  .doc-stage-canvas > .qs-v4-mock {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   /* ─── Mock B: kiosk-welcome-v4 (post-routing) ─── */
   .kiosk-welcome-v4 {
     min-height: 540px;
@@ -4231,6 +4870,72 @@
     text-transform: uppercase;
     color: #71717b;
   }
+  /* Strategy recap strip — three slider values in a row above the portfolio */
+  .kiosk-welcome-v4 .v4m-strat-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    padding: 2px 0 12px;
+    border-bottom: 1px solid #ececef;
+    margin-bottom: 14px;
+  }
+  .kiosk-welcome-v4 .v4m-strat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .kiosk-welcome-v4 .v4m-strat-strip-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Portfolio block — full width; holdings flow into two columns */
+  .kiosk-welcome-v4 .v4m-portfolio-block {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 28px;
+    align-content: start;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row {
+    border-top: 1px solid #f1f1f3;
+    padding: 7px 0;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row:nth-child(-n+2) {
+    border-top: none;
+  }
+  /* Dense variant (>12 holdings, up to the full 25): three columns —
+     the whole universe fits the canvas while staying comfortably legible. */
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense {
+    grid-template-columns: 1fr 1fr 1fr;
+    column-gap: 24px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-row {
+    grid-template-columns: auto 1fr auto auto;
+    gap: 9px;
+    padding: 6.5px 0;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-row:nth-child(-n+3) {
+    border-top: none;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-name { font-size: 0.78rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-pct { font-size: 0.78rem; }
+  .kiosk-welcome-v4 .v4m-alloc-grid.dense .v4m-alloc-usd { font-size: 0.72rem; }
   /* Strategy recap column — sits between the solver outcome and the portfolio */
   .kiosk-welcome-v4 .v4m-strat-list {
     display: flex; flex-direction: column;
@@ -4409,6 +5114,14 @@
   }
   .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-icon {
     width: 22px; height: 22px; display: block;
+  }
+  .kiosk-welcome-v4 .v4m-alloc-row img.v4m-alloc-icon {
+    object-fit: contain;
+    border-radius: 6px;   /* square stock favicons get soft corners */
+  }
+  .bigscreen.dir-quipsite.v4.state-d img.sda-glyph {
+    object-fit: contain;
+    border-radius: 6px;
   }
   .kiosk-welcome-v4 .v4m-alloc-row .v4m-alloc-dot {
     width: 10px;
@@ -5285,6 +5998,27 @@
     text-transform: uppercase;
     color: #a1a1aa;
   }
+  /* All-25 variant — the full universe in a compact two-column grid */
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 2.2cqw;
+    align-content: start;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-row {
+    grid-template-columns: 3cqh 1fr auto;
+    gap: 0.8cqw;
+    padding: 0.62cqh 0;
+    border-bottom: 1px solid #ececef;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-glyph {
+    width: 2.7cqh;
+    height: 2.7cqh;
+    object-fit: contain;
+    border-radius: 0.5cqh;
+  }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-ticker { font-size: 1.45cqh; }
+  .bigscreen.dir-quipsite.v4.state-d .state-d-asset-list.all .sda-change { font-size: 1.35cqh; }
 
   /* ─── Mobile: scale the kiosk-laptop mockups proportionally ───
      The kiosk-v4 and kiosk-welcome-v4 mocks are laid out at a

@@ -1,14 +1,40 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitAgent, requestOptimization } from '../../api';
-import type { SliderValues } from '../../api';
+import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
+import { maxPositionCapPct } from '../../utils/strategy';
+import KioskStage from './Stage';
 
+// All three sliders are parameters of the allocation problem the solver runs
+// (it allocates the portfolio — it doesn't execute trades): how often to
+// re-optimize, how hard to chase returns, and how big any single position
+// may get.
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number; labels: [string, string, string, string, string] }> = [
-  { key: 'tradingActivity',  label: 'Trading activity',  initial: 70, labels: ['Idle', 'Quiet', 'Moderate', 'High', 'Manic'] },
-  { key: 'riskPreference',   label: 'Risk preference',   initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
-  { key: 'tradeSize',        label: 'Trade size',        initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
-  { key: 'holdingStyle',     label: 'Holding style',     initial: 30, labels: ['Restless', 'Quick', 'Balanced', 'Patient', 'Diamond'] },
-  { key: 'diversification',  label: 'Diversification',   initial: 55, labels: ['Concentrated', 'Focused', 'Balanced', 'Spread', 'Wide'] },
+  // Cadence values are the REAL tiers (QPU time costs money — hourly is the
+  // hard cap at the most aggressive setting). See utils/strategy REBALANCE_TIERS.
+  { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70, labels: ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'] },
+  { key: 'riskPreference',     label: 'Risk preference',     initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
+  { key: 'maxPositionSize',    label: 'Max position size',   initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
+];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// "Would you like someone from our team to reach out to you?" — verbatim from
+// the Luma event registration so kiosk leads and event sign-ups share one
+// taxonomy. Captures consent + intent + audience segment in a single question;
+// the chip shows a short label, `value` is the full Luma option text stored on
+// the agent. "No thanks" is the opt-out and is mutually exclusive with the rest.
+// Short chip labels (the question header supplies the "Yes, I'm interested
+// in…" framing); `value` is the full Luma option text stored on the agent.
+// The question is optional — leaving every box unchecked IS the decline, so
+// there's no explicit "No thanks" row.
+const REACH_OUT_OPTIONS: Array<{ label: string; value: string }> = [
+  { label: 'Yes, to learn about quantum computing',        value: "Yes, I'd like to learn more about quantum computing" },
+  { label: 'Yes, to buy compute',                          value: "Yes, I'm interested in buying compute" },
+  { label: 'Yes, to provide compute',                      value: "Yes, I'm interested in providing compute" },
+  { label: 'Yes, to build quantum applications',           value: "Yes, I'm interested in building quantum applications" },
+  { label: 'Yes, to partner with Quip Network',            value: "Yes, I'm interested in partnering with Quip Network" },
+  { label: 'Yes, to learn about post-quantum cryptography', value: "Yes, I'd like to learn more about post-quantum cryptography" },
 ];
 
 function labelFor(value: number, labels: readonly string[]): string {
@@ -24,14 +50,27 @@ function handleFromName(name: string): string {
 export default function KioskSignUp() {
   const navigate = useNavigate();
   const [name, setName] = useState('Lattice Theory');
-  const [handle, setHandle] = useState('');
+  const [email, setEmail] = useState('');
+  const [reachOut, setReachOut] = useState<Set<string>>(new Set());
+  const [updatesOptIn, setUpdatesOptIn] = useState(false);
+
+  function toggleReachOut(value: string) {
+    setReachOut(prev => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  }
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
+  // Start with an empty basket — the player actively picks their assets.
+  const [selected, setSelected] = useState<Set<AssetTicker>>(new Set());
   const [busy, setBusy] = useState(false);
 
   const previewName = (name.trim() || 'Player');
-  const previewHandle = handle.trim()
-    ? (handle.trim().startsWith('@') ? handle.trim() : '@' + handle.trim())
-    : handleFromName(previewName);
+  const previewHandle = handleFromName(previewName);
+  const nameValid = name.trim().length > 0;
+  const emailValid = EMAIL_RE.test(email.trim());
 
   function updateSlider(i: number, v: number) {
     setSliders(prev => {
@@ -41,8 +80,34 @@ export default function KioskSignUp() {
     });
   }
 
+  function toggleAsset(ticker: AssetTicker) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker);
+      else next.add(ticker);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(ASSETS.map(a => a.ticker)));
+  }
+
+  function selectNone() {
+    setSelected(new Set());
+  }
+
+  // Auto-pick: a coin flip per asset builds a random basket (never empty).
+  function autoPick() {
+    const picked = ASSETS.filter(() => Math.random() < 0.5).map(a => a.ticker);
+    if (picked.length === 0) {
+      picked.push(ASSETS[Math.floor(Math.random() * ASSETS.length)].ticker);
+    }
+    setSelected(new Set(picked));
+  }
+
   async function launch() {
-    if (busy) return;
+    if (busy || selected.size === 0 || !nameValid || !emailValid) return;
     setBusy(true);
     const sliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
@@ -51,15 +116,96 @@ export default function KioskSignUp() {
     const { agentId } = await submitAgent({
       name: previewName,
       handle: previewHandle,
+      email: email.trim(),
+      reachOut: reachOut.size ? REACH_OUT_OPTIONS.filter(o => reachOut.has(o.value)).map(o => o.value) : undefined,
+      updatesOptIn,
       sliders: sliderValues,
+      assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
     });
     const result = await requestOptimization(agentId);
     sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
     navigate(`/kiosk/welcome?agent=${agentId}`);
   }
 
+  function renderAssetTile(asset: AssetInfo) {
+    const on = selected.has(asset.ticker);
+    return (
+      <button
+        type="button"
+        className={`v4m-tile ${asset.class}${on ? ' on' : ''}`}
+        key={asset.ticker}
+        onClick={() => toggleAsset(asset.ticker)}
+        aria-pressed={on}
+      >
+        <span className="v4m-tile-check" aria-hidden="true">✓</span>
+        <img className="v4m-tile-icon" src={assetIconSrc(asset.ticker)} alt="" loading="lazy" />
+        <span className="v4m-tile-ticker">{asset.ticker}</span>
+        <span className="v4m-tile-name">{asset.name}</span>
+      </button>
+    );
+  }
+
+  const detailsCard = (
+    <div className="v4m-mega">
+      <div className="v4m-mega-section">
+        <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
+        <div className="v4m-field">
+          <label htmlFor="kiosk-name">Player name (required)</label>
+          <input
+            className="v4m-input"
+            id="kiosk-name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+        </div>
+        <div className="v4m-field">
+          <label htmlFor="kiosk-email">Email (required)</label>
+          <input
+            className="v4m-input"
+            id="kiosk-email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+          <div className="v4m-field-hint">So we can reach you if you win</div>
+        </div>
+        <button
+          type="button"
+          className={`v4m-check-row v4m-optin-row${updatesOptIn ? ' on' : ''}`}
+          aria-pressed={updatesOptIn}
+          onClick={() => setUpdatesOptIn(v => !v)}
+        >
+          <span className="v4m-check-box" aria-hidden="true">{updatesOptIn ? '✓' : ''}</span>
+          <span className="v4m-check-label">Sign me up for updates from Quip Network</span>
+        </button>
+        <div className="v4m-field v4m-field-checklist">
+          <label>Would you like someone from our team to reach out?<span className="opt">Optional</span></label>
+          <div className="v4m-checklist">
+            {REACH_OUT_OPTIONS.map(o => (
+              <button
+                type="button"
+                key={o.value}
+                className={`v4m-check-row${reachOut.has(o.value) ? ' on' : ''}`}
+                aria-pressed={reachOut.has(o.value)}
+                onClick={() => toggleReachOut(o.value)}
+              >
+                <span className="v4m-check-box" aria-hidden="true">{reachOut.has(o.value) ? '✓' : ''}</span>
+                <span className="v4m-check-label">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="qs-v4-mock kiosk-v4">
+    <KioskStage>
+    <div className="qs-v4-mock kiosk-v4 app-fit">
 
       <div className="v4m-nav">
         <div className="v4m-mark">
@@ -67,120 +213,100 @@ export default function KioskSignUp() {
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up · Day 1</span>
+        <span className="v4m-pill">Live · Sign-up</span>
       </div>
 
       <div className="v4m-hero">
         <h1>Create your <span className="it">trading agent.</span></h1>
       </div>
 
-      <div className="v4m-body">
+      <div className="v4m-body selector-top">
 
-        <div className="v4m-form-col">
-          <div className="v4m-field">
-            <label htmlFor="kiosk-name">Player name</label>
-            <input
-              className="v4m-input"
-              id="kiosk-name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-          </div>
-          <div className="v4m-field">
-            <label htmlFor="kiosk-handle">X handle (optional)</label>
-            <input
-              className="v4m-input"
-              id="kiosk-handle"
-              type="text"
-              placeholder="@yourhandle"
-              value={handle}
-              onChange={e => setHandle(e.target.value)}
-            />
-          </div>
+        <div className="v4m-main-col">
 
-          {SLIDER_DEFS.map((def, i) => (
-            <div className="v4m-slider" key={def.key}>
-              <div className="v4m-slider-top">
-                <span className="v4m-slider-label">{def.label}</span>
-                <span className="v4m-slider-val">{labelFor(sliders[i], def.labels)}</span>
+          <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
+            <div className="v4m-mega-section v4m-selector-section">
+              <div className="v4m-selector-head">
+                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your basket</span>
+                <span className="v4m-selector-count">{selected.size}/{ASSETS.length}</span>
               </div>
-              <div className="v4m-slider-shell">
-                <div className="v4m-slider-track">
-                  <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
-                  <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
-                </div>
-                <input
-                  type="range"
-                  className="range-overlay"
-                  min={0}
-                  max={100}
-                  value={sliders[i]}
-                  onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
-                />
+              <div className="v4m-selector-actions">
+                <button type="button" className="v4m-selector-btn" onClick={selectAll}>All</button>
+                <button type="button" className="v4m-selector-btn" onClick={selectNone}>Clear</button>
+                <button type="button" className="v4m-selector-btn accent" onClick={autoPick}>Auto-pick</button>
+              </div>
+              <div className="v4m-pick-list">
+                <div className="v4m-pick-group-label">Crypto · {CRYPTO_ASSETS.length}</div>
+                <div className="v4m-pick-grid">{CRYPTO_ASSETS.map(renderAssetTile)}</div>
+                <div className="v4m-pick-group-label">Stocks · {STOCK_ASSETS.length}</div>
+                <div className="v4m-pick-grid">{STOCK_ASSETS.map(renderAssetTile)}</div>
               </div>
             </div>
-          ))}
+          </div>
+
+          <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
+            <div className="v4m-mega-section">
+              <div className="v4m-sliders-head">
+                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
+              </div>
+              <div className="v4m-sliders-row">
+                {SLIDER_DEFS.map((def, i) => (
+                  <div className="v4m-slider" key={def.key}>
+                    <div className="v4m-slider-top">
+                      <span className="v4m-slider-label">{def.label}</span>
+                    </div>
+                    <div className="v4m-slider-shell">
+                      <div className="v4m-slider-track">
+                        <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
+                        <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+                      </div>
+                      <input
+                        type="range"
+                        className="range-overlay"
+                        min={0}
+                        max={100}
+                        value={sliders[i]}
+                        onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
+                      />
+                    </div>
+                    <div className="v4m-slider-bottom">
+                      <span className="v4m-slider-val">
+                        {labelFor(sliders[i], def.labels)}
+                        {/* the position cap is relative to the basket — show the live number */}
+                        {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <aside className="v4m-rail-col" aria-label="Your agent">
-          <div className="v4m-mega">
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow cyan-dot">Your Agent</span>
-              <div className="v4m-preview v4m-preview-mystery">
-                <div className="v4m-preview-mystery-box" aria-hidden="true">
-                  <svg className="v4m-preview-butterfly" viewBox="219 4 106 103" xmlns="http://www.w3.org/2000/svg">
-                    <use href="#quip-butterfly" />
-                  </svg>
-                </div>
-                <div className="v4m-preview-name">{previewName}</div>
-                <div className="v4m-preview-handle">{previewHandle}</div>
-                <div className="v4m-preview-mystery-caption">Identity revealed at launch</div>
-              </div>
-            </div>
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow">Routing to</span>
-              <div className="v4m-pr q">
-                <span className="v4m-tag">QPU</span>
-                <span className="v4m-pr-name">D-Wave Advantage</span>
-                <span className="v4m-pr-meta">Quantum</span>
-              </div>
-              <div className="v4m-pr c">
-                <span className="v4m-tag">CPU</span>
-                <span className="v4m-pr-name">Classical baseline</span>
-                <span className="v4m-pr-meta">MILP</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <aside className="v4m-rail-col v4m-assets-rail" aria-label="Supported assets">
-          <div className="v4m-mega">
-            <div className="v4m-mega-section">
-              <span className="v4m-section-eyebrow cyan-dot">Supported assets</span>
-              <div className="v4m-asset-list">
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-btc" /></svg><span className="v4m-asset-name">BTC</span><span className="v4m-asset-change up">+2.1%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-eth" /></svg><span className="v4m-asset-name">ETH</span><span className="v4m-asset-change up">+1.4%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-sol" /></svg><span className="v4m-asset-name">SOL</span><span className="v4m-asset-change up">+3.0%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-link" /></svg><span className="v4m-asset-name">LINK</span><span className="v4m-asset-change down">−0.6%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-uni" /></svg><span className="v4m-asset-name">UNI</span><span className="v4m-asset-change up">+0.3%</span></div>
-                <div className="v4m-asset"><svg className="v4m-asset-glyph" viewBox="0 0 32 32"><use href="#crypto-usdc" /></svg><span className="v4m-asset-name">USDC</span><span className="v4m-asset-change flat">±0.0%</span></div>
-              </div>
-              <div className="v4m-asset-note">Final basket TBD</div>
-            </div>
-          </div>
+        <aside className="v4m-rail-col" aria-label="Your details">
+          {detailsCard}
         </aside>
 
       </div>
 
       <div className="v4m-cta-bar">
-        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy}>
-          <span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
+        <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size === 0 || !nameValid || !emailValid}>
+          <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
-        <div className="v4m-cta-sub">Your unique identity is revealed once you launch · ~1 second to first job</div>
+        {(selected.size === 0 || !nameValid || !emailValid) && (
+          <div className="v4m-cta-sub">
+            {selected.size === 0
+              ? 'Select at least one asset to launch'
+              : !nameValid
+                ? 'Enter a player name to launch'
+                : 'Enter your email to launch'}
+          </div>
+        )}
       </div>
 
     </div>
+    </KioskStage>
   );
 }

@@ -1,23 +1,49 @@
 // API contract for the Quip Network QTW 2026 trading-competition MVP.
 // Engineers wire a real backend by implementing these signatures (see api/index.ts).
 
+// Three strategy sliders, all native to the portfolio-allocation problem the
+// solver actually runs (the optimizer allocates — it doesn't execute trades):
+// rebalanceFrequency = how often the agent dispatches a re-optimization job;
+// riskPreference     = risk-aversion term in the objective;
+// maxPositionSize    = per-asset weight cap.
+// (Holding style and diversification were dropped — the basket expresses those.)
 export type SliderValues = {
-  tradingActivity: number;    // 0–100
-  riskPreference: number;
-  tradeSize: number;
-  holdingStyle: number;
-  diversification: number;
+  rebalanceFrequency: number;  // 0–100
+  riskPreference: number;      // 0–100
+  maxPositionSize: number;     // 0–100
 };
 
 export type AgentConfig = {
   name: string;
-  handle?: string;
+  handle?: string;              // display handle, auto-derived from the player name
+  email?: string;               // required at sign-up; optional here for seeded demo agents
+  reachOut?: string[];          // optional, multi-select — "Would you like someone from our team to reach out to you?" (verbatim Luma event options). Captures consent + intent + segment in one; "No thanks" = opt out.
+  updatesOptIn?: boolean;       // "Sign me up for updates from Quip Network" — general newsletter opt-in, separate from the direct reach-out request
   sliders: SliderValues;
+  assets?: AssetTicker[];       // the player's selected basket (subset of the 25-asset universe)
 };
 
 export type ProviderType = 'QPU' | 'CPU';
 
-export type AssetTicker = 'BTC' | 'ETH' | 'SOL' | 'USDC';
+export type AssetClass = 'crypto' | 'stock';
+
+// The full 25-asset tradable universe: 14 crypto + 11 stocks.
+export type AssetTicker =
+  // crypto
+  | 'BTC' | 'ETH' | 'BNB' | 'USDC' | 'XRP' | 'SOL' | 'HYPE'
+  | 'DOGE' | 'USDT' | 'ZEC' | 'ALGO' | 'STRK' | 'FIL' | 'RENDER'
+  // stocks
+  | 'IONQ' | 'QBTS' | 'RGTI' | 'QUBT' | 'QNT' | 'SAF'
+  | 'INDI' | 'BTQ' | 'LAES' | 'ARQQ' | 'SPCX';
+
+export type AssetInfo = {
+  ticker: AssetTicker;
+  name: string;
+  class: AssetClass;
+  icon: string;        // filename in shared-design/asset-icons/
+  color: string;       // mark color, used in the allocation bar
+  vol: number;         // placeholder volatility score 0..1 (drives the risk tilt in the demo)
+};
 
 export type PortfolioEntry = {
   ticker: AssetTicker;

@@ -1,3 +1,27 @@
 /* Reset only — the v4 design styles come from shared-design/v4-mocks.css */
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif; color: #18181b; background: #ffffff; }
+
+/* Kiosk stage — fixed 1024×768 canvas (9.7" iPad landscape) scaled
+   proportionally to the real viewport. See routes/Kiosk/Stage.tsx. */
+.kiosk-stage-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #fafafa;
+}
+/* Centered via the transform itself (translate(-50%,-50%) + scale set
+   inline by KioskStage) — immune to any flex/display interference. */
+.kiosk-stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1024px;
+  height: 768px;
+  transform-origin: center center;
+}
+.kiosk-stage > .qs-v4-mock {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
