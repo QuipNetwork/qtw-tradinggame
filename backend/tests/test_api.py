@@ -89,3 +89,20 @@ def test_basket_below_minimum_is_rejected():
         )
         assert response.status_code == 422
         assert "at least" in response.json()["detail"]
+
+
+@requires_gurobi
+def test_optimize_accepts_a_new_basket():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        client.post(f"/agents/{agent_id}/optimize", json={})
+        response = client.post(
+            f"/agents/{agent_id}/optimize", json={"assets": ["HON", "GOOGL", "IBM"]}
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["kind"] == "retune"
+        assert {e["ticker"] for e in body["portfolio"]} == {"HON", "GOOGL", "IBM"}
+
+        too_small = client.post(f"/agents/{agent_id}/optimize", json={"assets": ["BTC"]})
+        assert too_small.status_code == 422

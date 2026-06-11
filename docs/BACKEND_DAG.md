@@ -48,7 +48,7 @@ flowchart TB
         RE["estimators/expected_return.py<br/>μ from fixed 168h window"]
         QE["qubo_encoder.py<br/>QP → bit-discretized QUBO"]
         QD["qubo_decoder.py<br/>bitstring → weights"]
-        RT["retune.py<br/>diff w_old→w_new"]
+        RT["allocate<br/>liquidate → reallocate"]
         PNL["pnl.py<br/>holdings × spot → AgentUpdate"]
         BASKET["basket.py<br/>25-asset universe"]
     end
@@ -86,7 +86,7 @@ flowchart TB
     %% ===== Frontend → API =====
     K -->|"submitAgent(config)"| EP1
     K -->|"requestOptimization(id)"| EP3
-    P -->|"retune w/ sliders"| EP3
+    P -->|"retune w/ sliders + basket"| EP3
     P -->|"subscribeAgent"| EP5
     W -->|"getAgent(id)"| EP2
     TVA -->|"getLeaderboard"| EP4
@@ -109,7 +109,6 @@ flowchart TB
     SRC --> CE
     CE -->|"Σ (n×n)"| QE
     RE -->|"μ (n)"| QE
-    AG -.->|"w_prev on retune"| QE
     CFG -.->|"b, λ_sum, λ_K"| QE
 
     QE -->|"QP (Gurobi) · QUBO (SA, D-Wave)"| RTR
@@ -169,9 +168,10 @@ QP for Gurobi, the bit-discretized QUBO for SA and D-Wave — and the **first
 feasible** answer wins.
 
 - **The canonical problem.** `orchestration/job.py` assembles a `PortfolioProblem`
-  (`financial/types.py`) over the player's basket from the slider params, the
-  estimates (μ, Σ), and `w_prev` on a retune. No cardinality constraint — the
-  basket decides participation, and a min-position floor keeps every selected
+  (`financial/types.py`) over the player's basket from the slider params and the
+  estimates (μ, Σ). Every solve is a fresh allocation — a retune liquidates and
+  reallocates, so there is no turnover anchor; no cardinality constraint either,
+  the basket decides participation and a min-position floor keeps every selected
   asset held.
 - **The router** (`solvers/router.py::race`) encodes the QUBO once, hashes it for
   the audit log, and dispatches the providers concurrently on a thread pool (the
@@ -199,4 +199,4 @@ feasible** answer wins.
 
 - **Build-and-solve hot path**: `EP3 → JOB → SM → (CE + RE) → QE → RTR → FEAS → QD → RT → AG/JOBS → response`. (`QD` decode applies to a QUBO winner — SA or D-Wave; a Gurobi QP winner returns weights directly.)
 - **MTM hot loop**: `SCHED → PNL → AG/LB → BUS → EP5`.
-- **First-solve vs retune branch lives in `RT` (retune.py)** — invisible to the solvers, which each see a fresh problem in their native form.
+- **First solve and retune are the same math** — a retune liquidates at spot and reallocates over the (possibly re-selected) basket; the solvers always see a fresh problem.

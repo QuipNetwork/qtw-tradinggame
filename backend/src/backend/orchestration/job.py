@@ -1,17 +1,15 @@
 """End-to-end optimization job for one request.
 
-basket → slider_map → estimates(μ, Σ) → solver race → retune → persist.
-First-solve vs retune is decided by whether the agent already holds positions;
-the solvers never see the difference. Returns the result plus the events to
-publish so the API layer can run this in a worker thread and publish on the
-event loop.
+basket → slider_map → estimates(μ, Σ) → solver race → allocate → persist.
+Every solve is a fresh allocation: a retune liquidates all holdings at spot
+and reallocates the full value over the (possibly re-selected) basket. Returns
+the result plus the events to publish so the API layer can run this in a
+worker thread and publish on the event loop.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-
-import numpy as np
 
 from .. import config
 from ..api.schemas import RoutingResult, SliderValues
@@ -22,7 +20,6 @@ from ..financial.pnl import mark_to_market
 from ..financial.prices.base import MarketDataSource
 from ..financial.prices.source import get_source
 from ..financial.qubo_decoder import weights_to_portfolio
-from ..financial.retune import compute_retune
 from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
 from ..persistence.agents import AgentStore, get_agent_store
@@ -54,14 +51,15 @@ class OptimizeOutcome:
 def run_optimization(
     agent_id: str,
     sliders: SliderValues | None = None,
+    assets: list[str] | None = None,
     *,
     agents: AgentStore | None = None,
     jobs: JobStore | None = None,
     market: MarketDataSource | None = None,
     deadline_s: float | None = None,
 ) -> OptimizeOutcome:
-    """Run one job. Raises KeyError for unknown agents, SolverFailed when the
-    race produces nothing feasible."""
+    """Run one job. Raises KeyError for unknown agents, ValueError for a bad
+    basket, SolverFailed when the race produces nothing feasible."""
     agents = agents if agents is not None else get_agent_store()
     jobs = jobs if jobs is not None else get_job_store()
     market = market if market is not None else get_source()
@@ -72,46 +70,19 @@ def run_optimization(
 
     if sliders is not None:
         agents.update_sliders(agent_id, sliders)
-        agent = agents.get(agent_id)
+    if assets is not None:
+        agents.update_assets(agent_id, validate_basket(assets))
+    agent = agents.get(agent_id)
 
     tickers = validate_basket(agent.assets)
     params = map_sliders(agent.sliders, len(tickers))
 
     # Σ over the fixed 720h window, μ over the fixed lookback within it.
     returns = market.hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
-    Sigma = covariance(returns)
-    mu = expected_return(returns, config.MU_WINDOW_HOURS)
-
-    spot = market.spot_prices(tickers)
-    is_first = not agent.holdings_units
-    if is_first:
-        portfolio_value = agent.bankroll
-        w_old = np.zeros(len(tickers))
-    else:
-        portfolio_value = sum(units * spot[t] for t, units in agent.holdings_units.items())
-        w_old = np.array(
-            [
-                agent.holdings_units.get(t, 0.0) * spot[t] / portfolio_value
-                if portfolio_value > 0
-                else 0.0
-                for t in tickers
-            ]
-        )
-
-    # Turnover penalty: a first solve has no holdings to anchor to (λ_t = 0,
-    # w_ref irrelevant); a retune anchors to the drifted current weights, scaled
-    # to the data so the penalty stays commensurate with the risk term.
-    if is_first:
-        lambda_t = 0.0
-    else:
-        lambda_t = config.TURNOVER_PENALTY_MULT * params.gamma * float(np.diag(Sigma).mean())
-
     problem = PortfolioProblem(
-        mu=mu,
-        Sigma=Sigma,
+        mu=expected_return(returns, config.MU_WINDOW_HOURS),
+        Sigma=covariance(returns),
         gamma=params.gamma,
-        lambda_t=lambda_t,
-        w_ref=np.zeros(len(tickers)) if is_first else w_old.copy(),
         w_max=params.w_max,
         w_min=params.w_min,
         asset_tickers=tickers,
@@ -119,10 +90,21 @@ def run_optimization(
 
     race_result = race(problem, deadline_s=deadline_s)
     winner = race_result.winner
-    w_new = winner.weights
 
-    retune = compute_retune(w_old, w_new, tickers, portfolio_value)
-    holdings_units = {t: usd / spot[t] for t, usd in retune.new_holdings_usd.items()}
+    # Liquidate everything at spot, reallocate the full value by the winner's
+    # weights. The spot snapshot covers old and new holdings alike.
+    spot = market.spot_prices(list({*tickers, *agent.holdings_units}))
+    is_first = not agent.holdings_units
+    portfolio_value = (
+        agent.bankroll
+        if is_first
+        else sum(units * spot[t] for t, units in agent.holdings_units.items())
+    )
+    holdings_units = {
+        t: w * portfolio_value / spot[t]
+        for t, w in zip(tickers, winner.weights, strict=True)
+        if w > 0.0
+    }
 
     agents.apply_solve(
         agent_id,
@@ -145,7 +127,7 @@ def run_optimization(
         provider_type=winner.provider_role,
         solve_time=winner.solve_time_s,
         vs_classical=race_result.vs_classical,
-        portfolio=weights_to_portfolio(w_new, tickers, portfolio_value),
+        portfolio=weights_to_portfolio(winner.weights, tickers, portfolio_value),
         kind="first" if is_first else "retune",
         job_id=job.id,
         solved_at=job.solved_at,

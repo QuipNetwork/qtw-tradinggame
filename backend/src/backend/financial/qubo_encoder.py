@@ -5,7 +5,7 @@ DERIVATION
 
 QP form (continuous w over the player's n-asset basket):
 
-    min   (γ/2) wᵀΣw  -  μᵀw  +  λ_t ‖w - w_ref‖²
+    min   (γ/2) wᵀΣw  -  μᵀw
     s.t.  Σ w_i = 1                  (budget)
           w_min ≤ w_i ≤ w_max        (box)
 
@@ -25,8 +25,8 @@ QUBO objective contributions (z := x, length nb)
 
 Substituting w = m + Dx (m := w_min·1) into the smooth objective:
 
-1. Quadratic:  xᵀ [ (γ/2) DᵀΣD + λ_t DᵀD ] x
-2. Linear:     Dᵀ [ γ Σ m - μ + 2λ_t (m - w_ref) ] · x
+1. Quadratic:  xᵀ [ (γ/2) DᵀΣD ] x
+2. Linear:     Dᵀ [ γ Σ m - μ ] · x
    (constants in m alone are dropped — they don't affect the argmin)
 
 Budget penalty λ_sum (Σw - 1)² with Σw = n·w_min + uᵀx, u = Dᵀ1:
@@ -85,16 +85,8 @@ def encode_qubo(
 
     m = np.full(N, w_min)  # the constant offset vector
 
-    # -------------------------------------------------------------------------
-    # Objective: quadratic (γ/2) DᵀΣD + λ_t DᵀD;
-    # linear Dᵀ[γ Σ m - μ + 2λ_t (m - w_ref)].
-    # -------------------------------------------------------------------------
-    A_obj = (problem.gamma / 2.0) * D.T @ problem.Sigma @ D + problem.lambda_t * D.T @ D
-    b_obj = D.T @ (
-        problem.gamma * (problem.Sigma @ m)
-        - problem.mu
-        + 2.0 * problem.lambda_t * (m - problem.w_ref)
-    )
+    A_obj = (problem.gamma / 2.0) * D.T @ problem.Sigma @ D
+    b_obj = D.T @ (problem.gamma * (problem.Sigma @ m) - problem.mu)
 
     # Penalty weight tracks the largest objective coefficient (tiny epsilon
     # guard only — a hard floor would blow the penalty:objective ratio to ~10⁶

@@ -77,7 +77,6 @@ def test_router_race_produces_a_feasible_winner(synthetic_problem_3assets):
 def test_sa_feasible_at_full_universe_scale():
     """Penalty-ratio canary: at 500× (no obj_scale floor) SA must still respect
     the budget on the hardest case — the dense 25-asset, 100-bit QUBO."""
-    import numpy as np
 
     from backend import config
     from backend.financial.basket import TICKERS
@@ -93,8 +92,6 @@ def test_sa_feasible_at_full_universe_scale():
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
         Sigma=covariance(returns),
         gamma=1.5,
-        lambda_t=0.0,
-        w_ref=np.zeros(len(tickers)),
         w_max=0.27,
         w_min=0.01,
         asset_tickers=tickers,

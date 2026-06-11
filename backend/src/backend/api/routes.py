@@ -54,10 +54,13 @@ async def get_agent(agent_id: str) -> AgentConfig:
 @router.post("/agents/{agent_id}/optimize", response_model=RoutingResult)
 async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> RoutingResult:
     sliders = body.sliders if body is not None else None
+    assets = body.assets if body is not None else None
     try:
-        outcome = await asyncio.to_thread(run_optimization, agent_id, sliders)
+        outcome = await asyncio.to_thread(run_optimization, agent_id, sliders, assets)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="agent not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SolverFailed as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

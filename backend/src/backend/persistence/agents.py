@@ -29,7 +29,7 @@ class AgentRecord:
     reach_out: list[str] | None
     updates_opt_in: bool | None
     sliders: SliderValues
-    assets: list[str] | None  # the player's basket, fixed at sign-up
+    assets: list[str] | None  # the player's basket (re-selectable on retune)
     bankroll: float
     holdings_units: dict[str, float] = field(default_factory=dict)
     total: float = 0.0  # current mark-to-market value
@@ -87,6 +87,11 @@ class AgentStore:
         with self._lock:
             record = self._agents[agent_id]
             record.sliders = sliders
+
+    def update_assets(self, agent_id: str, assets: list[str]) -> None:
+        with self._lock:
+            record = self._agents[agent_id]
+            record.assets = list(assets)
 
     def apply_solve(
         self,

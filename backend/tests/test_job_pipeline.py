@@ -62,25 +62,29 @@ def test_retune_is_value_neutral_and_keeps_the_basket():
     result = outcome.result
 
     assert result.kind == "retune"
-    assert {e.ticker for e in result.portfolio} == set(BASKET)  # basket is fixed
+    assert {e.ticker for e in result.portfolio} == set(
+        BASKET
+    )  # basket unchanged unless re-selected
     # fixed-clock market → stationary spot → retune conserves value
     assert sum(e.usd for e in result.portfolio) == pytest.approx(10_000.0, abs=1e-2)
     assert store.get(record.id).jobs_solved == 2
     assert {e.channel for e in outcome.events} == {f"agent:{record.id}"}
 
 
-def test_retune_turnover_penalty_anchors_to_previous_portfolio():
-    """With identical market data, a retune under the same sliders should not
-    drift from the held portfolio — the w_prev anchor keeps it in place."""
+def test_retune_can_select_a_new_basket():
+    """A retune liquidates everything and reallocates over the new basket."""
     store = get_agent_store()
     record = store.create(_config(), bankroll=10_000.0)
-    first = run_optimization(record.id).result
-    second = run_optimization(record.id).result
+    run_optimization(record.id)
 
-    first_pct = {e.ticker: e.pct for e in first.portfolio}
-    second_pct = {e.ticker: e.pct for e in second.portfolio}
-    for ticker, pct in first_pct.items():
-        assert second_pct[ticker] == pytest.approx(pct, abs=0.5)
+    new_basket = ["HON", "GOOGL", "IBM", "QBTS"]
+    result = run_optimization(record.id, assets=new_basket).result
+
+    assert result.kind == "retune"
+    assert {e.ticker for e in result.portfolio} == set(new_basket)
+    # fixed-clock market → liquidation conserves value
+    assert sum(e.usd for e in result.portfolio) == pytest.approx(10_000.0, abs=1e-2)
+    assert store.get(record.id).assets == new_basket
 
 
 def test_no_basket_defaults_to_full_universe():

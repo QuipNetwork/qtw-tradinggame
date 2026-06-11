@@ -41,15 +41,7 @@ class GurobiProvider:
             for j in range(N)
         )
         ret = gp.quicksum(problem.mu[i] * w[i] for i in range(N))
-        turnover = (
-            gp.quicksum(
-                problem.lambda_t * (w[i] - problem.w_ref[i]) * (w[i] - problem.w_ref[i])
-                for i in range(N)
-            )
-            if problem.lambda_t > 0.0
-            else 0.0
-        )
-        model.setObjective(risk - ret + turnover, GRB.MINIMIZE)
+        model.setObjective(risk - ret, GRB.MINIMIZE)
 
         t0 = time.perf_counter()
         model.optimize()

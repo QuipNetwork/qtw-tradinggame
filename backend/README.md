@@ -34,7 +34,7 @@ What each suite covers:
 | `test_estimators.py` / `test_synthetic_market.py` | μ, Σ; deterministic history; moving spot |
 | `test_solvers_synthetic.py` | Gurobi feasible; SA feasible & matches Gurobi; the race |
 | `test_assets_api.py` | assets-api client: grid alignment, forward-fill, spot, errors |
-| `test_pnl.py` / `test_retune.py` | mark-to-market; trade diff + V0 fee |
+| `test_pnl.py` | mark-to-market rollup |
 | `test_persistence.py` / `test_job_pipeline.py` | stores + leaderboard; first-solve & retune over the basket |
 | `test_api.py` | HTTP flow, 404s/422s, and a live WebSocket push |
 
@@ -109,9 +109,9 @@ curl -s $BASE/agents -H 'content-type: application/json' -d '{
 curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' -d '{}'
 #    → RoutingResult: provider, providerType, solveTime, vsClassical, portfolio[], kind="first"
 
-# 3. Retune with new sliders (kind="retune"; the basket is fixed at sign-up)
+# 3. Retune — new sliders and/or a re-selected basket (liquidates + reallocates)
 curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' \
-  -d '{"sliders":{"rebalanceFrequency":50,"riskPreference":90,"maxPositionSize":80}}'
+  -d '{"sliders":{"rebalanceFrequency":50,"riskPreference":90,"maxPositionSize":80},"assets":["HON","GOOGL","IBM"]}'
 
 # 4. Leaderboard
 curl -s $BASE/leaderboard

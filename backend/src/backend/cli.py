@@ -50,8 +50,6 @@ def _build_problem(tickers: list[str], args: argparse.Namespace) -> PortfolioPro
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
         Sigma=covariance(returns),
         gamma=params.gamma,
-        lambda_t=0.0,  # CLI race is a fresh solve — no holdings to anchor to
-        w_ref=np.zeros(len(tickers)),
         w_max=params.w_max,
         w_min=params.w_min,
         asset_tickers=tickers,

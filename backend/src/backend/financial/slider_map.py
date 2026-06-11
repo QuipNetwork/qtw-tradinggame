@@ -9,8 +9,8 @@ The three sliders (mirrors mvp/src/api/types.ts and mvp/src/utils/strategy.ts):
 - Rebalance Frequency 100→ hourly scheduled re-optimization (hard cap)
 
 The dropped sliders' roles moved elsewhere: diversification → the player's
-basket selection; holding style → fixed lookbacks in config. The turnover
-penalty is retune mechanics (orchestration/job.py), not a slider.
+basket selection; holding style → fixed lookbacks in config. There is no
+turnover term — a retune liquidates and reallocates from scratch.
 """
 
 from __future__ import annotations

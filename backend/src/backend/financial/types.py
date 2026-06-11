@@ -21,21 +21,20 @@ class SliderParams:
 class PortfolioProblem:
     """Mean-variance allocation over the player's basket — a box-constrained QP.
 
-    min  (γ/2) wᵀΣw  -  μᵀw  +  λ_t ‖w - w_ref‖²
+    min  (γ/2) wᵀΣw  -  μᵀw
     s.t. Σwᵢ = 1
          w_min ≤ wᵢ ≤ w_max
 
-    There is no cardinality constraint: the player's basket selection already
-    decides which assets participate, and every selected asset is held at
-    least w_min. Gurobi solves this natively as a continuous QP; SA/D-Wave
+    Every solve is a fresh allocation: a retune liquidates all holdings at spot
+    and reallocates the full value over the (possibly re-selected) basket, so
+    there is no turnover anchor and no cardinality constraint — the basket
+    decides which assets participate. Gurobi solves the QP natively; SA/D-Wave
     solve the bit-discretized QUBO encoded from it.
     """
 
     mu: np.ndarray  # shape (N,)
     Sigma: np.ndarray  # shape (N, N), symmetric PSD
     gamma: float
-    lambda_t: float
-    w_ref: np.ndarray  # shape (N,) — zero on first solve, w_prev on retune
     w_max: float
     asset_tickers: list[str]  # the player's basket (subset of the universe)
     w_min: float = 0.0
@@ -46,15 +45,10 @@ class PortfolioProblem:
 
     def objective(self, weights: np.ndarray) -> float:
         """Mean-variance objective value at the given weights."""
-        value = 0.5 * self.gamma * weights @ self.Sigma @ weights - self.mu @ weights
-        if self.lambda_t > 0.0:
-            diff = weights - self.w_ref
-            value += self.lambda_t * (diff @ diff)
-        return float(value)
+        return float(0.5 * self.gamma * weights @ self.Sigma @ weights - self.mu @ weights)
 
     def __post_init__(self) -> None:
         assert self.Sigma.shape == (self.N, self.N), "Sigma must be (N, N)"
-        assert self.w_ref.shape == (self.N,), "w_ref must be (N,)"
         assert len(self.asset_tickers) == self.N, "asset_tickers length mismatch"
         assert 0 < self.w_max <= 1.0, "w_max must be in (0, 1]"
         assert 0.0 <= self.w_min <= self.w_max, "w_min must be in [0, w_max]"

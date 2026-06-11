@@ -44,12 +44,6 @@ W_MAX_CEILING: float = 0.5
 # always holds since MIN_POSITION_FRACTION ≤ 1.
 MIN_POSITION_FRACTION: float = 0.25
 
-# Turnover penalty λ_t‖w − w_prev‖², applied on retunes only (first solve has
-# no holdings to anchor to, so λ_t = 0 and w_ref is irrelevant). Scaled to the
-# data: λ_t = mult × γ × mean(diag Σ), keeping the penalty commensurate with
-# the risk term regardless of market regime.
-TURNOVER_PENALTY_MULT: float = 1.0
-
 # Rebalance-frequency slider tiers → scheduled re-optimization cadence (hours).
 # Hourly is the hard cap: quantum jobs cost real money (mirrors strategy.ts).
 REBALANCE_TIERS_HOURS: tuple[int, ...] = (24, 8, 4, 2, 1)
@@ -107,9 +101,7 @@ DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
 # verify-dwave reports chain breaks above ~5% (long chains need stronger bonds).
 # ×3 from hardware sweeps: ×2 leaves ~17% chain breaks at 75+ vars; ×3 gives
 # 0.4% there with margin to spare at small baskets.
-DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(
-    os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 3.0)
-)
+DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 3.0))
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)

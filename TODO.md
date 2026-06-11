@@ -7,7 +7,7 @@ See `backend/README.md` to run and test, `docs/BACKEND_DAG.md` for the dataflow.
 ## Done
 
 - **Contract v2** — 3 sliders (`rebalanceFrequency` discrete tiers / `riskPreference` / `maxPositionSize` relative to basket), 25-asset universe (14 crypto + 11 stocks, QNT included), per-agent basket (min 3 assets, fixed after sign-up), `email`/`reachOut`/`updatesOptIn` persisted.
-- **Retune mechanics** — first solve: λ_t = 0 (nothing to anchor to); retune: λ_t‖w − w_prev‖² scaled to the data (`TURNOVER_PENALTY_MULT × γ × mean diag Σ`), so the held portfolio matters when moving to a new one. No transaction fee — ever; trade pressure is handled by rate limits instead. Participation floor 0.25/n; lookbacks fixed (μ 168h, Σ 720h).
+- **Retune mechanics** — a retune liquidates all holdings at spot and reallocates the full value over a (possibly re-selected) basket: no turnover penalty, no transaction fee — trade pressure is rate limits instead. `OptimizeRequest` accepts `sliders` and/or `assets`; the kiosk/phone basket re-selection UI is frontend-branch work. Participation floor 0.25/n; lookbacks fixed (μ 168h, Σ 720h).
 - **Model** — cardinality dropped (basket expresses it): Gurobi solves a continuous QP; the QUBO has no indicator block; QUBO results are simplex-normalized, so **SA now genuinely competes** (feasible at all basket sizes).
 - **D-Wave provider** — real Ocean-SDK implementation; token-gated entry into the race; QPU-access-time reporting; hermetic tests via sampler injection.
 - **assets-api client** — `AssetsApiSource` implements `MarketDataSource` against `/v1/history` + `/v1/spot`, forward-filling stock market-hour gaps; flip `config.MARKET_DATA_SOURCE = "assets-api"` to use it.

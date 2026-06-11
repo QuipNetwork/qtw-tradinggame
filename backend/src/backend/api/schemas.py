@@ -36,8 +36,7 @@ class AgentConfig(BaseModel):
     updates_opt_in: bool | None = Field(default=None, alias="updatesOptIn")
     sliders: SliderValues
     # The player's selected basket — a subset of the 25-asset universe.
-    # None/empty falls back to the full universe. Fixed after sign-up
-    # (players do not change their basket on retune).
+    # None/empty falls back to the full universe; re-selectable on retune.
     assets: list[str] | None = None
 
     model_config = ConfigDict(populate_by_name=True)
@@ -109,8 +108,9 @@ class SubmitAgentResponse(BaseModel):
 class OptimizeRequest(BaseModel):
     """POST /agents/{id}/optimize.
 
-    Optional `sliders` payload per Q9 — slider update + optimize in one atomic
-    round-trip. The basket is fixed at sign-up and cannot be changed here.
+    Optional `sliders` and `assets` update + optimize in one atomic round-trip.
+    A retune liquidates all holdings and reallocates over the new basket.
     """
 
     sliders: SliderValues | None = None
+    assets: list[str] | None = None

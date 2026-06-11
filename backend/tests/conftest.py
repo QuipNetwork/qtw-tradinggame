@@ -48,8 +48,6 @@ def synthetic_problem_3assets() -> PortfolioProblem:
         mu=mu,
         Sigma=Sigma,
         gamma=2.0,
-        lambda_t=0.0,
-        w_ref=np.zeros(3),
         w_max=0.6,
         w_min=0.1,
         asset_tickers=["A", "B", "C"],
