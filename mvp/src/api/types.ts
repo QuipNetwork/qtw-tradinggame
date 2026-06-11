@@ -34,7 +34,7 @@ export type AssetTicker =
   | 'DOGE' | 'USDT' | 'ZEC' | 'ALGO' | 'STRK' | 'FIL' | 'RENDER'
   // stocks
   | 'IONQ' | 'QBTS' | 'RGTI' | 'QUBT' | 'IBM' | 'SAF'
-  | 'INDI' | 'HON' | 'LAES' | 'ARQQ' | 'GOOGL'
+  | 'SPCX' | 'HON' | 'LAES' | 'ARQQ' | 'GOOGL'
   | 'NVDA' | 'MSFT' | 'AMZN';
 
 export type AssetInfo = {

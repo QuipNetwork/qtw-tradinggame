@@ -51,7 +51,7 @@ const SEEDED_AGENTS: Record<string, AgentConfig> = {
   // a06 selects the ENTIRE 28-asset universe — the worst-case portfolio demo.
   a06: { name: 'Lattice Theory',         handle: '@latticetheory',         sliders: { rebalanceFrequency: 70, riskPreference: 78, maxPositionSize: 50 },
          assets: ['BTC', 'ETH', 'BNB', 'USDC', 'XRP', 'SOL', 'HYPE', 'DOGE', 'USDT', 'ZEC', 'ALGO', 'STRK', 'FIL', 'RENDER',
-                  'IONQ', 'QBTS', 'RGTI', 'QUBT', 'IBM', 'SAF', 'INDI', 'HON', 'LAES', 'ARQQ', 'GOOGL', 'NVDA', 'MSFT', 'AMZN'] },
+                  'IONQ', 'QBTS', 'RGTI', 'QUBT', 'IBM', 'SAF', 'SPCX', 'HON', 'LAES', 'ARQQ', 'GOOGL', 'NVDA', 'MSFT', 'AMZN'] },
   a07: { name: 'Schrödinger’s Bag', handle: '@schrodingersbag',       sliders: { rebalanceFrequency: 40, riskPreference: 50, maxPositionSize: 40 } },
   a08: { name: 'Probably Approximately', handle: '@probablyapproximately', sliders: { rebalanceFrequency: 50, riskPreference: 55, maxPositionSize: 45 } },
   a09: { name: 'Coherent Cat',           handle: '@coherentcat',           sliders: { rebalanceFrequency: 35, riskPreference: 45, maxPositionSize: 40 } },
