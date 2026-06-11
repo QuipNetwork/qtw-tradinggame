@@ -58,7 +58,7 @@ class RoutingResult(BaseModel):
     provider: str  # 'dwave' | 'sa' | 'gurobi'
     provider_type: ProviderType = Field(alias="providerType")
     solve_time: float = Field(alias="solveTime")  # seconds (winning solver)
-    vs_classical: float = Field(alias="vsClassical")  # winner_time / runner_up_classical_time
+    vs_classical: float = Field(alias="vsClassical")  # ×-faster than the classical runner-up
     portfolio: list[PortfolioEntry]
 
     # Extensions beyond the mock contract

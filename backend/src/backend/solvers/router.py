@@ -30,10 +30,12 @@ class RaceResult:
 
     @property
     def vs_classical(self) -> float:
-        """winner_solve_time / runner_up_classical_solve_time (Q7); 1.0 if no baseline."""
-        if self.runner_up_classical is None or self.runner_up_classical.solve_time_s <= 0.0:
+        """How many times faster the winner was than the classical runner-up
+        (runner_up_time / winner_time, ≥1 when the winner is faster). The
+        frontend renders this as "N× vs classical". 1.0 if no baseline."""
+        if self.runner_up_classical is None or self.winner.solve_time_s <= 0.0:
             return 1.0
-        return self.winner.solve_time_s / self.runner_up_classical.solve_time_s
+        return self.runner_up_classical.solve_time_s / self.winner.solve_time_s
 
 
 def build_providers() -> list:
