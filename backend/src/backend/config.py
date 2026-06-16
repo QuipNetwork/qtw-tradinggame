@@ -123,7 +123,9 @@ MTM_TICK_S: float = 3.0
 # "assets-api" → the assets-api price-indexing service (REST, SQLite-backed);
 # "synthetic" → deterministic stand-in (no network — tests and offline demos).
 MARKET_DATA_SOURCE: str = os.environ.get("MARKET_DATA_SOURCE", "assets-api")
-ASSETS_API_BASE_URL: str = os.environ.get("ASSETS_API_BASE_URL", "http://127.0.0.1:8080")
+# Live deployment (28-asset registry). Override with a local Docker address
+# (http://127.0.0.1:8080) for offline work, or MARKET_DATA_SOURCE=synthetic.
+ASSETS_API_BASE_URL: str = os.environ.get("ASSETS_API_BASE_URL", "https://asset-tracker.quip.network")
 ASSETS_API_TIMEOUT_S: float = 10.0
 SYNTHETIC_SEED: int = 20260625  # booth day — deterministic synthetic history
 
