@@ -31,9 +31,9 @@ What each suite covers:
 | `test_slider_map.py` | 3 sliders → params; risk inversion; basket-relative caps; rebalance tiers; min basket |
 | `test_qubo_encoder.py` / `test_qubo_roundtrip.py` | QUBO shape/symmetry; bit-grid round-trips; simplex normalization |
 | `test_feasibility.py` | budget / box checks |
-| `test_estimators.py` / `test_synthetic_market.py` | μ, Σ; deterministic history; moving spot |
+| `test_estimators.py` / `test_synthetic_market.py` | NaN-aware μ/Σ; variance floor; PSD repair; moving spot |
 | `test_solvers_synthetic.py` | Gurobi feasible; SA feasible & matches Gurobi; the race |
-| `test_assets_api.py` | assets-api client: grid alignment, forward-fill, spot, errors |
+| `test_assets_api.py` | assets-api client: grid alignment, no-fabrication NaN gaps, spot, errors |
 | `test_pnl.py` | mark-to-market rollup |
 | `test_persistence.py` / `test_job_pipeline.py` | stores + leaderboard; first-solve & retune over the basket |
 | `test_api.py` | HTTP flow, 404s/422s, and a live WebSocket push |
@@ -64,9 +64,12 @@ docker run -p 8080:8080 -v assets-data:/data \
 # wait for the 90-day backfill, check http://127.0.0.1:8080/healthz
 ```
 
-Stock market-hour gaps are forward-filled onto the hourly grid automatically.
-No service running? `MARKET_DATA_SOURCE=synthetic` switches everything
-(server, CLI, tests already pin it) to the deterministic offline source.
+Returns use real bars only — closed hours and pre-listing gaps stay missing
+(never zero-filled), so a stock's overnight jump is excluded and freshly-listed
+names aren't read as artificially calm; the covariance estimator handles the
+ragged data (pairwise overlap, variance floor, PSD repair). No service running?
+`MARKET_DATA_SOURCE=synthetic` switches everything (server, CLI, tests already
+pin it) to the deterministic offline source.
 
 ## Enable the D-Wave QPU
 

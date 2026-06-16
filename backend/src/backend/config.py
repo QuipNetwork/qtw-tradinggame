@@ -28,6 +28,37 @@ SIGMA_WINDOW_HOURS: int = 720
 MU_WINDOW_HOURS: int = 168
 
 # -----------------------------------------------------------------------------
+# Estimation from ragged real data (μ, Σ)
+# -----------------------------------------------------------------------------
+
+# We never fabricate returns: closed-hour and not-yet-listed gaps are missing,
+# not zero, and a stock's overnight jump is excluded (no consecutive-hour pair
+# spans it). So assets carry unequal observation counts — crypto ~720/30d,
+# stocks ~140, a freshly-listed name far fewer — and Σ is built from pairwise
+# overlaps, which can be ragged or indefinite. These knobs keep μ/Σ robust;
+# none are user-facing.
+
+# Minimum real returns for a trusted mean/variance. Below it, μ falls back to 0
+# (hold for diversification, don't chase a mean from a handful of points) and
+# the variance to its class-median floor (so a thin asset can't read as calm).
+MIN_RETURN_OBS: int = 24
+# Minimum overlapping returns for a covariance cell; below it cov(i,j) = 0
+# (treat the pair as uncorrelated rather than trust a few-sample estimate).
+MIN_COV_PAIRS: int = 20
+# Shrinkage toward the diagonal, Σ ← (1−δ)Σ + δ·diag(Σ): damps noisy off-diagonal
+# correlations. A stability step, NOT a PSD guarantee (see COV_EIG_FLOOR_REL).
+COV_SHRINKAGE: float = 0.2
+# Implied-correlation cap: few-sample overlaps can imply |corr| > 1 against the
+# full-window variances; clip covariances so |corr| ≤ this before shrinkage.
+COV_MAX_ABS_CORR: float = 0.99
+# PSD repair after shrinkage: floor eigenvalues at this fraction of the mean
+# variance so the matrix the solvers see is always positive semidefinite.
+COV_EIG_FLOOR_REL: float = 1e-4
+# Last-resort hourly variance when a whole class has too little data to floor
+# against (degenerate baskets only).
+COV_DEFAULT_VAR: float = 1e-4
+
+# -----------------------------------------------------------------------------
 # Slider → param ranges (single source of truth, used by slider_map)
 # -----------------------------------------------------------------------------
 

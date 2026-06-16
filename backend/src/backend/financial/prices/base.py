@@ -15,9 +15,11 @@ import numpy as np
 
 class MarketDataSource(Protocol):
     def hourly_returns(self, tickers: list[str], window_hours: int) -> np.ndarray:
-        """Return an (T, N) matrix of hourly simple returns, T = window_hours.
+        """Return a (T, N) matrix of hourly simple returns, T ≤ window_hours.
 
-        Column i corresponds to ``tickers[i]``. r_{i,t} = P_{i,t} / P_{i,t-1} − 1.
+        Column i corresponds to ``tickers[i]``. r_{i,t} = P_{i,t} / P_{i,t-1} − 1
+        between consecutive hours. Entries are NaN where an asset had no data
+        that hour (closed hours, pre-listing) — gaps are never fabricated.
         """
         ...
 

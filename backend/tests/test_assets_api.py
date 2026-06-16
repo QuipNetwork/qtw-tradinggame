@@ -1,4 +1,4 @@
-"""assets-api client: grid alignment, forward-fill, spot, error paths."""
+"""assets-api client: grid alignment, no-fabrication gaps, spot, error paths."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def _bar(t: str, c: float) -> dict:
     return {"t": t, "o": c, "h": c, "l": c, "c": c, "v": 1.0}
 
 
-def test_returns_align_stock_gaps_onto_crypto_grid():
+def test_stock_gaps_stay_nan_and_overnight_jump_is_excluded():
     hours = [f"2026-06-05T{h:02d}:00:00Z" for h in range(5)]
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -30,7 +30,7 @@ def test_returns_align_stock_gaps_onto_crypto_grid():
                 "bars": {
                     # crypto: every hour, +1% per hour
                     "BTC": [_bar(t, 100.0 * 1.01**i) for i, t in enumerate(hours)],
-                    # stock: missing hours 1 and 2 (market closed)
+                    # stock: trades hour 0, then closed hours 1-2, reopens 3-4
                     "IONQ": [_bar(hours[0], 50.0), _bar(hours[3], 52.0), _bar(hours[4], 51.0)],
                 },
             },
@@ -39,8 +39,12 @@ def test_returns_align_stock_gaps_onto_crypto_grid():
     returns = _source(handler).hourly_returns(["BTC", "IONQ"], window_hours=4)
     assert returns.shape == (4, 2)
     assert np.allclose(returns[:, 0], 0.01)
-    # forward-filled hours are flat (zero return), then the gap-close jump
-    assert returns[:, 1] == pytest.approx([0.0, 0.0, 52.0 / 50.0 - 1.0, 51.0 / 52.0 - 1.0])
+    # Closed hours are NaN (never zero-filled), and the 50→52 reopen move is
+    # NOT a return — it would need the missing hour-2 price — so only the real
+    # intraday 52→51 step survives. No fabrication, no overnight jump.
+    col = returns[:, 1]
+    assert np.isnan(col[:3]).all()
+    assert col[3] == pytest.approx(51.0 / 52.0 - 1.0)
 
 
 def test_missing_history_raises():

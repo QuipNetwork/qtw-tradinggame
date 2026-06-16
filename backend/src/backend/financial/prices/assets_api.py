@@ -4,12 +4,16 @@ assets-api (gitlab.com/quip.network/assets-api) polls upstream providers
 (Alpaca / Massive / CoinGecko) into SQLite and serves hourly OHLCV bars and
 spot prices over REST; its response shapes are contractual with this protocol.
 
-Stocks trade ~6.5h on weekdays, so their bars have gaps; series are
-forward-filled onto the union hourly grid before computing returns (flat
-price → zero return over closed hours).
+Bars are placed on a dense hourly grid and returns are taken between
+*consecutive* hours, with **no fabrication**: a closed hour or not-yet-listed
+hour stays missing (NaN), so a stock's overnight/weekend jump (close→next open)
+is excluded — no single grid step spans it — and the estimators see only real
+~1h returns. The covariance estimator handles the resulting NaN gaps.
 """
 
 from __future__ import annotations
+
+from datetime import datetime, timedelta
 
 import httpx
 import numpy as np
@@ -46,15 +50,22 @@ class AssetsApiSource:
         if missing:
             raise AssetsApiError(f"no price history for: {missing}")
 
-        timestamps = sorted({bar["t"] for series in bars.values() for bar in series})
-        row = {t: i for i, t in enumerate(timestamps)}
-        prices = np.full((len(timestamps), len(tickers)), np.nan)
+        # Dense hourly grid spanning all bars (basket-independent), so a stock's
+        # closed-hours/weekend gap stays missing instead of collapsing into one
+        # cross-session step — overnight jumps never become a 1h return.
+        times = sorted({_parse_ts(bar["t"]) for series in bars.values() for bar in series})
+        row = {t: i for i, t in enumerate(_hourly_grid(times[0], times[-1]))}
+        prices = np.full((len(row), len(tickers)), np.nan)
         for col, ticker in enumerate(tickers):
             for bar in bars[ticker]:
-                prices[row[bar["t"]], col] = bar["c"]
+                idx = row.get(_parse_ts(bar["t"]))
+                if idx is not None:
+                    prices[idx, col] = bar["c"]
 
-        prices = _forward_fill(prices)
-        returns = prices[1:] / prices[:-1] - 1.0
+        # Returns between consecutive grid hours; a NaN endpoint propagates to
+        # NaN, leaving closed hours and pre-listing history absent, not faked.
+        with np.errstate(invalid="ignore"):
+            returns = prices[1:] / prices[:-1] - 1.0
         return returns[-window_hours:]
 
     def health(self) -> dict:
@@ -69,17 +80,15 @@ class AssetsApiSource:
         return {t: float(quotes[t]["price"]) for t in tickers}
 
 
-def _forward_fill(prices: np.ndarray) -> np.ndarray:
-    """Fill NaN gaps with the last known value; backfill leading NaNs."""
-    filled = prices.copy()
-    for col in range(filled.shape[1]):
-        series = filled[:, col]
-        mask = np.isnan(series)
-        if mask.all():
-            continue
-        first = int(np.argmin(mask))
-        series[:first] = series[first]
-        for i in range(first + 1, len(series)):
-            if np.isnan(series[i]):
-                series[i] = series[i - 1]
-    return filled
+def _parse_ts(ts: str) -> datetime:
+    """Parse an RFC3339 UTC timestamp (e.g. '2026-06-15T17:00:00Z')."""
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+
+def _hourly_grid(start: datetime, end: datetime) -> list[datetime]:
+    """Every hour in [start, end] inclusive — the dense grid bars are placed on."""
+    grid, t = [], start
+    while t <= end:
+        grid.append(t)
+        t += timedelta(hours=1)
+    return grid

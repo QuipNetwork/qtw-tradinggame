@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from .. import config
 from ..api.schemas import RoutingResult, SliderValues
-from ..financial.basket import validate_basket
+from ..financial.basket import get_asset, validate_basket
 from ..financial.estimators.covariance import covariance
 from ..financial.estimators.expected_return import expected_return
 from ..financial.pnl import mark_to_market
@@ -79,9 +79,10 @@ def run_optimization(
 
     # Σ over the fixed 720h window, μ over the fixed lookback within it.
     returns = market.hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
+    classes = [get_asset(t).asset_class for t in tickers]
     problem = PortfolioProblem(
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
-        Sigma=covariance(returns),
+        Sigma=covariance(returns, classes),
         gamma=params.gamma,
         w_max=params.w_max,
         w_min=params.w_min,

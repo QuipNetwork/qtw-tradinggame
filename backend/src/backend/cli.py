@@ -46,9 +46,10 @@ def _basket(args: argparse.Namespace) -> list[str]:
 def _build_problem(tickers: list[str], args: argparse.Namespace) -> PortfolioProblem:
     params = map_sliders(_sliders(args), len(tickers))
     returns = get_source().hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
+    classes = [basket.get_asset(t).asset_class for t in tickers]
     return PortfolioProblem(
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
-        Sigma=covariance(returns),
+        Sigma=covariance(returns, classes),
         gamma=params.gamma,
         w_max=params.w_max,
         w_min=params.w_min,
@@ -78,8 +79,9 @@ def cmd_market(args: argparse.Namespace) -> None:
     source = get_source()
     tickers = list(basket.TICKERS)
     returns = source.hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
+    classes = [basket.get_asset(t).asset_class for t in tickers]
     mu = expected_return(returns, config.MU_WINDOW_HOURS)
-    vol = np.sqrt(np.diag(covariance(returns)))
+    vol = np.sqrt(np.diag(covariance(returns, classes)))
     spot = source.spot_prices(tickers)
 
     print(
