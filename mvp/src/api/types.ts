@@ -23,6 +23,17 @@ export type AgentConfig = {
   assets?: AssetTicker[];       // the player's selected basket (subset of the 28-asset universe)
 };
 
+export type SubmitAgentResponse = {
+  agentId: string;
+  qrUrl: string;
+  bankroll?: number;
+};
+
+export type OptimizePatch = {
+  sliders?: SliderValues;
+  assets?: AssetTicker[];
+};
+
 export type ProviderType = 'QPU' | 'CPU';
 
 export type AssetClass = 'crypto' | 'stock';
@@ -58,13 +69,16 @@ export type RoutingResult = {
   solveTime: number;            // seconds, e.g. 0.42
   vsClassical: number;          // multiplier, e.g. 14 (means 14× faster than classical)
   portfolio: PortfolioEntry[];
+  kind?: 'first' | 'retune';
+  jobId?: string | null;
+  solvedAt?: string | null;
 };
 
 export type LeaderboardEntry = {
   rank: number;
   agentId: string;
   name: string;
-  handle: string;
+  handle: string | null;
   total: number;                // $11,402
   plUSD: number;                // +142
   plPct: number;                // +1.42

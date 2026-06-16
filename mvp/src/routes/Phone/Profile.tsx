@@ -68,8 +68,9 @@ export default function PhoneProfile() {
       acc[def.key] = sliders[i];
       return acc;
     }, {} as SliderValues);
-    setAgent(prev => prev ? { ...prev, sliders: next } : prev);
-    const r = await requestOptimization(agentId);
+    const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
+    setAgent(prev => prev ? { ...prev, sliders: next, assets } : prev);
+    const r = await requestOptimization(agentId, { sliders: next, assets });
     setResult(r);
     sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(r));
     setBusy(false);

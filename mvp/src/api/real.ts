@@ -1,0 +1,108 @@
+// Real backend implementation of the MVP API contract.
+// Enabled through api/index.ts when VITE_API_BASE is set.
+
+import type {
+  AgentConfig,
+  AgentUpdate,
+  LeaderboardEntry,
+  OptimizePatch,
+  RoutingResult,
+  SubmitAgentResponse,
+} from './types';
+
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
+
+function url(path: string): string {
+  if (!API_BASE) {
+    throw new Error('VITE_API_BASE is required for the real API adapter');
+  }
+  return `${API_BASE}${path}`;
+}
+
+function websocketUrl(path: string): string {
+  const explicit = (import.meta.env.VITE_WS_BASE ?? '').replace(/\/+$/, '');
+  const base = explicit || API_BASE;
+  if (!base) {
+    throw new Error('VITE_API_BASE or VITE_WS_BASE is required for WebSocket subscriptions');
+  }
+  const parsed = new URL(base);
+  parsed.protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
+  parsed.pathname = `${parsed.pathname.replace(/\/+$/, '')}${path}`;
+  parsed.search = '';
+  parsed.hash = '';
+  return parsed.toString();
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url(path), {
+    ...init,
+    headers: {
+      ...(init?.body ? { 'content-type': 'application/json' } : {}),
+      ...init?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail ?? body);
+    } catch {
+      // Keep the HTTP status text when the response is not JSON.
+    }
+    throw new Error(`Backend request failed (${response.status}): ${detail}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function submitAgent(config: AgentConfig): Promise<SubmitAgentResponse> {
+  return request<SubmitAgentResponse>('/agents', {
+    method: 'POST',
+    body: JSON.stringify(config),
+  });
+}
+
+export async function getAgent(agentId: string): Promise<AgentConfig | null> {
+  try {
+    return await request<AgentConfig>(`/agents/${encodeURIComponent(agentId)}`);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('(404)')) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function updateAgent(
+  agentId: string,
+  patch: Partial<AgentConfig>,
+): Promise<AgentConfig> {
+  const current = await getAgent(agentId);
+  if (!current) {
+    throw new Error(`Agent not found: ${agentId}`);
+  }
+  return { ...current, ...patch };
+}
+
+export async function requestOptimization(
+  agentId: string,
+  patch: OptimizePatch = {},
+): Promise<RoutingResult> {
+  return request<RoutingResult>(`/agents/${encodeURIComponent(agentId)}/optimize`, {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  return request<LeaderboardEntry[]>('/leaderboard');
+}
+
+export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) => void): () => void {
+  const socket = new WebSocket(websocketUrl(`/agents/${encodeURIComponent(agentId)}`));
+  socket.addEventListener('message', event => {
+    callback(JSON.parse(event.data) as AgentUpdate);
+  });
+  return () => socket.close();
+}

@@ -7,8 +7,10 @@ import type {
   AgentUpdate,
   AssetTicker,
   LeaderboardEntry,
+  OptimizePatch,
   PortfolioEntry,
   RoutingResult,
+  SubmitAgentResponse,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
 
@@ -66,7 +68,7 @@ function delay<T>(value: T, ms = 250 + Math.random() * 350): Promise<T> {
   return new Promise(resolve => setTimeout(() => resolve(value), ms));
 }
 
-export async function submitAgent(config: AgentConfig): Promise<{ agentId: string; qrUrl: string }> {
+export async function submitAgent(config: AgentConfig): Promise<SubmitAgentResponse> {
   const agentId = uuid();
   const qrUrl = `${window.location.origin}/p/${agentId}`;
   localStorage.setItem(STORAGE_PREFIX + agentId, JSON.stringify({ ...config, agentId, createdAt: Date.now() }));
@@ -90,7 +92,13 @@ export async function updateAgent(agentId: string, patch: Partial<AgentConfig>):
   return delay(next);
 }
 
-export async function requestOptimization(agentId: string): Promise<RoutingResult> {
+export async function requestOptimization(
+  agentId: string,
+  patch: OptimizePatch = {},
+): Promise<RoutingResult> {
+  if (patch.sliders || patch.assets) {
+    await updateAgent(agentId, patch);
+  }
   const agent = await getAgent(agentId);
   const portfolio = portfolioFor(
     agentId,
@@ -175,7 +183,7 @@ function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize =
     ? 0.99 - s * 0.19    // 28 assets: top ≈ 3.6% (Tiny) … ≈ 20% (Heavy)
     : 0.95 - s * 0.30;   // small baskets: near-equal … strongly concentrated
   const raw = ordered.map((_, i) => Math.pow(decay, i));
-  let total = raw.reduce((a, b) => a + b, 0);
+  const total = raw.reduce((a, b) => a + b, 0);
   let w = raw.map(v => v / total);
 
   // Apply the per-asset cap (relative to basket size — see strategy.ts
