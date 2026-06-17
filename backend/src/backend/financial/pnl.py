@@ -8,13 +8,18 @@ holdings and a spot snapshot — the market source is decided upstream.
 
 from __future__ import annotations
 
-from ..api.schemas import AgentUpdate
+from datetime import UTC, datetime
+
+from ..api.schemas import AgentUpdate, HoldingUpdate
 
 
 def mark_to_market(
     holdings_units: dict[str, float],
     spot_prices: dict[str, float],
     bankroll_usd: float,
+    *,
+    as_of: str | None = None,
+    stale: bool = False,
 ) -> AgentUpdate:
     """Revalue holdings at spot and return the rolled-up AgentUpdate.
 
@@ -25,7 +30,28 @@ def mark_to_market(
 
     total = Σ units[i] × spot[i];  plUSD = total − bankroll;  plPct = plUSD/bankroll × 100.
     """
-    total = sum(units * spot_prices[ticker] for ticker, units in holdings_units.items())
+    values = {
+        ticker: units * spot_prices[ticker]
+        for ticker, units in holdings_units.items()
+    }
+    total = sum(values.values())
     pl_usd = total - bankroll_usd
     pl_pct = (pl_usd / bankroll_usd * 100.0) if bankroll_usd else 0.0
-    return AgentUpdate(pl_usd=pl_usd, pl_pct=pl_pct, total=total)
+    holdings = [
+        HoldingUpdate(
+            ticker=ticker,
+            units=holdings_units[ticker],
+            spot=spot_prices[ticker],
+            usd=usd,
+            pct=(usd / total * 100.0) if total else 0.0,
+        )
+        for ticker, usd in sorted(values.items(), key=lambda item: item[1], reverse=True)
+    ]
+    return AgentUpdate(
+        pl_usd=pl_usd,
+        pl_pct=pl_pct,
+        total=total,
+        as_of=as_of or datetime.now(UTC).isoformat(),
+        stale=stale,
+        holdings=holdings,
+    )

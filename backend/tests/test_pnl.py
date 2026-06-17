@@ -13,6 +13,9 @@ def test_flat_when_value_equals_bankroll():
     assert update.total == pytest.approx(10_000.0)
     assert update.pl_usd == pytest.approx(0.0)
     assert update.pl_pct == pytest.approx(0.0)
+    assert [h.ticker for h in update.holdings] == ["BTC", "ETH"]
+    assert update.holdings[0].usd == pytest.approx(5_000.0)
+    assert update.holdings[0].pct == pytest.approx(50.0)
 
 
 def test_gain_is_reported_in_usd_and_pct():
@@ -21,3 +24,18 @@ def test_gain_is_reported_in_usd_and_pct():
     assert update.total == pytest.approx(11_000.0)
     assert update.pl_usd == pytest.approx(1_000.0)
     assert update.pl_pct == pytest.approx(10.0)
+    assert [h.ticker for h in update.holdings] == ["BTC", "ETH"]
+    assert update.holdings[0].spot == pytest.approx(60_000.0)
+    assert update.holdings[0].pct == pytest.approx(6_000.0 / 11_000.0 * 100.0)
+
+
+def test_stale_snapshot_metadata_is_reported():
+    update = mark_to_market(
+        {"BTC": 0.1},
+        {"BTC": 50_000.0},
+        10_000.0,
+        as_of="2026-06-17T12:00:00+00:00",
+        stale=True,
+    )
+    assert update.as_of == "2026-06-17T12:00:00+00:00"
+    assert update.stale is True

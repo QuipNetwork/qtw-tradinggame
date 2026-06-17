@@ -8,9 +8,19 @@ changes.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Protocol
 
 import numpy as np
+
+
+@dataclass(frozen=True)
+class SpotSnapshot:
+    """Spot prices plus display freshness metadata."""
+
+    prices: dict[str, float]
+    as_of: str | None = None
+    stale: bool = False
 
 
 class MarketDataSource(Protocol):
@@ -25,4 +35,8 @@ class MarketDataSource(Protocol):
 
     def spot_prices(self, tickers: list[str]) -> dict[str, float]:
         """Return the current USD spot price for each ticker."""
+        ...
+
+    def spot_snapshot(self, tickers: list[str]) -> SpotSnapshot:
+        """Return current spot prices with freshness metadata for live display."""
         ...

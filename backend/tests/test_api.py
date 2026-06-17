@@ -30,7 +30,7 @@ def _create(client: TestClient, name: str = "Neo") -> str:
     assert response.status_code == 200
     body = response.json()
     assert body["bankroll"] == 10_000.0
-    assert body["qrUrl"].endswith(f"/p/{body['agentId']}")
+    assert body["qrUrl"] == f"https://qtw.quip.network/p/{body['agentId']}"
     return body["agentId"]
 
 
@@ -78,7 +78,8 @@ def test_websocket_streams_agent_update():
         with client.websocket_connect(f"/agents/{agent_id}") as socket:
             client.post(f"/agents/{agent_id}/optimize", json={})  # retune → push
             update = socket.receive_json()
-            assert {"plUSD", "plPct", "total"} <= set(update)
+            assert {"plUSD", "plPct", "total", "holdings", "asOf", "stale"} <= set(update)
+            assert {h["ticker"] for h in update["holdings"]} == set(_BASKET)
 
 
 def test_basket_below_minimum_is_rejected():

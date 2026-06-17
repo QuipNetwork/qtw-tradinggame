@@ -51,6 +51,14 @@ class PortfolioEntry(BaseModel):
     usd: float  # holdings value in USD
 
 
+class HoldingUpdate(BaseModel):
+    ticker: str
+    units: float
+    spot: float
+    usd: float
+    pct: float
+
+
 class RoutingResult(BaseModel):
     """Returned from POST /agents/{id}/optimize."""
 
@@ -88,6 +96,9 @@ class AgentUpdate(BaseModel):
     pl_usd: float = Field(alias="plUSD")
     pl_pct: float = Field(alias="plPct")
     total: float
+    as_of: str | None = Field(default=None, alias="asOf")
+    stale: bool = False
+    holdings: list[HoldingUpdate] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 

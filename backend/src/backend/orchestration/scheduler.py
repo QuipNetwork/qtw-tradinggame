@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
 from .. import config
 from ..events.bus import EventBus
-from ..financial import basket
 from ..financial.pnl import mark_to_market
-from ..financial.prices.base import MarketDataSource
+from ..financial.prices.base import MarketDataSource, SpotSnapshot
 from ..financial.prices.source import get_source
 from ..persistence.agents import AgentStore, get_agent_store
 
@@ -34,23 +34,42 @@ async def run_mtm_loop(
     agents = agents if agents is not None else get_agent_store()
     market = market if market is not None else get_source()
     tick = tick_s if tick_s is not None else config.MTM_TICK_S
-    tickers = list(basket.TICKERS)
 
     log = logging.getLogger(__name__)
+    last_error_log = 0.0
     while not stop.is_set():
         try:
-            spot = market.spot_prices(tickers)
-            for agent in agents.all():
-                if not agent.holdings_units:
-                    continue
-                update = mark_to_market(agent.holdings_units, spot, agent.bankroll)
-                agents.set_valuation(agent.id, update)
-                bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
-        except Exception:
+            records = agents.all()
+            tickers = sorted({t for agent in records for t in agent.holdings_units})
+            if tickers:
+                snapshot = _spot_snapshot(market, tickers)
+                for agent in records:
+                    if not agent.holdings_units:
+                        continue
+                    update = mark_to_market(
+                        agent.holdings_units,
+                        snapshot.prices,
+                        agent.bankroll,
+                        as_of=snapshot.as_of,
+                        stale=snapshot.stale,
+                    )
+                    agents.set_valuation(agent.id, update)
+                    bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
+        except Exception as exc:
             # A flaky data source must not kill the loop; skip this tick.
-            log.exception("MTM tick failed")
+            now = time.monotonic()
+            if now - last_error_log >= config.MTM_ERROR_LOG_INTERVAL_S:
+                log.warning("MTM tick failed; skipping update: %s", exc)
+                last_error_log = now
         # Sleep one tick, but wake immediately when asked to stop.
         try:
             await asyncio.wait_for(stop.wait(), timeout=tick)
         except TimeoutError:
             pass
+
+
+def _spot_snapshot(market: MarketDataSource, tickers: list[str]) -> SpotSnapshot:
+    snapshot = getattr(market, "spot_snapshot", None)
+    if callable(snapshot):
+        return snapshot(tickers)
+    return SpotSnapshot(prices=market.spot_prices(tickers))

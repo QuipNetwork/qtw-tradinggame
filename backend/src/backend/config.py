@@ -158,6 +158,8 @@ MARKET_DATA_SOURCE: str = os.environ.get("MARKET_DATA_SOURCE", "assets-api")
 # (http://127.0.0.1:8080) for offline work, or MARKET_DATA_SOURCE=synthetic.
 ASSETS_API_BASE_URL: str = os.environ.get("ASSETS_API_BASE_URL", "https://asset-tracker.quip.network")
 ASSETS_API_TIMEOUT_S: float = 10.0
+ASSETS_API_RETRIES: int = int(os.environ.get("ASSETS_API_RETRIES", 2))
+ASSETS_API_RETRY_BACKOFF_S: float = float(os.environ.get("ASSETS_API_RETRY_BACKOFF_S", 0.25))
 SYNTHETIC_SEED: int = 20260625  # booth day — deterministic synthetic history
 
 # -----------------------------------------------------------------------------
@@ -167,7 +169,9 @@ SYNTHETIC_SEED: int = 20260625  # booth day — deterministic synthetic history
 # Origins allowed by CORS. The deployed MVP plus local dev.
 CORS_ORIGINS: tuple[str, ...] = (
     "https://qtw-tradinggame.netlify.app",
+    "https://qtw.quip.network",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 )
-QR_BASE_URL: str = "https://qtw-tradinggame.netlify.app"  # /p/{agentId} deep link base
+QR_BASE_URL: str = os.environ.get("QR_BASE_URL", "https://qtw.quip.network")
+MTM_ERROR_LOG_INTERVAL_S: float = float(os.environ.get("MTM_ERROR_LOG_INTERVAL_S", 30.0))

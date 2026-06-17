@@ -73,6 +73,45 @@ def test_spot_prices():
     assert spot == {"BTC": 65180.4, "IONQ": 36.2}
 
 
+def test_spot_prices_retry_transient_disconnect():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+        return httpx.Response(
+            200,
+            json={"prices": {"BTC": {"price": 65180.4, "t": "2026-06-05T10:00:00Z"}}},
+        )
+
+    assert _source(handler).spot_prices(["BTC"]) == {"BTC": 65180.4}
+    assert calls == 2
+
+
+def test_spot_snapshot_uses_last_good_cache_when_fetch_fails():
+    fail = False
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if fail:
+            raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+        return httpx.Response(
+            200,
+            json={"prices": {"BTC": {"price": 65180.4, "t": "2026-06-05T10:00:00Z"}}},
+        )
+
+    source = _source(handler)
+    fresh = source.spot_snapshot(["BTC"])
+    assert fresh.stale is False
+    assert fresh.prices == {"BTC": 65180.4}
+
+    fail = True
+    stale = source.spot_snapshot(["BTC"])
+    assert stale.stale is True
+    assert stale.prices == {"BTC": 65180.4}
+
+
 def test_http_error_wraps_into_assets_api_error():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503)

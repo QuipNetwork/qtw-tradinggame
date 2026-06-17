@@ -13,10 +13,12 @@ import hashlib
 import math
 import time
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import numpy as np
 
 from ... import config
+from .base import SpotSnapshot
 
 # Stablecoins: pinned ~$1, negligible variance, no market beta.
 _STABLES = frozenset({"USDC", "USDT", "DAI"})
@@ -110,3 +112,10 @@ class SyntheticMarketSource:
             )
             prices[ticker] = float(p["base"] * (1.0 + oscillation))
         return prices
+
+    def spot_snapshot(self, tickers: list[str]) -> SpotSnapshot:
+        return SpotSnapshot(
+            prices=self.spot_prices(tickers),
+            as_of=datetime.fromtimestamp(self._clock(), UTC).isoformat(),
+            stale=False,
+        )
