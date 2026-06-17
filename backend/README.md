@@ -21,7 +21,7 @@ license that comfortably fits this problem size.
 ## Run the automated tests
 
 ```bash
-.venv/bin/python -m pytest -q             # 60 tests, ~2s
+.venv/bin/python -m pytest -q             # full backend suite
 ```
 
 What each suite covers:
@@ -50,12 +50,13 @@ market source — handy for quick checks and for sanity-testing data later.
 ```
 
 Slider flags (`--risk`, `--max-position`, `--rebalance`) take 0–100;
-`--assets` is a comma-separated basket (min 3, defaults to all 25).
+`--assets` is a comma-separated basket (min 3, defaults to all 28).
 
 ## Market data (assets-api by default)
 
-The backend expects the assets-api service (gitlab.com/quip.network/assets-api)
-on `http://127.0.0.1:8080` (override with `ASSETS_API_BASE_URL`):
+The backend uses the deployed assets-api service by default
+(`https://asset-tracker.quip.network`). Override `ASSETS_API_BASE_URL` to point
+at a local assets-api instance:
 
 ```bash
 docker run -p 8080:8080 -v assets-data:/data \
@@ -140,7 +141,7 @@ AGENT = "<AGENT_ID>"
 async def main():
     async with websockets.connect(f"ws://127.0.0.1:8000/agents/{AGENT}") as ws:
         for _ in range(3):
-            print(json.loads(await ws.recv()))   # {plUSD, plPct, total}
+            print(json.loads(await ws.recv()))   # {plUSD, plPct, total, holdings, asOf, stale}
 asyncio.run(main())
 PY
 ```

@@ -4659,7 +4659,7 @@
   .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
 
   /* ─── App mode for the strategy-return screen — compact chrome so a
-     full 25-holding portfolio + QR fit the 1024×768 stage. ─── */
+     full 28-holding portfolio + QR fit the 1024×768 stage. ─── */
   .kiosk-welcome-v4.app-fit {
     height: 100%;
     min-height: 0;
@@ -4692,7 +4692,7 @@
     height: 12px;
   }
   /* Grouped portfolio (Crypto/Stocks) adds two sub-headers; compress the
-     sub-headers and dense rows so a full 25-asset basket still clears the QR. */
+     sub-headers and dense rows so a full 28-asset basket still clears the QR. */
   .kiosk-welcome-v4.app-fit .v4m-alloc-subhead {
     margin: 5px 0 3px;
     font-size: 0.56rem;
@@ -4962,7 +4962,7 @@
   .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row:nth-child(-n+2) {
     border-top: none;
   }
-  /* Dense variant (>12 holdings, up to the full 25): three columns —
+  /* Dense variant (>12 holdings, up to the full 28): three columns —
      the whole universe fits the canvas while staying comfortably legible. */
   .kiosk-welcome-v4 .v4m-alloc-grid.dense {
     grid-template-columns: 1fr 1fr 1fr;
@@ -6171,4 +6171,3 @@
       transform: scale(calc(100cqw / 1100px));
     }
   }
-

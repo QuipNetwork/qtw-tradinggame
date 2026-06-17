@@ -27,17 +27,18 @@ Mock screens live in `../design-doc.html`. Both this app and that file consume t
 
 Same goes for the SVG symbol library (`../shared-design/symbols.svg.html`): injected at app startup by `src/main.tsx` so `<use href="#crypto-btc" />` etc. work everywhere.
 
-The canvas algorithms (player glyph + QR) live in `../shared-design/glyph.js` and are imported via the `@shared` Vite alias (`src/utils/glyph.ts` is a thin TypeScript wrapper). `design-doc.html` imports the same module — pixels stay identical.
+The canvas glyph algorithm lives in `../shared-design/glyph.js` and is imported via the `@shared` Vite alias (`src/utils/glyph.ts` is a thin TypeScript wrapper). Profile QR codes are rendered by `src/utils/qr.ts`.
 
 ## API contract
 
 All backend interactions go through `src/api/`:
 
 - `src/api/types.ts` — TypeScript contracts (`AgentConfig`, `RoutingResult`, `LeaderboardEntry`, etc.)
-- `src/api/mocks.ts` — current implementation (random routing, seeded leaderboard, localStorage persistence)
-- `src/api/index.ts` — single re-export point
+- `src/api/mocks.ts` — offline/demo implementation (random routing, seeded leaderboard, localStorage persistence)
+- `src/api/real.ts` — fetch/WebSocket implementation for the backend
+- `src/api/index.ts` — single re-export point; uses `real.ts` when `VITE_API_BASE` is set, mocks otherwise
 
-**To swap mocks for real backend**: implement a `src/api/real.ts` matching the types in `types.ts`, then change `index.ts` to re-export from `./real` instead of `./mocks`. The UI never imports from `mocks.ts` or `real.ts` directly — only via `./index`.
+The UI never imports from `mocks.ts` or `real.ts` directly — only via `./index`.
 
 ## Deploy
 

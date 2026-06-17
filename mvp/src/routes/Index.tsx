@@ -10,7 +10,7 @@ type Surface = {
 const SURFACES: Surface[] = [
   {
     title: 'Kiosk',
-    blurb: 'The booth laptop attendees walk up to. Name an agent, tune five sliders, launch.',
+    blurb: 'The booth laptop attendees walk up to. Name an agent, tune three sliders, launch.',
     formFactor: 'Laptop · landscape',
     links: [
       { label: 'Sign-up', to: '/kiosk', note: 'Entry point — fills sliders and submits' },
@@ -81,7 +81,7 @@ export default function Index() {
             Quip Network · QTW 2026 Trading Competition
           </h1>
           <p style={{ fontSize: 17, lineHeight: 1.55, color: '#52525b', maxWidth: 720, margin: 0 }}>
-            A booth activation where attendees name an agent, set five strategy sliders, and watch
+            A booth activation where attendees name an agent, set three strategy sliders, and watch
             their portfolio compete in real time — every retune is routed through the Quip Network.
             This page lists every surface in the MVP so you can preview any of them in isolation.
           </p>

@@ -25,7 +25,7 @@ export const ASSETS: AssetInfo[] = [
   { ticker: 'FIL',    name: 'Filecoin',            class: 'crypto', icon: 'fil.svg',    color: '#0090FF', vol: 0.70 },
   { ticker: 'RENDER', name: 'Render',              class: 'crypto', icon: 'render.png', color: '#E11D2E', vol: 0.80 },
   { ticker: 'STRK',   name: 'Starknet',            class: 'crypto', icon: 'strk.png',   color: '#EC796B', vol: 0.80 },
-  // ── Stocks (11) — Alpaca primary oracle ──
+  // ── Stocks (14) — Alpaca primary, Massive fallback where available ──
   { ticker: 'IONQ',   name: 'IonQ',                class: 'stock',  icon: 'ionq.png',   color: '#FF8200', vol: 0.75 },
   { ticker: 'RGTI',   name: 'Rigetti Computing',   class: 'stock',  icon: 'rgti.png',   color: '#17A2A6', vol: 0.90 },
   { ticker: 'QBTS',   name: 'D-Wave Quantum',      class: 'stock',  icon: 'qbts.png',   color: '#008CD7', vol: 0.85 },

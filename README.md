@@ -1,12 +1,12 @@
 # Quip Network · QTW 2026 Trading Competition
 
-Booth activation for **Quantum Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune five strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
+Booth activation for **Quantum Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
 
 ## Start here
 
 | What | Where |
 |---|---|
-| **Live MVP preview** (every surface, one-click) | https://qtw-tradinggame.netlify.app |
+| **Live MVP preview** (every surface, one-click) | https://qtw.quip.network |
 | **Design doc** (full project summary) | [`design-doc.html`](./design-doc.html) — open in browser, or visit `/design-doc.html` on the deployed site |
 | **MVP source** | [`mvp/`](./mvp) — Vite + React + TypeScript |
 
@@ -34,7 +34,7 @@ See [`backend/README.md`](./backend/README.md) for the Python backend (solver ra
 
 ## Deploy
 
-`netlify.toml` is wired up. Every push to `main` triggers an auto-build at https://qtw-tradinggame.netlify.app.
+`netlify.toml` is wired up. Every push to `main` triggers an auto-build for the Netlify deployment surfaced at https://qtw.quip.network.
 
 ## Engineering handoff
 

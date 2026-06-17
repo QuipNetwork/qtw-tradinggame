@@ -212,7 +212,7 @@ export default function PhoneProfile() {
 
             <div className="v4m-pl">
               <div>
-                <div className="v4m-section-eyebrow">Total · {live?.stale ? 'Stale' : 'Live'}</div>
+                <div className="v4m-section-eyebrow">Total · {live?.stale ? 'Last close' : 'Live'}</div>
                 <div className="v4m-pl-num">${total.toLocaleString()}</div>
                 <div className={`v4m-pl-change ${positive ? 'up' : 'down'}`}>
                   {positive ? '+' : '−'}${Math.abs(plUSD).toLocaleString()} · {positive ? '+' : '−'}{Math.abs(plPct).toFixed(2)}%

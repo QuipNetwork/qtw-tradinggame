@@ -5,12 +5,12 @@ solver race back to live MTM updates. Solid arrows = synchronous data flow;
 dotted arrows = reads from persistence or external data.
 
 **Legend.** Blue = persistence stores; purple = solvers; the amber external is
-the **assets-api service** (real prices; a deterministic synthetic source is the
-default until it's enabled in config). The D-Wave provider is implemented and
-joins the race when `DWAVE_API_TOKEN` is set. The frontend MVP runs on **mocks**
-until it's wired to the real API.
+the **assets-api service** (real prices; deterministic synthetic remains the
+offline/test source). The D-Wave provider is implemented and joins the race when
+`DWAVE_API_TOKEN` is set. The frontend MVP uses the real API when `VITE_API_BASE`
+is set and falls back to mocks otherwise.
 
-**What's left, in order:** ① real-data shakeout (assets-api) → ② frontend wiring → ③ scheduled rebalances + QPU budget.
+**What's left, in order:** ① assets-api spot-refresh cadence + stale metadata → ② durable persistence → ③ scheduled rebalances + QPU budget.
 
 ```mermaid
 flowchart TB
@@ -158,7 +158,7 @@ flowchart TB
 - **Top → bottom = user request flow**: frontend kiosk/phone touch → API → orchestration job → financial pipeline → solver race → decode → persist → respond.
 - **Bottom = MTM background loop**: the scheduler ticks the PnL module every few seconds, revalues holdings against the current spot, updates persistence, and pushes deltas over WS.
 - **Dotted arrows = reads** (from persistence or external data); solid arrows = synchronous data flow.
-- **Data layer**: the estimators and PnL read through `prices/source` — deterministic synthetic by default, the assets-api service when enabled in config. Same interface, no pipeline change.
+- **Data layer**: the estimators and PnL read through `prices/source` — assets-api by default, deterministic synthetic for offline/tests. Same interface, no pipeline change.
 - **Three solver paths converge at `feasibility.py`** — first feasible wins. Gurobi additionally serves as the offline oracle (separate from the race).
 
 ## Solver race — how it connects

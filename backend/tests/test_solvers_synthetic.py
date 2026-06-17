@@ -76,7 +76,7 @@ def test_router_race_produces_a_feasible_winner(synthetic_problem_3assets):
 @requires_neal
 def test_sa_feasible_at_full_universe_scale():
     """Penalty-ratio canary: at 500× (no obj_scale floor) SA must still respect
-    the budget on the hardest case — the dense 25-asset, 100-bit QUBO."""
+    the budget on the hardest case — the dense 28-asset, 84-bit QUBO."""
 
     from backend import config
     from backend.financial.basket import TICKERS

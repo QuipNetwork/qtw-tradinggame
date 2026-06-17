@@ -165,7 +165,7 @@ export default function KioskWelcome() {
 
           {/* Portfolio — full width; holdings flow into two columns */}
           <div className="v4m-portfolio-block">
-            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}{live?.stale ? ' · stale spot' : ''}</span>
+            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'} · {live?.stale ? 'Last close' : 'Live'}</span>
             <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
               {portfolio.map(entry => (
                 <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
