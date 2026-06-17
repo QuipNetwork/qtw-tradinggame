@@ -14,6 +14,18 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
 // A basket needs at least this many assets (mirrors the kiosk sign-up rule).
 const MIN_ASSETS = 3;
 
+function sparkPoints(values: number[]): string {
+  const series = values.length >= 2 ? values : [10000, 10000];
+  const min = Math.min(...series);
+  const max = Math.max(...series);
+  const range = Math.max(1, max - min);
+  return series.map((value, i) => {
+    const x = (i / Math.max(1, series.length - 1)) * 76;
+    const y = 32 - ((value - min) / range) * 25;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+}
+
 export default function PhoneProfile() {
   const { agentId } = useParams();
   const [agent, setAgent] = useState<AgentConfig | null>(null);
@@ -24,6 +36,8 @@ export default function PhoneProfile() {
   const [view, setView] = useState<'profile' | 'basket'>('profile');
   const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
   const [savingBasket, setSavingBasket] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalHistory, setTotalHistory] = useState<number[]>([]);
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -44,7 +58,10 @@ export default function PhoneProfile() {
 
   useEffect(() => {
     if (!agentId) return;
-    return subscribeAgent(agentId, setLive);
+    return subscribeAgent(agentId, update => {
+      setLive(update);
+      setTotalHistory(prev => [...prev, update.total].slice(-24));
+    });
   }, [agentId]);
 
   useEffect(() => {
@@ -64,16 +81,22 @@ export default function PhoneProfile() {
   async function retune() {
     if (busy || !agentId || !sliders) return;
     setBusy(true);
+    setError(null);
     const next: SliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
       return acc;
     }, {} as SliderValues);
     const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
-    setAgent(prev => prev ? { ...prev, sliders: next, assets } : prev);
-    const r = await requestOptimization(agentId, { sliders: next, assets });
-    setResult(r);
-    sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(r));
-    setBusy(false);
+    try {
+      const r = await requestOptimization(agentId, { sliders: next, assets });
+      setAgent(prev => prev ? { ...prev, sliders: next, assets } : prev);
+      setResult(r);
+      sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(r));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not re-optimize. Check the backend connection.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   function toggleBasket(ticker: AssetTicker) {
@@ -90,11 +113,17 @@ export default function PhoneProfile() {
   async function saveBasket() {
     if (savingBasket || !agentId || basket.size < MIN_ASSETS) return;
     setSavingBasket(true);
+    setError(null);
     const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
-    await updateAgent(agentId, { assets });
-    setAgent(prev => prev ? { ...prev, assets } : prev);
-    setSavingBasket(false);
-    setView('profile');
+    try {
+      await updateAgent(agentId, { assets });
+      setAgent(prev => prev ? { ...prev, assets } : prev);
+      setView('profile');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the basket. Check the backend connection.');
+    } finally {
+      setSavingBasket(false);
+    }
   }
 
   const basketTile = (a: AssetInfo) => {
@@ -120,6 +149,7 @@ export default function PhoneProfile() {
   const plPct = live?.plPct ?? 1.42;
   const positive = plUSD >= 0;
   const lineColor = positive ? '#0A832E' : '#ff6467';
+  const spark = sparkPoints(totalHistory);
 
   const isQpu = result?.providerType === 'QPU';
   const solveTime = result?.solveTime ?? 0.42;
@@ -161,7 +191,9 @@ export default function PhoneProfile() {
                 <span>{savingBasket ? 'Saving…' : 'Save basket'}</span>
                 <span className="v4m-cta-arrow">→</span>
               </button>
-              {basket.size < MIN_ASSETS && <div className="v4m-cta-sub">Select at least {MIN_ASSETS} assets</div>}
+              {(error || basket.size < MIN_ASSETS) && (
+                <div className="v4m-cta-sub">{error ?? `Select at least ${MIN_ASSETS} assets`}</div>
+              )}
             </div>
             ) : (
             <div className="v4m-phone-view">
@@ -180,7 +212,7 @@ export default function PhoneProfile() {
 
             <div className="v4m-pl">
               <div>
-                <div className="v4m-section-eyebrow">Total · Live</div>
+                <div className="v4m-section-eyebrow">Total · {live?.stale ? 'Stale' : 'Live'}</div>
                 <div className="v4m-pl-num">${total.toLocaleString()}</div>
                 <div className={`v4m-pl-change ${positive ? 'up' : 'down'}`}>
                   {positive ? '+' : '−'}${Math.abs(plUSD).toLocaleString()} · {positive ? '+' : '−'}{Math.abs(plPct).toFixed(2)}%
@@ -188,9 +220,7 @@ export default function PhoneProfile() {
               </div>
               <svg className="v4m-spark" viewBox="0 0 80 36" preserveAspectRatio="none" aria-hidden="true" style={{ color: lineColor }}>
                 <polyline
-                  points={positive
-                    ? '0,32 8,30 14,28 20,26 28,24 36,18 42,21 48,16 54,14 60,11 68,12 76,7'
-                    : '0,8 8,10 14,14 20,16 28,18 36,22 42,21 48,26 54,28 60,30 68,29 76,33'}
+                  points={spark}
                   fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 />
               </svg>
@@ -267,6 +297,7 @@ export default function PhoneProfile() {
               <span>{busy ? 'Re-optimizing…' : 'Re-optimize on Quip Network'}</span>
               <span className="v4m-cta-arrow">→</span>
             </button>
+            {error && <div className="v4m-cta-sub">{error}</div>}
 
             </div>
             )}

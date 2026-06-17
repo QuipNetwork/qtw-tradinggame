@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, Navigate } from 'react-router-dom';
-import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import type { AgentConfig, AgentUpdate, RoutingResult } from '../../api';
+import { getAgent, requestOptimization, subscribeAgent, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import type { PortfolioEntry } from '../../api';
-import { renderGlyph, renderFakeQR, strHash, pickStyle } from '../../utils/glyph';
+import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
+import { renderQR } from '../../utils/qr';
 import { labelFor, glyphParams } from '../../utils/strategy';
 import KioskStage from './Stage';
 
@@ -14,14 +15,17 @@ export default function KioskWelcome() {
   const agentId = params.get('agent');
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
+  const [live, setLive] = useState<AgentUpdate | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
   const glyphRef = useRef<HTMLCanvasElement>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!agentId) return;
+      if (!agentId) return;
     (async () => {
       const a = await getAgent(agentId);
       setAgent(a);
+      setQrUrl(sessionStorage.getItem('quip:qrUrl:' + agentId));
 
       const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
       if (cachedRaw) {
@@ -30,6 +34,11 @@ export default function KioskWelcome() {
       const r = await requestOptimization(agentId);
       setResult(r);
     })();
+  }, [agentId]);
+
+  useEffect(() => {
+    if (!agentId) return;
+    return subscribeAgent(agentId, setLive);
   }, [agentId]);
 
   useEffect(() => {
@@ -44,14 +53,17 @@ export default function KioskWelcome() {
   }, [agent]);
 
   useEffect(() => {
-    if (!agent || !qrRef.current) return;
-    renderFakeQR(qrRef.current, 'qtw.quip.network/p/' + agent.name + (agent.handle ?? ''));
-  }, [agent]);
+    if (!agentId || !qrRef.current) return;
+    const value = qrUrl ?? `${window.location.origin}/p/${agentId}`;
+    renderQR(qrRef.current, value).catch(() => {});
+  }, [agentId, qrUrl]);
 
   if (!agentId) return <Navigate to="/kiosk" replace />;
   if (!agent) return null;
 
-  const portfolio = result?.portfolio ?? [];
+  const portfolio: PortfolioEntry[] = live?.holdings?.length
+    ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd }))
+    : result?.portfolio ?? [];
   // Holdings stay weight-sorted, but split into crypto / stocks so each class
   // reads as its own group (the combined allocation bar above keeps the whole).
   const cryptoHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'crypto');
@@ -153,7 +165,7 @@ export default function KioskWelcome() {
 
           {/* Portfolio — full width; holdings flow into two columns */}
           <div className="v4m-portfolio-block">
-            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}</span>
+            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}{live?.stale ? ' · stale spot' : ''}</span>
             <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
               {portfolio.map(entry => (
                 <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>

@@ -69,6 +69,7 @@ export default function KioskSignUp() {
   // Start with an empty basket — the player actively picks their assets.
   const [selected, setSelected] = useState<Set<AssetTicker>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const previewName = (name.trim() || 'Player');
   const previewHandle = handleFromName(previewName);
@@ -113,22 +114,30 @@ export default function KioskSignUp() {
   async function launch() {
     if (busy || selected.size < MIN_ASSETS || !nameValid || !emailValid) return;
     setBusy(true);
+    setError(null);
     const sliderValues = SLIDER_DEFS.reduce<SliderValues>((acc, def, i) => {
       acc[def.key] = sliders[i];
       return acc;
     }, {} as SliderValues);
-    const { agentId } = await submitAgent({
-      name: previewName,
-      handle: previewHandle,
-      email: email.trim(),
-      reachOut: reachOut.size ? REACH_OUT_OPTIONS.filter(o => reachOut.has(o.value)).map(o => o.value) : undefined,
-      updatesOptIn,
-      sliders: sliderValues,
-      assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
-    });
-    const result = await requestOptimization(agentId);
-    sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
-    navigate(`/kiosk/welcome?agent=${agentId}`);
+    try {
+      const { agentId, qrUrl } = await submitAgent({
+        name: previewName,
+        handle: previewHandle,
+        email: email.trim(),
+        reachOut: reachOut.size ? REACH_OUT_OPTIONS.filter(o => reachOut.has(o.value)).map(o => o.value) : undefined,
+        updatesOptIn,
+        sliders: sliderValues,
+        assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
+      });
+      const result = await requestOptimization(agentId);
+      sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
+      sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      navigate(`/kiosk/welcome?agent=${agentId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create your agent. Check the backend connection.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   function renderAssetTile(asset: AssetInfo) {
@@ -299,9 +308,11 @@ export default function KioskSignUp() {
           <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
-        {(selected.size < MIN_ASSETS || !nameValid || !emailValid) && (
+        {(error || selected.size < MIN_ASSETS || !nameValid || !emailValid) && (
           <div className="v4m-cta-sub">
-            {selected.size < MIN_ASSETS
+            {error
+              ? error
+              : selected.size < MIN_ASSETS
               ? `Select at least ${MIN_ASSETS} assets to launch`
               : !nameValid
                 ? 'Enter a player name to launch'

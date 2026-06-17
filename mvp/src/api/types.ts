@@ -63,6 +63,14 @@ export type PortfolioEntry = {
   usd: number;     // dollar allocation
 };
 
+export type HoldingUpdate = {
+  ticker: AssetTicker;
+  units: number;
+  spot: number;
+  usd: number;
+  pct: number;
+};
+
 export type RoutingResult = {
   provider: string;             // e.g. 'D-Wave Advantage' or 'Helios-12'
   providerType: ProviderType;
@@ -90,4 +98,7 @@ export type AgentUpdate = {
   plUSD: number;
   plPct: number;
   total: number;
+  asOf?: string | null;
+  stale?: boolean;
+  holdings?: HoldingUpdate[];
 };
