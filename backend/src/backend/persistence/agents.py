@@ -9,15 +9,22 @@ units so mark-to-market is just units times spot.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from threading import RLock
 from uuid import uuid4
 
 from ..api.schemas import AgentConfig, AgentUpdate, SliderValues
+from ..financial.slider_map import rebalance_every_hours
 
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _next_rebalance_at(sliders: SliderValues, solved_at: datetime) -> tuple[str, str, int]:
+    interval_hours = rebalance_every_hours(sliders.rebalance_frequency)
+    next_at = solved_at + timedelta(hours=interval_hours)
+    return solved_at.isoformat(), next_at.isoformat(), interval_hours
 
 
 @dataclass
@@ -38,6 +45,9 @@ class AgentRecord:
     jobs_solved: int = 0
     primary_provider: str = "CPU"  # ProviderType of the latest winning solve
     created_at: str = ""
+    last_solved_at: str | None = None
+    next_rebalance_at: str | None = None
+    rebalance_interval_hours: int | None = None
 
     def to_config(self) -> AgentConfig:
         return AgentConfig(
@@ -48,6 +58,9 @@ class AgentRecord:
             updates_opt_in=self.updates_opt_in,
             sliders=self.sliders,
             assets=self.assets,
+            last_solved_at=self.last_solved_at,
+            next_rebalance_at=self.next_rebalance_at,
+            rebalance_interval_hours=self.rebalance_interval_hours,
         )
 
 
@@ -103,12 +116,31 @@ class AgentStore:
         """Record the outcome of a solve: new holdings, valuation, provider, count."""
         with self._lock:
             record = self._agents[agent_id]
+            solved_at, next_at, interval_hours = _next_rebalance_at(
+                record.sliders, datetime.now(UTC)
+            )
             record.holdings_units = dict(holdings_units)
             record.total = total
             record.pl_usd = total - record.bankroll
             record.pl_pct = (record.pl_usd / record.bankroll * 100.0) if record.bankroll else 0.0
             record.jobs_solved += 1
             record.primary_provider = provider_type
+            record.last_solved_at = solved_at
+            record.next_rebalance_at = next_at
+            record.rebalance_interval_hours = interval_hours
+
+    def ensure_rebalance_schedule(self, agent_id: str) -> None:
+        """Initialize missing rebalance timestamps for a hydrated active agent."""
+        with self._lock:
+            record = self._agents.get(agent_id)
+            if record is None or not record.holdings_units or record.next_rebalance_at:
+                return
+            solved_at, next_at, interval_hours = _next_rebalance_at(
+                record.sliders, datetime.now(UTC)
+            )
+            record.last_solved_at = solved_at
+            record.next_rebalance_at = next_at
+            record.rebalance_interval_hours = interval_hours
 
     def set_valuation(self, agent_id: str, update: AgentUpdate) -> None:
         """Update the mark-to-market valuation from the MTM loop."""

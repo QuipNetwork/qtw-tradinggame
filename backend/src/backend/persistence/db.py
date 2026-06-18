@@ -23,7 +23,9 @@ from sqlalchemy import (
     create_engine,
     delete,
     insert,
+    inspect,
     select,
+    text,
     update,
 )
 from sqlalchemy.engine import Engine
@@ -52,6 +54,9 @@ agents_table = Table(
     Column("pl_pct", Float, nullable=False),
     Column("jobs_solved", Integer, nullable=False),
     Column("primary_provider", String(8), nullable=False),
+    Column("last_solved_at", String, nullable=True),
+    Column("next_rebalance_at", String, nullable=True),
+    Column("rebalance_interval_hours", Integer, nullable=True),
     Column("created_at", String, nullable=False),
     Column("updated_at", String, nullable=False),
     Column("environment", String, nullable=False),
@@ -130,6 +135,16 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _ensure_columns(engine: Engine, table_name: str, columns: dict[str, str]) -> None:
+    existing = {column["name"] for column in inspect(engine).get_columns(table_name)}
+    missing = [(name, ddl) for name, ddl in columns.items() if name not in existing]
+    if not missing:
+        return
+    with engine.begin() as conn:
+        for name, ddl in missing:
+            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {name} {ddl}"))
+
+
 class DbAgentStore(AgentStore):
     """DB write-through store with the in-memory dict retained as the hot path."""
 
@@ -145,6 +160,15 @@ class DbAgentStore(AgentStore):
         self._environment = environment
         self._allow_reset = allow_reset
         metadata.create_all(self._engine)
+        _ensure_columns(
+            self._engine,
+            "agents",
+            {
+                "last_solved_at": "VARCHAR",
+                "next_rebalance_at": "VARCHAR",
+                "rebalance_interval_hours": "INTEGER",
+            },
+        )
         self._load()
 
     @property
@@ -207,6 +231,9 @@ class DbAgentStore(AgentStore):
                     pl_pct=record.pl_pct,
                     jobs_solved=record.jobs_solved,
                     primary_provider=record.primary_provider,
+                    last_solved_at=record.last_solved_at,
+                    next_rebalance_at=record.next_rebalance_at,
+                    rebalance_interval_hours=record.rebalance_interval_hours,
                     updated_at=now,
                 )
             )
@@ -227,6 +254,24 @@ class DbAgentStore(AgentStore):
             ]
             if rows:
                 conn.execute(insert(agent_holdings_table), rows)
+
+    def ensure_rebalance_schedule(self, agent_id: str) -> None:
+        super().ensure_rebalance_schedule(agent_id)
+        record = self.get(agent_id)
+        if record is None:
+            return
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(agents_table)
+                .where(agents_table.c.id == agent_id)
+                .where(agents_table.c.environment == self._environment)
+                .values(
+                    last_solved_at=record.last_solved_at,
+                    next_rebalance_at=record.next_rebalance_at,
+                    rebalance_interval_hours=record.rebalance_interval_hours,
+                    updated_at=_now_iso(),
+                )
+            )
 
     def record_valuation_snapshot(self, agent_id: str, update_: AgentUpdate) -> None:
         with self._engine.begin() as conn:
@@ -283,6 +328,9 @@ class DbAgentStore(AgentStore):
                         jobs_solved=row["jobs_solved"],
                         primary_provider=row["primary_provider"],
                         created_at=row["created_at"],
+                        last_solved_at=row["last_solved_at"],
+                        next_rebalance_at=row["next_rebalance_at"],
+                        rebalance_interval_hours=row["rebalance_interval_hours"],
                     )
                     self._agents[record.id] = record
 
@@ -313,6 +361,9 @@ class DbAgentStore(AgentStore):
             "pl_pct": record.pl_pct,
             "jobs_solved": record.jobs_solved,
             "primary_provider": record.primary_provider,
+            "last_solved_at": record.last_solved_at,
+            "next_rebalance_at": record.next_rebalance_at,
+            "rebalance_interval_hours": record.rebalance_interval_hours,
             "created_at": record.created_at or now,
             "updated_at": now,
             "environment": self._environment,

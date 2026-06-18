@@ -146,6 +146,8 @@ RACE_OVERALL_DEADLINE_S: float = 3.0  # outer cap on the parallel race
 # -----------------------------------------------------------------------------
 
 MTM_TICK_S: float = 3.0
+REBALANCE_CHECK_TICK_S: float = 15.0
+REBALANCE_RETRY_BACKOFF_S: float = 60.0
 VALUATION_SNAPSHOT_INTERVAL_S: float = float(
     os.environ.get("VALUATION_SNAPSHOT_INTERVAL_S", 60.0)
 )

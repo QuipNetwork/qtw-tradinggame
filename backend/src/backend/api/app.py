@@ -1,11 +1,13 @@
 """FastAPI application factory.
 
 Wires the HTTP + WS routers, CORS for the MVP origins, and a lifespan that runs
-the MTM scheduler for the life of the server. Run locally with:
+both background loops: mark-to-market valuation and scheduled rebalances. Run
+locally with:
 
     uvicorn backend.api.app:app --reload --workers 1
 
-(``--workers 1`` while persistence is in-memory — see TODO.md.)
+Use one worker for the first production deployment because the event bus and
+schedulers are process-local.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .. import config
 from ..events.bus import get_bus
-from ..orchestration.scheduler import run_mtm_loop
+from ..orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
 from . import routes, ws
 
 log = logging.getLogger(__name__)
@@ -50,16 +52,22 @@ def _check_market_source() -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     _check_market_source()
     stop = asyncio.Event()
-    task = asyncio.create_task(run_mtm_loop(get_bus(), stop))
+    bus = get_bus()
+    tasks = [
+        asyncio.create_task(run_mtm_loop(bus, stop)),
+        asyncio.create_task(run_scheduled_rebalance_loop(bus, stop)),
+    ]
     try:
         yield
     finally:
         stop.set()
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
 
 def create_app() -> FastAPI:

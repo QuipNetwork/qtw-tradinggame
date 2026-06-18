@@ -14,6 +14,7 @@ import type {
   SubmitAgentResponse,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
+import { rebalanceEveryHours } from '../utils/strategy';
 
 const STORAGE_PREFIX = 'quip:agents:';
 
@@ -107,6 +108,8 @@ export async function requestOptimization(
     agent?.sliders.maxPositionSize ?? 50,
     agent?.sliders.riskPreference ?? 50,
   );
+  const intervalHours = rebalanceEveryHours(agent?.sliders.rebalanceFrequency ?? 50);
+  const nextRebalanceAt = new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString();
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
@@ -136,6 +139,8 @@ export async function requestOptimization(
       vsClassical: Math.round((classical / qpu) * 10) / 10,
       portfolio,
       solverResults,
+      nextRebalanceAt,
+      rebalanceIntervalHours: intervalHours,
     });
   }
   const c = CLASSICAL_PROVIDERS[Math.floor(Math.random() * CLASSICAL_PROVIDERS.length)];
@@ -166,6 +171,8 @@ export async function requestOptimization(
     vsClassical: Math.round((qpu / cpu) * 10) / 10,
     portfolio,
     solverResults,
+    nextRebalanceAt,
+    rebalanceIntervalHours: intervalHours,
   });
 }
 

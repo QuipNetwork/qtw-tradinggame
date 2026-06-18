@@ -21,6 +21,9 @@ export type AgentConfig = {
   updatesOptIn?: boolean;       // "Sign me up for updates from Quip Network" — general newsletter opt-in, separate from the direct reach-out request
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 28-asset universe)
+  lastSolvedAt?: string | null;
+  nextRebalanceAt?: string | null;
+  rebalanceIntervalHours?: number | null;
 };
 
 export type SubmitAgentResponse = {
@@ -94,6 +97,8 @@ export type RoutingResult = {
   kind?: 'first' | 'retune';
   jobId?: string | null;
   solvedAt?: string | null;
+  nextRebalanceAt?: string | null;
+  rebalanceIntervalHours?: number | null;
 };
 
 export type LeaderboardEntry = {
@@ -115,4 +120,6 @@ export type AgentUpdate = {
   asOf?: string | null;
   stale?: boolean;
   holdings?: HoldingUpdate[];
+  nextRebalanceAt?: string | null;
+  rebalanceIntervalHours?: number | null;
 };

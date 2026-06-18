@@ -38,6 +38,9 @@ class AgentConfig(BaseModel):
     # The player's selected basket — a subset of the 28-asset universe.
     # None/empty falls back to the full universe; re-selectable on retune.
     assets: list[str] | None = None
+    last_solved_at: str | None = Field(default=None, alias="lastSolvedAt")
+    next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
+    rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -86,6 +89,8 @@ class RoutingResult(BaseModel):
     kind: Literal["first", "retune"] | None = None
     job_id: str | None = Field(default=None, alias="jobId")
     solved_at: str | None = Field(default=None, alias="solvedAt")  # ISO-8601 UTC
+    next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
+    rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -113,6 +118,8 @@ class AgentUpdate(BaseModel):
     as_of: str | None = Field(default=None, alias="asOf")
     stale: bool = False
     holdings: list[HoldingUpdate] = Field(default_factory=list)
+    next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
+    rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
 
     model_config = ConfigDict(populate_by_name=True)
 

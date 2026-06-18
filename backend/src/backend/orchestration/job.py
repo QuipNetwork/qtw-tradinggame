@@ -113,6 +113,7 @@ def run_optimization(
         total=portfolio_value,
         provider_type=winner.provider_role,
     )
+    scheduled_agent = agents.get(agent_id)
     provenance = ProviderProvenance(
         provider=winner.provider,
         provider_role=winner.provider_role,
@@ -136,6 +137,10 @@ def run_optimization(
         kind="first" if is_first else "retune",
         job_id=job.id,
         solved_at=job.solved_at,
+        next_rebalance_at=scheduled_agent.next_rebalance_at if scheduled_agent else None,
+        rebalance_interval_hours=(
+            scheduled_agent.rebalance_interval_hours if scheduled_agent else None
+        ),
     )
     jobs.record_solve_snapshot(
         job_id=job.id,
@@ -149,6 +154,10 @@ def run_optimization(
     )
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
+    update.next_rebalance_at = scheduled_agent.next_rebalance_at if scheduled_agent else None
+    update.rebalance_interval_hours = (
+        scheduled_agent.rebalance_interval_hours if scheduled_agent else None
+    )
     events = [Event(channel=f"agent:{agent_id}", payload=update.model_dump(by_alias=True))]
     if is_first:
         events.append(

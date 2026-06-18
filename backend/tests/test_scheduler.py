@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 
 from backend.api.schemas import AgentConfig, SliderValues
 from backend.events.bus import EventBus
 from backend.financial.prices.base import SpotSnapshot
-from backend.orchestration.scheduler import run_mtm_loop
+from backend.orchestration import scheduler
+from backend.orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
 from backend.persistence.agents import AgentStore
 
 
@@ -65,4 +68,73 @@ async def test_mtm_loop_requests_held_tickers_and_publishes_holdings():
     assert payload["total"] == pytest.approx(11_000.0)
     assert payload["asOf"] == "2026-06-17T12:00:00+00:00"
     assert payload["stale"] is False
+    assert payload["nextRebalanceAt"] == agents.get(record.id).next_rebalance_at
+    assert payload["rebalanceIntervalHours"] == 4
     assert {h["ticker"] for h in payload["holdings"]} == {"BTC", "ETH"}
+
+
+@pytest.mark.asyncio
+async def test_scheduled_rebalance_loop_runs_due_agent_and_publishes(monkeypatch):
+    agents = AgentStore()
+    record = agents.create(
+        AgentConfig(
+            name="Due",
+            email="due@example.com",
+            sliders=SliderValues(
+                rebalanceFrequency=100,
+                riskPreference=70,
+                maxPositionSize=50,
+            ),
+            assets=["BTC", "ETH"],
+        ),
+        bankroll=10_000.0,
+    )
+    agents.apply_solve(
+        record.id,
+        holdings_units={"BTC": 0.1, "ETH": 1.0},
+        total=10_000.0,
+        provider_type="QPU",
+    )
+    record.next_rebalance_at = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
+
+    def fake_optimization(agent_id, *, agents, jobs, market):
+        agents.apply_solve(
+            agent_id,
+            holdings_units={"BTC": 0.11, "ETH": 0.9},
+            total=10_250.0,
+            provider_type="QPU",
+        )
+        return SimpleNamespace(
+            events=[
+                SimpleNamespace(
+                    channel=f"agent:{agent_id}",
+                    payload={
+                        "type": "scheduled-rebalance",
+                        "nextRebalanceAt": agents.get(agent_id).next_rebalance_at,
+                    },
+                )
+            ]
+        )
+
+    monkeypatch.setattr(scheduler, "run_optimization", fake_optimization)
+
+    bus = EventBus()
+    queue = bus.subscribe(f"agent:{record.id}")
+    stop = asyncio.Event()
+    task = asyncio.create_task(
+        run_scheduled_rebalance_loop(
+            bus,
+            stop,
+            agents=agents,
+            jobs=SimpleNamespace(),
+            market=MovingSpot(),
+            tick_s=60.0,
+        )
+    )
+    payload = await asyncio.wait_for(queue.get(), timeout=1.0)
+    stop.set()
+    await task
+
+    assert payload["type"] == "scheduled-rebalance"
+    assert agents.get(record.id).jobs_solved == 2
+    assert datetime.fromisoformat(agents.get(record.id).next_rebalance_at) > datetime.now(UTC)

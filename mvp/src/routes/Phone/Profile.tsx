@@ -16,6 +16,20 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
 const MIN_ASSETS = 3;
 const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
+function formatRebalanceCountdown(nextRebalanceAt?: string | null, nowMs: number = Date.now()): string {
+  if (!nextRebalanceAt) return 'Pending';
+  const targetMs = Date.parse(nextRebalanceAt);
+  if (!Number.isFinite(targetMs)) return 'Pending';
+  const remaining = Math.max(0, targetMs - nowMs);
+  if (remaining <= 0) return 'Due now';
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function sparkPoints(values: number[]): string {
   const series = values.length >= 2 ? values : [10000, 10000];
   const min = Math.min(...series);
@@ -40,6 +54,7 @@ export default function PhoneProfile() {
   const [savingBasket, setSavingBasket] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalHistory, setTotalHistory] = useState<number[]>([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -77,6 +92,11 @@ export default function PhoneProfile() {
     }, style));
   }, [agent]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   if (!agentId) return <div style={{ padding: 40 }}>Missing agent.</div>;
   if (!agent || !sliders) return null;
 
@@ -91,7 +111,13 @@ export default function PhoneProfile() {
     const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
     try {
       const r = await requestOptimization(agentId, { sliders: next, assets });
-      setAgent(prev => prev ? { ...prev, sliders: next, assets } : prev);
+      setAgent(prev => prev ? {
+        ...prev,
+        sliders: next,
+        assets,
+        nextRebalanceAt: r.nextRebalanceAt ?? prev.nextRebalanceAt,
+        rebalanceIntervalHours: r.rebalanceIntervalHours ?? prev.rebalanceIntervalHours,
+      } : prev);
       setResult(r);
       sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(r));
     } catch (err) {
@@ -157,6 +183,13 @@ export default function PhoneProfile() {
   const providerName = result?.provider ?? 'D-Wave Advantage';
   const raceRows = solverRaceRows(result);
   const raceComparison = solverRaceComparison(result);
+  const nextRebalanceAt =
+    live?.nextRebalanceAt ?? result?.nextRebalanceAt ?? agent.nextRebalanceAt;
+  const rebalanceIntervalHours =
+    live?.rebalanceIntervalHours ??
+    result?.rebalanceIntervalHours ??
+    agent.rebalanceIntervalHours;
+  const rebalanceCountdown = formatRebalanceCountdown(nextRebalanceAt, nowMs);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a10', padding: 16 }}>
@@ -254,6 +287,16 @@ export default function PhoneProfile() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="v4m-rebalance-card">
+              <div>
+                <div className="v4m-section-eyebrow">Next QPU rebalance</div>
+                <div className="v4m-rebalance-sub">
+                  {rebalanceIntervalHours ? `Every ${rebalanceIntervalHours}h cadence` : 'Starts after first solve'}
+                </div>
+              </div>
+              <div className="v4m-rebalance-time">{rebalanceCountdown}</div>
             </div>
 
             <button type="button" className="v4m-basket-open" onClick={() => setView('basket')}>

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 
 from backend import config
@@ -47,6 +49,12 @@ def test_apply_solve_updates_holdings_and_count():
     assert updated.pl_usd == pytest.approx(1_000.0)
     assert updated.jobs_solved == 1
     assert updated.primary_provider == "QPU"
+    assert updated.last_solved_at is not None
+    assert updated.next_rebalance_at is not None
+    assert updated.rebalance_interval_hours == 4
+    assert datetime.fromisoformat(updated.next_rebalance_at) > datetime.fromisoformat(
+        updated.last_solved_at
+    )
 
 
 def test_leaderboard_ranks_by_total_descending():
@@ -80,6 +88,8 @@ def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     assert got.holdings_units == {"BTC": 0.25, "ETH": 1.5}
     assert got.total == 10_500.0
     assert got.jobs_solved == 1
+    assert got.next_rebalance_at == record.next_rebalance_at
+    assert got.rebalance_interval_hours == 1
 
 
 def test_db_job_store_records_jobs_and_solve_snapshots(tmp_path):
