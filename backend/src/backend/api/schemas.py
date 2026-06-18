@@ -131,6 +131,26 @@ class ValuationHistoryPoint(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class RoutingProviderStat(BaseModel):
+    provider: str
+    provider_type: ProviderType = Field(alias="providerType")
+    count: int
+    pct: float
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class RoutingStats(BaseModel):
+    total: int
+    qpu_wins: int = Field(alias="qpuWins")
+    cpu_wins: int = Field(alias="cpuWins")
+    qpu_pct: float = Field(alias="qpuPct")
+    cpu_pct: float = Field(alias="cpuPct")
+    providers: list[RoutingProviderStat]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class AgentUpdate(BaseModel):
     """Pushed over WS by the MTM loop."""
 

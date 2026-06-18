@@ -19,6 +19,8 @@ and the solver race.
   manual retunes, so they are QPU-capable when D-Wave is configured.
 - Per-agent QPU budgeting is implemented: 3 QPU-admitted solves per rolling
   10 minutes, shared by first solve, manual retune, and scheduled rebalance.
+- TV views now consume live backend data for leaderboard rows, valuation
+  history, and QPU-vs-CPU winner share instead of hardcoded demo stats.
 - The backend Docker image build is implemented. Proton SMTP sending and
   droplet deploy automation are still pending.
 
@@ -40,6 +42,8 @@ flowchart TB
         A2["GET /agents/:id<br/>load profile config"]
         A3["POST /agents/:id/optimize<br/>first solve, retune, scheduled solve"]
         A4["GET /leaderboard"]
+        A5["GET /routing-stats<br/>QPU vs CPU solve winners"]
+        A6["GET /agents/:id/valuation-history<br/>sampled P&L chart history"]
         WS1["WS /agents/:id<br/>live valuation"]
         WS2["WS /tv/events<br/>new-agent/rank events"]
     end
@@ -101,6 +105,8 @@ flowchart TB
     P --> A3
     P --> WS1
     TV --> A4
+    TV --> A5
+    TV --> A6
     TV --> WS2
 
     A1 --> AG
@@ -108,6 +114,8 @@ flowchart TB
     A2 -.-> AG
     A3 --> JOB
     A4 -.-> LB
+    A5 -.-> JBS
+    A6 -.-> VS
 
     JOB --> SL
     JOB --> BASKET
@@ -237,7 +245,24 @@ This loop is separate from MTM so a solve does not block valuation pushes.
 6. Publish an `AgentUpdate` over websocket.
 
 The frequent MTM path does not write every tick to Postgres. Durable valuation
-history is sampled for analytics.
+history is sampled for analytics. The TV spotlight chart reads this sampled
+history through `GET /agents/:id/valuation-history` and appends the current
+hot-path valuation when available.
+
+### 5. TV Leaderboard And Routing Stats
+
+The booth TV polls lightweight HTTP routes:
+
+- `GET /leaderboard` ranks agents from current agent totals.
+- `GET /routing-stats` counts recorded winning jobs by provider role:
+  QPU wins, CPU wins, and provider breakdown.
+- `GET /agents/:id/valuation-history` returns sampled valuation points for the
+  selected spotlight agent.
+
+In in-memory mode, routing stats and valuation history only cover work since
+the current backend process started. With `DATABASE_URL` set, the DB stores load
+persisted agents/jobs on startup and the TV reflects the configured `APP_ENV`
+working set.
 
 ## Solver Race Semantics
 

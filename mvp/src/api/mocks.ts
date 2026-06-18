@@ -10,6 +10,7 @@ import type {
   OptimizePatch,
   PortfolioEntry,
   RoutingResult,
+  RoutingStats,
   SolverResult,
   SubmitAgentResponse,
   ValuationHistoryPoint,
@@ -181,11 +182,36 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return delay(TOP_10);
 }
 
+export async function getRoutingStats(): Promise<RoutingStats> {
+  return delay({
+    total: 10,
+    qpuWins: 8,
+    cpuWins: 2,
+    qpuPct: 80,
+    cpuPct: 20,
+    providers: [
+      { provider: 'dwave', providerType: 'QPU', count: 8, pct: 80 },
+      { provider: 'sa', providerType: 'CPU', count: 2, pct: 20 },
+    ],
+  });
+}
+
 export async function getValuationHistory(
   agentId: string,
   limit = 60,
 ): Promise<ValuationHistoryPoint[]> {
   const agent = TOP_10.find(row => row.agentId === agentId);
+  if (!agent) {
+    return delay([
+      {
+        total: 10000,
+        plUSD: 0,
+        plPct: 0,
+        asOf: new Date().toISOString(),
+        stale: false,
+      },
+    ], 120);
+  }
   const finalTotal = agent?.total ?? 10000;
   const count = Math.max(2, Math.min(limit, 32));
   const seed = [...agentId].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);

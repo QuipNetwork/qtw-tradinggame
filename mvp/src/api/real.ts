@@ -8,6 +8,7 @@ import type {
   OptimizePatch,
   QpuBudgetStatus,
   RoutingResult,
+  RoutingStats,
   SubmitAgentResponse,
   ValuationHistoryPoint,
 } from './types';
@@ -131,6 +132,10 @@ export async function requestOptimization(
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return request<LeaderboardEntry[]>('/leaderboard');
+}
+
+export async function getRoutingStats(): Promise<RoutingStats> {
+  return request<RoutingStats>('/routing-stats');
 }
 
 export async function getValuationHistory(

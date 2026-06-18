@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 from backend.api.app import create_app
 from backend.api.schemas import AgentUpdate, QpuBudgetStatus
 from backend.persistence.agents import get_agent_store
+from backend.persistence.jobs import get_job_store
 from backend.persistence.qpu_budget import QpuBudgetExceeded
+from backend.solvers.types import ProviderProvenance
 
 requires_gurobi = pytest.mark.skipif(
     importlib.util.find_spec("gurobipy") is None, reason="gurobipy not installed"
@@ -95,6 +97,43 @@ def test_leaderboard_lists_created_agents():
         agent_id = _create(client)
         board = client.get("/leaderboard").json()
         assert any(entry["agentId"] == agent_id for entry in board)
+
+
+def test_routing_stats_counts_recorded_winning_jobs():
+    jobs = get_job_store()
+    jobs.record(
+        "a1",
+        ProviderProvenance(
+            provider="dwave",
+            provider_role="QPU",
+            q_hash="a" * 64,
+            deadline_s=3.0,
+            solve_time_s=0.12,
+            feasible=True,
+        ),
+    )
+    jobs.record(
+        "a2",
+        ProviderProvenance(
+            provider="sa",
+            provider_role="CPU",
+            q_hash="b" * 64,
+            deadline_s=3.0,
+            solve_time_s=0.21,
+            feasible=True,
+        ),
+    )
+
+    with TestClient(create_app()) as client:
+        response = client.get("/routing-stats")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["total"] == 2
+        assert body["qpuWins"] == 1
+        assert body["cpuWins"] == 1
+        assert body["qpuPct"] == 50.0
+        assert body["cpuPct"] == 50.0
+        assert {provider["provider"] for provider in body["providers"]} == {"dwave", "sa"}
 
 
 def test_valuation_history_returns_sampled_points_and_current_tail():

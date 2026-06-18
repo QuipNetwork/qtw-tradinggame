@@ -17,6 +17,7 @@ from ..events.bus import get_bus
 from ..financial.basket import validate_basket
 from ..orchestration.job import run_optimization
 from ..persistence.agents import get_agent_store
+from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
 from ..solvers.types import SolverFailed
@@ -25,7 +26,9 @@ from .schemas import (
     HealthResponse,
     LeaderboardEntry,
     OptimizeRequest,
+    RoutingProviderStat,
     RoutingResult,
+    RoutingStats,
     SubmitAgentResponse,
     ValuationHistoryPoint,
 )
@@ -105,6 +108,38 @@ async def leaderboard() -> list[LeaderboardEntry]:
     return build_leaderboard()
 
 
+@router.get("/routing-stats", response_model=RoutingStats)
+async def routing_stats() -> RoutingStats:
+    jobs = get_job_store().all()
+    total = len(jobs)
+    qpu_wins = sum(1 for job in jobs if job.provider_role == "QPU")
+    cpu_wins = sum(1 for job in jobs if job.provider_role == "CPU")
+    provider_counts: dict[tuple[str, str], int] = {}
+    for job in jobs:
+        key = (job.provider, job.provider_role)
+        provider_counts[key] = provider_counts.get(key, 0) + 1
+
+    providers = [
+        RoutingProviderStat(
+            provider=provider,
+            provider_type=provider_type,
+            count=count,
+            pct=_pct(count, total),
+        )
+        for (provider, provider_type), count in sorted(
+            provider_counts.items(), key=lambda item: (-item[1], item[0][0])
+        )
+    ]
+    return RoutingStats(
+        total=total,
+        qpu_wins=qpu_wins,
+        cpu_wins=cpu_wins,
+        qpu_pct=_pct(qpu_wins, total),
+        cpu_pct=_pct(cpu_wins, total),
+        providers=providers,
+    )
+
+
 @router.get("/agents/{agent_id}/valuation-history", response_model=list[ValuationHistoryPoint])
 async def valuation_history(
     agent_id: str,
@@ -114,3 +149,7 @@ async def valuation_history(
     if store.get(agent_id) is None:
         raise HTTPException(status_code=404, detail="agent not found")
     return store.valuation_history(agent_id, limit=limit)
+
+
+def _pct(count: int, total: int) -> float:
+    return round((count / total) * 100.0, 1) if total else 0.0

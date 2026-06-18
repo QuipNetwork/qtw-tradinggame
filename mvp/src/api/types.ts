@@ -131,6 +131,22 @@ export type ValuationHistoryPoint = {
   stale?: boolean;
 };
 
+export type RoutingProviderStat = {
+  provider: string;
+  providerType: ProviderType;
+  count: number;
+  pct: number;
+};
+
+export type RoutingStats = {
+  total: number;
+  qpuWins: number;
+  cpuWins: number;
+  qpuPct: number;
+  cpuPct: number;
+  providers: RoutingProviderStat[];
+};
+
 export type AgentUpdate = {
   plUSD: number;
   plPct: number;

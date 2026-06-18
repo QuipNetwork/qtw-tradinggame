@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getValuationHistory } from '../../api';
-import type { LeaderboardEntry, ValuationHistoryPoint } from '../../api';
+import type { LeaderboardEntry, RoutingStats, ValuationHistoryPoint } from '../../api';
+import RoutingStatsPanel from './RoutingStatsPanel';
 
-export default function StateB({ leaderboard, rankIndex }: { leaderboard: LeaderboardEntry[]; rankIndex: number }) {
+export default function StateB({
+  leaderboard,
+  rankIndex,
+  routingStats,
+}: {
+  leaderboard: LeaderboardEntry[];
+  rankIndex: number;
+  routingStats: RoutingStats;
+}) {
   const agent = leaderboard[rankIndex % leaderboard.length];
   const [history, setHistory] = useState<ValuationHistoryPoint[]>([]);
   const rankPadded = String(agent.rank).padStart(2, '0');
@@ -101,25 +110,7 @@ export default function StateB({ leaderboard, rankIndex }: { leaderboard: Leader
 
         <aside className="qs-rail v4-rail">
           <div className="v4-mega">
-            <div className="v4-section">
-              <div className="v3-panel-head">
-                <span className="v3-panel-eyebrow">Routing today</span>
-                <span className="v3-panel-hero">Quantum <span className="accent">vs</span> classical.</span>
-              </div>
-              <div className="v3-panel-body">
-                <div className="v3-qc">
-                  <div className="num-row">
-                    <span className="num-q">88<span className="pct">%</span></span>
-                    <span className="num-c">12<span className="pct">%</span></span>
-                  </div>
-                  <div className="names">
-                    <span className="n-q">Quantum (QPU)</span>
-                    <span className="n-c">Classical (CPU)</span>
-                  </div>
-                  <div className="ms-bar"><span className="q"></span><span className="c"></span></div>
-                </div>
-              </div>
-            </div>
+            <RoutingStatsPanel stats={routingStats} />
 
             <div className="v4-section">
               <div className="v3-panel-head">

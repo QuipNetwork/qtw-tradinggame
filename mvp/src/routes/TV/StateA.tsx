@@ -1,19 +1,15 @@
-import type { LeaderboardEntry } from '../../api';
-
-const CLASSICAL_BREAKDOWN = [
-  { name: 'Helios-12', pct: 3 },
-  { name: 'Falcon-7',  pct: 2 },
-  { name: 'Cumulus-3', pct: 2 },
-  { name: 'Atlas-9',   pct: 1 },
-  { name: 'Nimbus-5',  pct: 1 },
-  { name: 'Stratos-2', pct: 1 },
-  { name: 'Cirrus-8',  pct: 1 },
-  { name: 'Boreas-4',  pct: 1 },
-];
+import type { LeaderboardEntry, RoutingStats } from '../../api';
+import RoutingStatsPanel from './RoutingStatsPanel';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export default function StateA({ leaderboard }: { leaderboard: LeaderboardEntry[] }) {
+export default function StateA({
+  leaderboard,
+  routingStats,
+}: {
+  leaderboard: LeaderboardEntry[];
+  routingStats: RoutingStats;
+}) {
   return (
     <div className="bigscreen dir-quipsite v4">
       <div className="qs-nav">
@@ -59,48 +55,7 @@ export default function StateA({ leaderboard }: { leaderboard: LeaderboardEntry[
 
         <aside className="qs-rail v4-rail">
           <div className="v4-mega">
-            <div className="v4-section">
-              <div className="v3-panel-head">
-                <span className="v3-panel-eyebrow">Routing today</span>
-                <span className="v3-panel-hero">Quantum <span className="accent">vs</span> classical.</span>
-              </div>
-              <div className="v3-panel-body">
-                <div className="v3-qc">
-                  <div className="num-row">
-                    <span className="num-q">88<span className="pct">%</span></span>
-                    <span className="num-c">12<span className="pct">%</span></span>
-                  </div>
-                  <div className="names">
-                    <span className="n-q">Quantum (QPU)</span>
-                    <span className="n-c">Classical (CPU)</span>
-                  </div>
-                  <div className="ms-bar"><span className="q"></span><span className="c"></span></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="v4-section">
-              <div className="v3-panel-head">
-                <span className="v3-panel-eyebrow">Top providers</span>
-                <span className="v3-panel-hero">Top Providers</span>
-              </div>
-              <div className="v3-panel-body">
-                <div className="v4-plist">
-                  <div className="v4-stack">
-                    <span className="seg q"  style={{ width: '88%' }}></span>
-                    {CLASSICAL_BREAKDOWN.map((p, i) => (
-                      <span key={p.name} className={`seg c${i + 1}`} style={{ width: `${p.pct}%` }}></span>
-                    ))}
-                  </div>
-                  <div className="v4-pr q"><span className="type">QPU</span><span className="nm">D-Wave Advantage</span><span className="pct">88%</span></div>
-                  {CLASSICAL_BREAKDOWN.map(p => (
-                    <div className="v4-pr c" key={p.name}>
-                      <span className="type">CPU</span><span className="nm">{p.name}</span><span className="pct">{p.pct}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <RoutingStatsPanel stats={routingStats} showProviders />
           </div>
         </aside>
       </div>
