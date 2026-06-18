@@ -1,8 +1,7 @@
 """Job audit log — one record per solved Q hash.
 
-> In-memory only (process-local dict). Persists `ProviderProvenance` for every
-> race so outcomes are auditable. Production would back this with an append-only
-> table — see TODO.md.
+The base store is process-local for tests/offline runs. `DATABASE_URL` swaps the
+singleton to `DbJobStore`, which writes job records and solve snapshots to SQL.
 """
 
 from __future__ import annotations

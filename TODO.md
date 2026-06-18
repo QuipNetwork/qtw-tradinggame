@@ -20,6 +20,10 @@ Run/test refs:
 - **QR**: agent profile links default to `https://qtw.quip.network/p/{agentId}`.
 - **Persistence**: `DATABASE_URL` selects SQL-backed stores for
   Supabase/Postgres; unset keeps the local/test in-memory path.
+- **Scheduled rebalances**: optimized agents persist rebalance timestamps and
+  the backend runs due background rebalances through the normal QPU-capable
+  solver race.
+- **Not yet wired**: Proton SMTP sending and backend containerization.
 
 ## Next Work
 
@@ -28,8 +32,9 @@ Run/test refs:
 The SQL-backed store path is implemented; production still needs operational
 rollout and one real Supabase-backed smoke test.
 
-- Verify the FastAPI container with Supabase `DATABASE_URL` and
-  `APP_ENV=production` or `APP_ENV=booth`.
+- Add the backend Dockerfile/container runtime, then verify the FastAPI
+  container with Supabase `DATABASE_URL` and `APP_ENV=production` or
+  `APP_ENV=booth`.
 - Confirm table creation and startup hydration against the live Supabase
   project.
 - Keep tests/offline work on forced in-memory stores; this is already wired in
@@ -57,9 +62,10 @@ Environment/operations notes:
 - First production deployment should be one backend container with one Uvicorn
   worker. That still supports many phone websocket connections; it just means
   one process owns the MTM scheduler, in-process event bus, and solve queue.
-- Email capture and sending are separate concerns: Supabase stores email and
-  consent, while FastAPI sends via backend-only SMTP credentials. Proton SMTP
-  should use a generated SMTP token, not the Proton account password.
+- Email capture and sending are separate concerns: Supabase already stores
+  email/consent; FastAPI SMTP sending still needs to be implemented with
+  backend-only credentials. Proton SMTP should use a generated SMTP token, not
+  the Proton account password.
 
 ### P0 - assets-api Spot Freshness
 
@@ -95,12 +101,27 @@ MTM publishing to it.
 
 Make the deployed frontend and backend agree on URLs and runtime env.
 
+- Add `backend/Dockerfile` or `Dockerfile.backend`, `.dockerignore`, and a
+  production run command that binds Uvicorn to `0.0.0.0`.
+- Choose deployment automation: DigitalOcean droplet + Docker image pull, or
+  DigitalOcean App Platform branch/container autodeploy.
 - Netlify frontend env: set `VITE_API_BASE` to the deployed backend.
 - Set `VITE_WS_BASE` only if websocket traffic uses a different host.
 - Backend env: set `DATABASE_URL`, `ASSETS_API_BASE_URL`, `QR_BASE_URL`, CORS
   origins, and solver/QPU vars as needed.
 - Keep `QR_BASE_URL=https://qtw.quip.network` unless the canonical domain
   changes.
+
+### P1 - Proton SMTP Email Sending
+
+Email/consent is stored today; sending is not implemented.
+
+- Add backend-only SMTP env parsing.
+- Add an email sender module with tests that use a fake sender.
+- Send confirmation/recap email only after agent creation has already been
+  stored.
+- Log SMTP failures without failing signup.
+- Keep SMTP credentials out of Netlify/browser env.
 
 ### P1 - QPU Budget And Retune Rate Limits
 
@@ -109,7 +130,8 @@ Implement booth-safe solve metering before open use.
 - Global token bucket metering QPU milliseconds.
 - Debit actual `qpu_access_time` per solve.
 - First solve and manual retune can be QPU-eligible.
-- Scheduled/invisible rebalances should run CPU-only.
+- Scheduled/background rebalances are QPU-capable; enforce cadence and QPU
+  budget controls before booth-scale use.
 - Add per-agent manual retune cooldown, likely around 5 minutes.
 - Return 429 + `Retry-After`; frontend should show the countdown.
 - Optional `/budget` endpoint for booth operations.
@@ -118,15 +140,6 @@ Budget note:
 - Current estimate: ~55 min QPU over 2 days, ~170ms access/solve at 500 reads,
   about 19k QPU solves. This is enough for first solves plus a few manual
   retunes per attendee if cooldowns are enforced.
-
-### P1 - Scheduled Rebalances
-
-Wire the Rebalance Frequency slider into actual scheduled retunes.
-
-- Slider already maps to tiers: 24h, 8h, 4h, 2h, 1h.
-- Hourly remains the hard cap.
-- Scheduled jobs should be CPU-only unless explicitly approved otherwise.
-- Manual retune remains the user-visible race moment.
 
 ### P1 - QPU Hardware Shakeout
 
@@ -166,6 +179,11 @@ Clean up temporary UI/state work after persistence and freshness are done.
 - **QR generation**: kiosk renders scannable profile QR codes.
 - **D-Wave provider**: Ocean SDK path exists; joins the race only when
   `DWAVE_API_TOKEN` is set.
+- **Scheduled rebalances**: Rebalance Frequency sets the next rebalance time;
+  timestamps are persisted and shown on the phone profile.
+- **Kiosk dense portfolio layout**: allocation bar keeps a fixed visible band,
+  dense holding rows are constrained to the portfolio area, and the QR footer no
+  longer overlaps price rows.
 
 ## Watch Items
 

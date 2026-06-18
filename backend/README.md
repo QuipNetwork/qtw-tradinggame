@@ -7,7 +7,7 @@ Python backend for the booth trading competition. Reads market data from the
 
 ## Setup
 
-`uv` is the intended tool, but any venv works. Using the existing `.venv`:
+Use the backend `.venv`:
 
 ```bash
 cd backend
@@ -35,7 +35,9 @@ What each suite covers:
 | `test_solvers_synthetic.py` | Gurobi feasible; SA feasible & matches Gurobi; the race |
 | `test_assets_api.py` | assets-api client: grid alignment, no-fabrication NaN gaps, spot, errors |
 | `test_pnl.py` | mark-to-market rollup |
-| `test_persistence.py` / `test_job_pipeline.py` | stores + leaderboard; first-solve & retune over the basket |
+| `test_persistence.py` / `test_job_pipeline.py` | in-memory and SQL-backed stores; first-solve & retune over the basket |
+| `test_scheduler.py` | MTM websocket payloads and due scheduled rebalances |
+| `test_solver_race_results.py` | solver-run metadata, infeasible/failed rows, winner reporting |
 | `test_api.py` | HTTP flow, 404s/422s, and a live WebSocket push |
 
 ## Test from the CLI (no server needed)
@@ -81,10 +83,10 @@ export DWAVE_API_TOKEN=...   # from cloud.dwavesys.com
 .venv/bin/qtw race           # field becomes gurobi, sa, dwave
 ```
 
-Reported D-Wave solve time is QPU access time (the anneal itself), not network
-round-trip. The provider uses the clique sampler (cached embeddings — no
-per-solve embedding search) and picks the best *feasible* anneal read, not just
-the lowest-energy one.
+Reported D-Wave solve time is QPU access time, not network round-trip. The
+provider uses the clique sampler (cached embeddings — no per-solve embedding
+search) and picks the best *feasible* anneal read, not just the lowest-energy
+one.
 
 Tuning knobs are env vars: `DWAVE_NUM_READS` (500), `DWAVE_ANNEAL_TIME_US`
 (100), `DWAVE_CHAIN_STRENGTH_PREFACTOR` (3). `qtw verify-dwave [--assets …]`
@@ -101,6 +103,15 @@ stays an offline oracle and the live race is SA vs the QPU.
 Then open `http://127.0.0.1:8000/docs` for interactive Swagger UI — the easiest
 way to click through every endpoint.
 
+For a container or remote host, the process must bind to `0.0.0.0`:
+
+```bash
+.venv/bin/python -m uvicorn backend.api.app:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+Keep one worker for the first production deployment. The websocket event bus,
+MTM scheduler, and scheduled rebalance loop are in-process.
+
 ## Test the API by hand
 
 ```bash
@@ -115,7 +126,8 @@ curl -s $BASE/agents -H 'content-type: application/json' -d '{
 
 # 2. Optimize (first solve). Use the agentId from step 1.
 curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' -d '{}'
-#    → RoutingResult: provider, providerType, solveTime, vsClassical, portfolio[], kind="first"
+#    → RoutingResult: provider, providerType, solveTime, solverResults[],
+#      portfolio[], kind="first", nextRebalanceAt
 
 # 3. Retune — new sliders and/or a re-selected basket (liquidates + reallocates)
 curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' \
@@ -128,11 +140,16 @@ curl -s $BASE/leaderboard
 Things worth checking in the response:
 - `portfolio` holds **every basket asset** (min-position floor) and the `pct` values sum to 100.
 - `kind` is `"first"` then `"retune"`; `jobId` and `solvedAt` are populated.
+- `nextRebalanceAt` and `rebalanceIntervalHours` are populated after a solve.
+- `solverResults` lists every solver that ran, including infeasible, failed, or
+  timed-out providers.
 
 ## Test the live WebSocket
 
 The MTM loop pushes a valuation every ~3s, and each optimize also pushes one.
-With the server running and an agent that has optimized at least once:
+Scheduled rebalances run in a separate loop and use the same QPU-capable
+optimization path as manual retunes. With the server running and an agent that
+has optimized at least once:
 
 ```bash
 .venv/bin/python - <<'PY'
@@ -141,9 +158,16 @@ AGENT = "<AGENT_ID>"
 async def main():
     async with websockets.connect(f"ws://127.0.0.1:8000/agents/{AGENT}") as ws:
         for _ in range(3):
-            print(json.loads(await ws.recv()))   # {plUSD, plPct, total, holdings, asOf, stale}
+            print(json.loads(await ws.recv()))   # {plUSD, plPct, total, holdings, asOf, stale, nextRebalanceAt}
 asyncio.run(main())
 PY
 ```
 
 `ws://127.0.0.1:8000/tv/events` streams booth events (e.g. `new-agent`).
+
+## Production wiring status
+
+See `../docs/ENVIRONMENT.md` for production environment variables,
+Supabase/Postgres behavior, Proton SMTP status, and the planned
+DigitalOcean/container deployment shape. As of now, Proton email sending and the
+backend Dockerfile are not implemented.

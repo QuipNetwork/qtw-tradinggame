@@ -1,202 +1,305 @@
-# Backend DAG — System dataflow
+# Backend DAG - System Dataflow
 
-Full dataflow for the QTW 2026 Trading Game backend, from frontend touch through
-solver race back to live MTM updates. Solid arrows = synchronous data flow;
-dotted arrows = reads from persistence or external data.
+This is the current backend shape for the QTW 2026 trading game: kiosk signup,
+phone retunes, live mark-to-market updates, scheduled rebalances, persistence,
+and the solver race.
 
-**Legend.** Blue = persistence stores; purple = solvers; the amber external is
-the **assets-api service** (real prices; deterministic synthetic remains the
-offline/test source). The D-Wave provider is implemented and joins the race when
-`DWAVE_API_TOKEN` is set. The frontend MVP uses the real API when `VITE_API_BASE`
-is set and falls back to mocks otherwise.
+## Current Status
 
-**What's left, in order:** ① assets-api spot-refresh cadence + stale metadata → ② durable persistence → ③ scheduled rebalances + QPU budget.
+- FastAPI is the long-lived backend process. It owns HTTP routes, websocket
+  routes, the in-process event bus, the MTM loop, and the scheduled rebalance
+  loop.
+- `DATABASE_URL` selects SQL-backed stores for Supabase/Postgres. When unset,
+  the same store interfaces use in-memory dictionaries for local/offline work.
+- `MARKET_DATA_SOURCE` defaults to `assets-api`; `synthetic` remains available
+  for tests and offline demos.
+- D-Wave joins the race only when `DWAVE_API_TOKEN` is set. Gurobi should stay
+  out of the production race with `GUROBI_IN_RACE=0`.
+- Scheduled rebalances are implemented. They call the same optimization path as
+  manual retunes, so they are QPU-capable when D-Wave is configured.
+- Proton SMTP sending and backend containerization are not implemented yet. See
+  `docs/ENVIRONMENT.md` for the required wiring.
+
+## High-Level DAG
 
 ```mermaid
 flowchart TB
     %% ===== Frontend =====
-    subgraph FE["Frontend (MVP)"]
-        K["Kiosk SignUp<br/>(/kiosk)"]
-        W["Kiosk Welcome<br/>(/kiosk/welcome)"]
-        P["Phone Profile<br/>(/p/:agentId)"]
-        TVA["TV StateA<br/>Leaderboard"]
-        TVB["TV StateB<br/>Spotlight"]
-        TVC["TV StateC<br/>Welcome splash"]
-        TVD["TV StateD<br/>New-agent splash"]
+    subgraph FE["Frontend MVP"]
+        K["Kiosk SignUp<br/>/kiosk"]
+        W["Kiosk Welcome<br/>/kiosk/welcome"]
+        P["Phone Profile<br/>/p/:agentId"]
+        TV["TV views<br/>leaderboard + events"]
     end
 
     %% ===== API =====
-    subgraph API["HTTP / WS API"]
-        EP1["POST /agents"]
-        EP2["GET /agents/:id"]
-        EP3["POST /agents/:id/optimize<br/>(payload: sliders?)"]
-        EP4["GET /leaderboard"]
-        EP5["WS /agents/:id"]
-        EP6["WS /tv/events"]
+    subgraph API["FastAPI HTTP / WS"]
+        A1["POST /agents<br/>create agent + QR URL"]
+        A2["GET /agents/:id<br/>load profile config"]
+        A3["POST /agents/:id/optimize<br/>first solve, retune, scheduled solve"]
+        A4["GET /leaderboard"]
+        WS1["WS /agents/:id<br/>live valuation"]
+        WS2["WS /tv/events<br/>new-agent/rank events"]
     end
 
     %% ===== Orchestration =====
     subgraph ORCH["Orchestration"]
-        JOB["job.py<br/>end-to-end pipeline"]
-        SCHED["scheduler.py<br/>Σ refresh · MTM tick"]
+        JOB["job.py<br/>build problem -> race -> allocate -> persist"]
+        MTM["scheduler.py<br/>MTM loop every MTM_TICK_S"]
+        REB["scheduler.py<br/>scheduled rebalance check"]
     end
 
-    %% ===== Financial / domain =====
-    subgraph FIN["Financial (domain-aware)"]
-        SM["slider_map.py<br/>0-100 → γ,w_max,w_min,cadence"]
-        CE["estimators/covariance.py<br/>Σ from 720h window"]
-        RE["estimators/expected_return.py<br/>μ from fixed 168h window"]
-        QE["qubo_encoder.py<br/>QP → bit-discretized QUBO"]
-        QD["qubo_decoder.py<br/>bitstring → weights"]
-        RT["allocate<br/>liquidate → reallocate"]
-        PNL["pnl.py<br/>holdings × spot → AgentUpdate"]
+    %% ===== Domain =====
+    subgraph FIN["Financial Domain"]
+        SL["slider_map.py<br/>sliders -> gamma, caps, cadence"]
+        ER["expected_return.py<br/>mu from real returns"]
+        CV["covariance.py<br/>Sigma from pairwise real overlap"]
+        QP["PortfolioProblem<br/>mean-variance box QP"]
+        ENC["qubo_encoder.py<br/>QP -> QUBO for SA/D-Wave"]
+        DEC["qubo_decoder.py<br/>bitstrings -> weights"]
+        PNL["pnl.py<br/>holdings x spot -> AgentUpdate"]
         BASKET["basket.py<br/>28-asset universe"]
     end
 
     %% ===== Market data =====
-    subgraph DATA["Market data"]
-        SRC["prices/source<br/>synthetic | assets-api"]
-        ASSETSAPI[/"assets-api service<br/>Alpaca · Massive · CoinGecko"/]
+    subgraph DATA["Market Data"]
+        SRC["prices/source.py<br/>assets-api or synthetic"]
+        ASSETS[/"assets-api<br/>spot + hourly history"/]
     end
 
     %% ===== Solvers =====
-    subgraph SOLV["Solvers (race · first feasible wins)"]
-        RTR["router.py<br/>parallel dispatch (ThreadPoolExecutor)"]
-        GU["providers/gurobi.py<br/>continuous QP<br/>CPU role + offline oracle"]
-        SA["providers/sa.py<br/>QUBO via neal<br/>CPU role"]
-        DW["providers/dwave.py<br/>QUBO on Advantage QPU<br/>joins race with DWAVE_API_TOKEN"]
-        FEAS["feasibility.py<br/>budget · box check"]
+    subgraph SOLV["Solver Race"]
+        RTR["router.py<br/>parallel providers; fastest feasible solve/access time wins"]
+        GU["Gurobi<br/>continuous QP; dev/oracle"]
+        SA["Simulated Annealing<br/>QUBO on CPU"]
+        DW["D-Wave Advantage<br/>QUBO on QPU with DWAVE_API_TOKEN"]
+        FEAS["feasibility.py<br/>budget + box gate"]
     end
 
     %% ===== Persistence =====
     subgraph PERS["Persistence"]
-        AG[("agents<br/>config + holdings + history")]
-        JOBS[("jobs<br/>audit log per Q hash")]
-        LB[("leaderboard<br/>rank by total")]
+        AG["AgentStore / DbAgentStore<br/>config, basket, holdings, valuation"]
+        JBS["JobStore / DbJobStore<br/>winner audit + solve snapshots"]
+        VS["valuation_snapshots<br/>sampled analytics history"]
+        LB["leaderboard.py<br/>rank from current agent totals"]
     end
 
     %% ===== Events =====
     subgraph EV["Events"]
-        BUS["bus.py<br/>pub/sub"]
+        BUS["bus.py<br/>in-process pub/sub"]
     end
 
-    %% ===== Config =====
-    CFG["config.py<br/>bankroll · ε · b · basket min"]
+    K --> A1
+    K --> A3
+    W --> A2
+    W --> WS1
+    P --> A2
+    P --> A3
+    P --> WS1
+    TV --> A4
+    TV --> WS2
 
-    %% ===== Frontend → API =====
-    K -->|"submitAgent(config)"| EP1
-    K -->|"requestOptimization(id)"| EP3
-    P -->|"retune w/ sliders + basket"| EP3
-    P -->|"subscribeAgent"| EP5
-    W -->|"getAgent(id)"| EP2
-    TVA -->|"getLeaderboard"| EP4
-    TVA -.->|"subscribe rank events"| EP6
-    TVD -.->|"subscribe new-agent"| EP6
+    A1 --> AG
+    A1 --> BUS
+    A2 -.-> AG
+    A3 --> JOB
+    A4 -.-> LB
 
-    %% ===== API → Orchestration / Persistence =====
-    EP1 --> AG
-    EP1 --> CFG
-    EP2 -.-> AG
-    EP3 --> JOB
-    EP4 -.-> LB
-
-    %% ===== Pipeline =====
-    JOB --> SM
-    SM -->|"γ, w_max, w_min"| QE
-    BASKET --> RE
-    BASKET --> CE
-    SRC --> RE
-    SRC --> CE
-    CE -->|"Σ (n×n)"| QE
-    RE -->|"μ (n)"| QE
-    CFG -.->|"b, λ_sum, λ_K"| QE
-
-    QE -->|"QP (Gurobi) · QUBO (SA, D-Wave)"| RTR
-    RTR -->|"continuous QP"| GU
-    RTR -->|"QUBO"| SA
-    RTR -->|"QUBO"| DW
+    JOB --> SL
+    JOB --> BASKET
+    JOB --> SRC
+    SRC -.-> ASSETS
+    SRC --> ER
+    SRC --> CV
+    ER --> QP
+    CV --> QP
+    SL --> QP
+    QP --> ENC
+    QP --> RTR
+    ENC --> RTR
+    RTR --> GU
+    RTR --> SA
+    RTR --> DW
     GU --> FEAS
     SA --> FEAS
     DW --> FEAS
-    FEAS -->|"first feasible wins"| QD
+    FEAS --> DEC
+    DEC --> JOB
 
-    QD -->|"PortfolioEntry[]"| RT
-    AG -.->|"current holdings"| RT
-    SRC -.->|"spot for trade list"| RT
-    RT -->|"new holdings"| AG
-    RT -->|"Q hash, provider, time"| JOBS
-    RT -->|"new agent / rank event"| BUS
-    RT -->|"RoutingResult"| EP3
+    JOB --> AG
+    JOB --> JBS
+    JOB --> BUS
+    JOB --> A3
 
-    %% ===== MTM loop =====
-    SCHED -->|"MTM tick (~3s)"| PNL
-    AG -.->|"holdings"| PNL
-    SRC -.->|"spot"| PNL
-    PNL -->|"AgentUpdate"| AG
-    PNL -->|"total = bankroll + P&L"| LB
-    PNL -->|"AgentUpdate"| BUS
+    MTM -.-> AG
+    MTM --> SRC
+    MTM --> PNL
+    PNL --> AG
+    PNL --> VS
+    PNL --> LB
+    PNL --> BUS
 
-    %% ===== Events fanout =====
-    BUS -->|"per-agent updates"| EP5
-    BUS -->|"TV events (new agent, rank reshuffle)"| EP6
+    REB -.-> AG
+    REB --> JOB
 
-    %% ===== Real data path =====
-    ASSETSAPI -.->|"/v1/history · /v1/spot"| SRC
+    BUS --> WS1
+    BUS --> WS2
 
-    %% ===== Styling =====
     classDef external fill:#fff4e6,stroke:#cc8800,color:#5c3d00
     classDef storage fill:#e6f2ff,stroke:#0066cc,color:#0d2b52
     classDef solver fill:#f0e6ff,stroke:#6600cc,color:#2a0a52
 
-    class AG,JOBS,LB storage
-    class DW,SA,GU solver
-    class ASSETSAPI external
+    class ASSETS external
+    class AG,JBS,VS,LB storage
+    class GU,SA,DW,RTR solver
 ```
 
-## Reading the DAG
+## Main Flows
 
-- **Top → bottom = user request flow**: frontend kiosk/phone touch → API → orchestration job → financial pipeline → solver race → decode → persist → respond.
-- **Bottom = MTM background loop**: the scheduler ticks the PnL module every few seconds, revalues holdings against the current spot, updates persistence, and pushes deltas over WS.
-- **Dotted arrows = reads** (from persistence or external data); solid arrows = synchronous data flow.
-- **Data layer**: the estimators and PnL read through `prices/source` — assets-api by default, deterministic synthetic for offline/tests. Same interface, no pipeline change.
-- **Three solver paths converge at `feasibility.py`** — first feasible wins. Gurobi additionally serves as the offline oracle (separate from the race).
+### 1. Create Agent
 
-## Solver race — how it connects
+`POST /agents` validates the selected basket, stores the agent config, and
+returns:
 
-One canonical problem fans out to the solvers in two encodings — the continuous
-QP for Gurobi, the bit-discretized QUBO for SA and D-Wave — and the **first
-feasible** answer wins.
+- `agentId`
+- `qrUrl`, built from `QR_BASE_URL/p/{agentId}`
+- starting bankroll
 
-- **The canonical problem.** `orchestration/job.py` assembles a `PortfolioProblem`
-  (`financial/types.py`) over the player's basket from the slider params and the
-  estimates (μ, Σ). Every solve is a fresh allocation — a retune liquidates and
-  reallocates, so there is no turnover anchor; no cardinality constraint either,
-  the basket decides participation and a min-position floor keeps every selected
-  asset held.
-- **The router** (`solvers/router.py::race`) encodes the QUBO once, hashes it for
-  the audit log, and dispatches the providers concurrently on a thread pool (the
-  solve work releases the GIL). It takes the first feasible result and keeps the
-  runner-up for the `vsClassical` baseline (decision Q7).
-- **Encodings.** Gurobi solves the QP natively; SA and D-Wave solve the QUBO and
-  decode the winning bitstring (`qubo_decoder.py`, simplex-normalized to absorb
-  bit-grid error). Gurobi is also the offline oracle for penalty calibration.
-- **Feasibility gate** (`solvers/feasibility.py`) is identical for all three —
-  budget `|Σwᵢ−1| < ε`, box `w_min ≤ wᵢ ≤ w_max`. Cheap, deterministic, no
-  oracle in the hot path (decision Q6).
-- **D-Wave.** Solves the *same* QUBO SA does, on Advantage via the Ocean SDK.
-  Joins the race only when `DWAVE_API_TOKEN` is set (QPU time costs money); its
-  reported solve time is QPU access time, not wall clock.
+No solve happens here. The kiosk calls optimize after creation.
 
-## Key invariants
+### 2. First Solve / Manual Retune
 
-1. **`slider_map.py` is the only translator** of 0–100 sliders → physical params (γ, w_max, w_min, rebalance cadence). The frontend never sees physical params.
-2. **`config.py` owns every static knob** — bankroll, bit precision, penalty weights, ε tolerances, K bounds.
-3. **`basket.py` is the single source of the asset universe.**
-4. **The MTM loop never enters the solver path** — pure revaluation until the next retune.
-5. **One problem, two encodings** — QP (Gurobi) and QUBO (SA, D-Wave) minimize the same objective over the same feasible set (budget · box), so the race is meaningful.
+`POST /agents/:id/optimize` runs the full optimization pipeline.
 
-## Critical paths
+1. Load the agent from `AgentStore`.
+2. Apply any changed sliders or basket.
+3. Fetch hourly returns from the configured market data source.
+4. Estimate expected returns and covariance from real returns only.
+5. Build the mean-variance problem:
 
-- **Build-and-solve hot path**: `EP3 → JOB → SM → (CE + RE) → QE → RTR → FEAS → QD → RT → AG/JOBS → response`. (`QD` decode applies to a QUBO winner — SA or D-Wave; a Gurobi QP winner returns weights directly.)
-- **MTM hot loop**: `SCHED → PNL → AG/LB → BUS → EP5`.
-- **First solve and retune are the same math** — a retune liquidates at spot and reallocates over the (possibly re-selected) basket; the solvers always see a fresh problem.
+   minimize: gamma over 2 times portfolio variance minus expected return
+
+   subject to: weights sum to 1, and every selected asset stays between
+   `w_min` and `w_max`
+
+6. Race providers:
+   - Gurobi solves the continuous QP when enabled.
+   - Simulated annealing solves the QUBO on CPU.
+   - D-Wave solves the same QUBO on QPU when `DWAVE_API_TOKEN` is set.
+7. Keep all provider results for display/audit.
+8. Pick the feasible result with the lowest reported solve/access time.
+9. Liquidate the previous basket at spot and allocate the full value into the
+   winning weights.
+10. Persist holdings, solve metadata, solve snapshots, and rebalance timestamps.
+11. Publish an immediate `AgentUpdate` over the per-agent websocket.
+
+Current code treats every solve as a fresh allocation. There is no turnover
+penalty and no transaction fee in the live path.
+
+### 3. Scheduled Rebalance
+
+`run_scheduled_rebalance_loop` checks active agents every
+`REBALANCE_CHECK_TICK_S`.
+
+- Active means the agent has holdings from at least one prior solve.
+- If `next_rebalance_at` is missing on a hydrated active agent, the backend
+  initializes it from the current slider cadence.
+- When due, the loop calls `run_optimization` with the existing sliders and
+  basket.
+- Because it uses the normal optimization path, scheduled/background rebalances
+  are QPU-capable when D-Wave is configured.
+- Failures are logged and retried after `REBALANCE_RETRY_BACKOFF_S`.
+
+This loop is separate from MTM so a solve does not block valuation pushes.
+
+### 4. Mark-To-Market
+
+`run_mtm_loop` runs every `MTM_TICK_S`.
+
+1. Collect all tickers currently held by active agents.
+2. Fetch one spot snapshot for that ticker set.
+3. Revalue each agent's units against spot.
+4. Update the in-memory hot path with `set_valuation`.
+5. Persist sampled analytics rows every `VALUATION_SNAPSHOT_INTERVAL_S` when
+   SQL-backed stores are enabled.
+6. Publish an `AgentUpdate` over websocket.
+
+The frequent MTM path does not write every tick to Postgres. Durable valuation
+history is sampled for analytics.
+
+## Solver Race Semantics
+
+The race does not stop at the first feasible response anymore. The router
+collects finished provider results until the overall deadline, marks infeasible
+and failed providers, and then chooses the feasible solution with the lowest
+reported solve/access time.
+
+Important details:
+
+- D-Wave's displayed time is QPU access time, not network round-trip.
+- Gurobi should be disabled in production with `GUROBI_IN_RACE=0`.
+- The legacy `vsClassical` field remains for older clients, but the frontend now
+  renders the ranked `solverResults` list and percentage margin.
+- If no provider returns a feasible solution before the deadline, the API returns
+  `503`.
+
+## Persistence Semantics
+
+The code uses store interfaces everywhere:
+
+- `AgentStore` / `DbAgentStore`
+- `JobStore` / `DbJobStore`
+
+Selection is environment-driven:
+
+- `DATABASE_URL` unset: in-memory store.
+- `DATABASE_URL` set: SQL-backed store, usually Supabase/Postgres.
+
+`DbAgentStore` subclasses the in-memory store. On startup it loads the working
+set from the database into memory. Human-paced operations write through to SQL:
+
+- create agent
+- update sliders
+- update basket
+- apply solve
+- initialize missing rebalance timestamps
+
+MTM valuations update the in-memory working set every tick. Durable valuation
+snapshots are sampled separately.
+
+## Runtime Boundaries
+
+- Frontend env (`VITE_API_BASE`, optional `VITE_WS_BASE`) belongs in Netlify.
+- Backend env (`DATABASE_URL`, `ASSETS_API_BASE_URL`, `DWAVE_API_TOKEN`,
+  `QR_BASE_URL`, SMTP secrets later) belongs only on the backend host/container.
+- Supabase hosts Postgres only; the browser never connects to the database.
+- assets-api owns provider fallback, rate-limit protection, quote freshness, and
+  history/spot caching.
+- QTW backend owns agent state, solver dispatch, MTM, scheduled rebalances,
+  leaderboard, and websocket pushes.
+
+## Single-Worker Constraint
+
+The current event bus and schedulers are in-process. Run one Uvicorn worker for
+the first production deployment:
+
+```bash
+uvicorn backend.api.app:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+Multiple backend workers would need an external event bus and scheduler
+coordination, such as Redis pub/sub plus a distributed lock, or Postgres
+LISTEN/NOTIFY plus advisory locks.
+
+## Still Missing
+
+- Proton SMTP sender: email/consent fields are stored, but no backend email
+  sender exists yet.
+- Backend containerization: there is no `Dockerfile`, compose file, or
+  DigitalOcean app spec in this repo yet.
+- QPU budget and retune rate limits: scheduled rebalances and manual retunes are
+  QPU-capable, but token-bucket enforcement is still pending.
+- assets-api spot freshness: QTW consumes the spot contract; faster freshness
+  belongs in `../assets-api`.
+- MTM cadence alignment: once assets-api spot freshness is finalized, align
+  `MTM_TICK_S` with that cadence.
