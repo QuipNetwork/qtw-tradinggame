@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import type { AgentConfig, AgentUpdate, RoutingResult, SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { getAgent, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import type {
+  AgentConfig,
+  AgentUpdate,
+  RoutingResult,
+  LeaderboardEntry,
+  SliderValues,
+  AssetTicker,
+  AssetInfo,
+  QpuBudgetStatus,
+} from '../../api';
+import { getAgent, getLeaderboard, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
@@ -15,6 +24,7 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
 // A basket needs at least this many assets (mirrors the kiosk sign-up rule).
 const MIN_ASSETS = 3;
 const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+type RankInfo = { rank: number | null; total: number };
 
 function formatRebalanceCountdown(nextRebalanceAt?: string | null, nowMs: number = Date.now()): string {
   if (!nextRebalanceAt) return 'Pending';
@@ -28,6 +38,65 @@ function formatRebalanceCountdown(nextRebalanceAt?: string | null, nowMs: number
   const seconds = totalSeconds % 60;
   if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function formatMinuteSecondCountdown(remainingMs: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function roundedPnL(plUSD: number, plPct: number): {
+  sign: '+' | '−' | '';
+  tone: 'up' | 'down' | 'flat';
+  usd: number;
+  pct: string;
+} {
+  const roundedUsd = Math.round(plUSD);
+  const roundedPct = Math.round(plPct * 100) / 100;
+  if (roundedUsd === 0 && roundedPct === 0) {
+    return { sign: '', tone: 'flat', usd: 0, pct: '0.00' };
+  }
+  const positive = roundedUsd > 0 || roundedPct > 0;
+  return {
+    sign: positive ? '+' : '−',
+    tone: positive ? 'up' : 'down',
+    usd: Math.abs(roundedUsd),
+    pct: Math.abs(roundedPct).toFixed(2),
+  };
+}
+
+function qpuCooldownTargetMs(budget?: QpuBudgetStatus | null): number | null {
+  if (!budget?.nextAvailableAt) return null;
+  const targetMs = Date.parse(budget.nextAvailableAt);
+  return Number.isFinite(targetMs) ? targetMs : null;
+}
+
+function qpuCooldownFromError(error: unknown): { message: string; targetMs: number | null } | null {
+  if (!(error instanceof Error)) return null;
+  const maybe = error as Error & {
+    status?: number;
+    retryAfterSeconds?: number;
+    qpuBudget?: QpuBudgetStatus;
+  };
+  if (maybe.status !== 429 && typeof maybe.retryAfterSeconds !== 'number') return null;
+  const budgetTargetMs = qpuCooldownTargetMs(maybe.qpuBudget);
+  const retryTargetMs = typeof maybe.retryAfterSeconds === 'number'
+    ? Date.now() + maybe.retryAfterSeconds * 1000
+    : null;
+  return {
+    message: maybe.message || 'QPU solve limit reached',
+    targetMs: budgetTargetMs ?? retryTargetMs,
+  };
+}
+
+function rankInfoFor(agentId: string, leaderboard: LeaderboardEntry[]): RankInfo {
+  const row = leaderboard.find(entry => entry.agentId === agentId);
+  return {
+    rank: row?.rank ?? null,
+    total: leaderboard.length,
+  };
 }
 
 function sparkPoints(values: number[]): string {
@@ -55,6 +124,8 @@ export default function PhoneProfile() {
   const [error, setError] = useState<string | null>(null);
   const [totalHistory, setTotalHistory] = useState<number[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [qpuCooldownUntilMs, setQpuCooldownUntilMs] = useState<number | null>(null);
+  const [rankInfo, setRankInfo] = useState<RankInfo | null>(null);
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -65,12 +136,39 @@ export default function PhoneProfile() {
       setAgent(a);
       setSliders(slidersToArray(a.sliders));
       setBasket(new Set(a.assets ?? []));
+      const targetMs = qpuCooldownTargetMs(a.qpuBudget);
+      if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
 
       const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
       if (cachedRaw) {
-        try { setResult(JSON.parse(cachedRaw)); } catch { /* ignore */ }
+        try {
+          const cached = JSON.parse(cachedRaw) as RoutingResult;
+          setResult(cached);
+          const targetMs = qpuCooldownTargetMs(cached.qpuBudget);
+          if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
+        } catch { /* ignore */ }
       }
     })();
+  }, [agentId]);
+
+  useEffect(() => {
+    if (!agentId) return;
+    const currentAgentId = agentId;
+    let cancelled = false;
+    async function refreshRank() {
+      try {
+        const board = await getLeaderboard();
+        if (!cancelled) setRankInfo(rankInfoFor(currentAgentId, board));
+      } catch {
+        // Keep the last known rank if the leaderboard request misses a tick.
+      }
+    }
+    refreshRank();
+    const timer = window.setInterval(refreshRank, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, [agentId]);
 
   useEffect(() => {
@@ -78,6 +176,8 @@ export default function PhoneProfile() {
     return subscribeAgent(agentId, update => {
       setLive(update);
       setTotalHistory(prev => [...prev, update.total].slice(-24));
+      const targetMs = qpuCooldownTargetMs(update.qpuBudget);
+      if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
     });
   }, [agentId]);
 
@@ -96,6 +196,12 @@ export default function PhoneProfile() {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!qpuCooldownUntilMs || qpuCooldownUntilMs > nowMs) return;
+    setQpuCooldownUntilMs(null);
+    setError(prev => (prev === 'QPU solve limit reached' ? null : prev));
+  }, [nowMs, qpuCooldownUntilMs]);
 
   if (!agentId) return <div style={{ padding: 40 }}>Missing agent.</div>;
   if (!agent || !sliders) return null;
@@ -117,11 +223,25 @@ export default function PhoneProfile() {
         assets,
         nextRebalanceAt: r.nextRebalanceAt ?? prev.nextRebalanceAt,
         rebalanceIntervalHours: r.rebalanceIntervalHours ?? prev.rebalanceIntervalHours,
+        qpuBudget: r.qpuBudget ?? prev.qpuBudget,
       } : prev);
       setResult(r);
+      getLeaderboard()
+        .then(board => setRankInfo(rankInfoFor(agentId, board)))
+        .catch(() => {});
+      const targetMs = qpuCooldownTargetMs(r.qpuBudget);
+      if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
       sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(r));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not re-optimize. Check the backend connection.');
+      const cooldown = qpuCooldownFromError(err);
+      if (cooldown) {
+        if (cooldown.targetMs && cooldown.targetMs > Date.now()) {
+          setQpuCooldownUntilMs(cooldown.targetMs);
+        }
+        setError('QPU solve limit reached');
+      } else {
+        setError(err instanceof Error ? err.message : 'Could not re-optimize. Check the backend connection.');
+      }
     } finally {
       setBusy(false);
     }
@@ -175,8 +295,8 @@ export default function PhoneProfile() {
   const total = live?.total ?? 10142;
   const plUSD = live?.plUSD ?? 142;
   const plPct = live?.plPct ?? 1.42;
-  const positive = plUSD >= 0;
-  const lineColor = positive ? '#0A832E' : '#ff6467';
+  const pnl = roundedPnL(plUSD, plPct);
+  const lineColor = pnl.tone === 'down' ? '#ff6467' : pnl.tone === 'up' ? '#0A832E' : '#71717b';
   const spark = sparkPoints(totalHistory);
 
   const solveTime = result?.solveTime ?? 0.42;
@@ -190,6 +310,23 @@ export default function PhoneProfile() {
     result?.rebalanceIntervalHours ??
     agent.rebalanceIntervalHours;
   const rebalanceCountdown = formatRebalanceCountdown(nextRebalanceAt, nowMs);
+  const budgetTargetMs =
+    qpuCooldownUntilMs ??
+    qpuCooldownTargetMs(live?.qpuBudget) ??
+    qpuCooldownTargetMs(result?.qpuBudget) ??
+    qpuCooldownTargetMs(agent.qpuBudget);
+  const qpuCooldownRemainingMs = budgetTargetMs ? Math.max(0, budgetTargetMs - nowMs) : 0;
+  const qpuCoolingDown = qpuCooldownRemainingMs > 0;
+  const qpuCooldownLabel = formatMinuteSecondCountdown(qpuCooldownRemainingMs);
+  const retuneDisabled = busy || qpuCoolingDown;
+  const retuneButtonText = busy
+    ? 'Retuning via Quip'
+    : qpuCoolingDown
+      ? `QPU cooldown · ${qpuCooldownLabel}`
+      : 'Retune with Quip';
+  const retuneHelper = qpuCoolingDown ? null : error;
+  const rankText = rankInfo?.rank ? `#${rankInfo.rank}` : '—';
+  const rankTotalText = rankInfo?.total ? `of ${rankInfo.total}` : 'rank pending';
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a10', padding: 16 }}>
@@ -237,8 +374,8 @@ export default function PhoneProfile() {
               <canvas ref={glyphRef} width={56} height={56}></canvas>
               <div className="v4m-phone-rank" style={{ gridColumn: '1 / 3', marginTop: 4, justifySelf: 'start' }}>
                 <span>You're</span>
-                <span className="v4m-rank-num">#6</span>
-                <span>of 247</span>
+                <span className="v4m-rank-num">{rankText}</span>
+                <span>{rankTotalText}</span>
               </div>
             </div>
 
@@ -246,8 +383,8 @@ export default function PhoneProfile() {
               <div>
                 <div className="v4m-section-eyebrow">Total · {live?.stale ? 'Last close' : 'Live'}</div>
                 <div className="v4m-pl-num">${WHOLE_USD.format(total)}</div>
-                <div className={`v4m-pl-change ${positive ? 'up' : 'down'}`}>
-                  {positive ? '+' : '−'}${WHOLE_USD.format(Math.abs(plUSD))} · {positive ? '+' : '−'}{Math.abs(plPct).toFixed(2)}%
+                <div className={`v4m-pl-change ${pnl.tone}`}>
+                  {pnl.sign}${WHOLE_USD.format(pnl.usd)} · {pnl.sign}{pnl.pct}%
                 </div>
               </div>
               <svg className="v4m-spark" viewBox="0 0 80 36" preserveAspectRatio="none" aria-hidden="true" style={{ color: lineColor }}>
@@ -335,11 +472,11 @@ export default function PhoneProfile() {
               ))}
             </div>
 
-            <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={retune} disabled={busy}>
-              <span>{busy ? 'Re-optimizing…' : 'Re-optimize on Quip Network'}</span>
+            <button className={`v4m-cta${busy ? ' busy' : ''}${qpuCoolingDown ? ' cooldown' : ''}`} onClick={retune} disabled={retuneDisabled}>
+              <span>{retuneButtonText}</span>
               <span className="v4m-cta-arrow">→</span>
             </button>
-            {error && <div className="v4m-cta-sub">{error}</div>}
+            {retuneHelper && <div className="v4m-cta-sub">{retuneHelper}</div>}
 
             </div>
             )}

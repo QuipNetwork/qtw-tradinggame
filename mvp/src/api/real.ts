@@ -6,6 +6,7 @@ import type {
   AgentUpdate,
   LeaderboardEntry,
   OptimizePatch,
+  QpuBudgetStatus,
   RoutingResult,
   SubmitAgentResponse,
 } from './types';
@@ -15,12 +16,19 @@ const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
 class BackendApiError extends Error {
   status: number;
   retryAfterSeconds?: number;
+  qpuBudget?: QpuBudgetStatus;
 
-  constructor(status: number, message: string, retryAfterSeconds?: number) {
+  constructor(
+    status: number,
+    message: string,
+    retryAfterSeconds?: number,
+    qpuBudget?: QpuBudgetStatus,
+  ) {
     super(message);
     this.name = 'BackendApiError';
     this.status = status;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.qpuBudget = qpuBudget;
   }
 }
 
@@ -57,6 +65,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     let message = response.statusText;
     let retryAfterSeconds: number | undefined;
+    let qpuBudget: QpuBudgetStatus | undefined;
     try {
       const body = await response.json();
       const detail = body.detail ?? body;
@@ -69,11 +78,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         retryAfterSeconds = typeof detail.retryAfterSeconds === 'number'
           ? detail.retryAfterSeconds
           : undefined;
+        qpuBudget = detail.qpuBudget;
       }
     } catch {
       // Keep the HTTP status text when the response is not JSON.
     }
-    throw new BackendApiError(response.status, message, retryAfterSeconds);
+    throw new BackendApiError(response.status, message, retryAfterSeconds, qpuBudget);
   }
 
   return response.json() as Promise<T>;

@@ -61,7 +61,7 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
   return {
     value: `${rounded}%`,
     label: 'Faster Than Next',
-    summary: `${rounded}% faster than ${opponent.label}`,
+    summary: `${rounded}% faster than ${opponent.providerType}`,
   };
 }
 

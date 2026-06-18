@@ -5463,6 +5463,7 @@
     font-variant-numeric: tabular-nums;
   }
   .phone-v4 .v4m-pl .v4m-pl-change.down { color: #ff6467; }
+  .phone-v4 .v4m-pl .v4m-pl-change.flat { color: #71717b; }
   .phone-v4 .v4m-pl svg.v4m-spark { width: 80px; height: 36px; color: #0A832E; }
 
   /* Phone "mega" card — single bordered card, hairline interior */
@@ -5505,6 +5506,17 @@
     cursor: pointer;
   }
   .phone-v4 .v4m-cta:hover { background: #0E7490; }
+  .phone-v4 .v4m-cta:disabled,
+  .phone-v4 .v4m-cta.cooldown,
+  .phone-v4 .v4m-cta.cooldown:hover {
+    background: #d4d4d8;
+    color: #3f3f46;
+    cursor: not-allowed;
+  }
+  .phone-v4 .v4m-cta.cooldown .v4m-cta-arrow,
+  .phone-v4 .v4m-cta:disabled .v4m-cta-arrow {
+    color: #71717b;
+  }
   .phone-v4 .v4m-cta .v4m-cta-arrow { font-family: Georgia, serif; font-style: italic; font-size: 1.05rem; }
 
   /* Phone-frame outer mock override — keep the existing .mockup-frame.phone
