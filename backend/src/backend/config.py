@@ -146,6 +146,20 @@ RACE_OVERALL_DEADLINE_S: float = 3.0  # outer cap on the parallel race
 # -----------------------------------------------------------------------------
 
 MTM_TICK_S: float = 3.0
+VALUATION_SNAPSHOT_INTERVAL_S: float = float(
+    os.environ.get("VALUATION_SNAPSHOT_INTERVAL_S", 60.0)
+)
+
+# -----------------------------------------------------------------------------
+# Persistence
+# -----------------------------------------------------------------------------
+
+# Unset -> in-memory stores (tests/offline/local default). Set -> SQL-backed
+# stores, typically Supabase Postgres in production.
+DATABASE_URL: str | None = os.environ.get("DATABASE_URL")
+# Marks rows created by local/dev/booth runs so a single Supabase project can be
+# cleaned up safely after local testing.
+APP_ENV: str = os.environ.get("APP_ENV", "local")
 
 # -----------------------------------------------------------------------------
 # Market data source

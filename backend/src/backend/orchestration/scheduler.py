@@ -37,12 +37,14 @@ async def run_mtm_loop(
 
     log = logging.getLogger(__name__)
     last_error_log = 0.0
+    last_snapshot_at: dict[str, float] = {}
     while not stop.is_set():
         try:
             records = agents.all()
             tickers = sorted({t for agent in records for t in agent.holdings_units})
             if tickers:
                 snapshot = _spot_snapshot(market, tickers)
+                now = time.monotonic()
                 for agent in records:
                     if not agent.holdings_units:
                         continue
@@ -54,6 +56,9 @@ async def run_mtm_loop(
                         stale=snapshot.stale,
                     )
                     agents.set_valuation(agent.id, update)
+                    if _snapshot_due(agent.id, now, last_snapshot_at):
+                        agents.record_valuation_snapshot(agent.id, update)
+                        last_snapshot_at[agent.id] = now
                     bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
         except Exception as exc:
             # A flaky data source must not kill the loop; skip this tick.
@@ -73,3 +78,10 @@ def _spot_snapshot(market: MarketDataSource, tickers: list[str]) -> SpotSnapshot
     if callable(snapshot):
         return snapshot(tickers)
     return SpotSnapshot(prices=market.spot_prices(tickers))
+
+
+def _snapshot_due(agent_id: str, now: float, last_snapshot_at: dict[str, float]) -> bool:
+    interval = config.VALUATION_SNAPSHOT_INTERVAL_S
+    if interval <= 0:
+        return False
+    return now - last_snapshot_at.get(agent_id, 0.0) >= interval

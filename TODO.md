@@ -18,26 +18,48 @@ Run/test refs:
   and pre-listing gaps stay missing/NaN.
 - **Live display**: frontend consumes backend websocket `AgentUpdate` messages.
 - **QR**: agent profile links default to `https://qtw.quip.network/p/{agentId}`.
-- **Persistence**: still in-memory in the QTW backend; not production-durable.
+- **Persistence**: `DATABASE_URL` selects SQL-backed stores for
+  Supabase/Postgres; unset keeps the local/test in-memory path.
 
 ## Next Work
 
-### P0 - Durable Backend Persistence
+### P0 - Persistence Production Rollout
 
-Replace process-local in-memory stores before production deployment.
+The SQL-backed store path is implemented; production still needs operational
+rollout and one real Supabase-backed smoke test.
 
-- Persist agents, holdings, jobs, and valuations in Supabase/Postgres.
-- Keep tests/offline work on forced in-memory stores.
+- Verify the FastAPI container with Supabase `DATABASE_URL` and
+  `APP_ENV=production` or `APP_ENV=booth`.
+- Confirm table creation and startup hydration against the live Supabase
+  project.
+- Keep tests/offline work on forced in-memory stores; this is already wired in
+  pytest fixtures.
 - Keep the MTM hot path cheap: frequent valuation ticks should not write every
-  tick unless we intentionally add sampled/history persistence.
-- On startup, load the active working set from the DB.
+  tick.
+- Store analytics valuation snapshots every 60s by default; revisit after the
+  assets-api spot refresh cadence is finalized.
+- Add/confirm a cleanup query for local/test rows before booth use.
 
 Implementation notes:
-- The target shape discussed is `DbAgentStore(AgentStore)` and `DbJobStore`,
-  selected by `DATABASE_URL`.
+- `DbAgentStore(AgentStore)` and `DbJobStore` are selected by `DATABASE_URL`.
 - Human-paced writes: create agent, update sliders, update basket, apply solve.
-- MTM can keep updating in memory and websocket output; decide separately if
-  leaderboard/valuation snapshots need periodic durable writes.
+- MTM can keep updating in memory and websocket output; durable valuation
+  history should be sampled at the 60s snapshot cadence unless there is a clear
+  booth analytics reason to increase it.
+
+Environment/operations notes:
+- Use one Supabase project for now. Local DB testing may point at that same
+  project, so add a cleanup path for local/test rows before booth use.
+- `DATABASE_URL` is backend-only. If it is set while running locally, local
+  signups/solves will write to Supabase/Postgres.
+- Add a source marker such as `environment` or `is_test` to separate local
+  testing rows from booth rows.
+- First production deployment should be one backend container with one Uvicorn
+  worker. That still supports many phone websocket connections; it just means
+  one process owns the MTM scheduler, in-process event bus, and solve queue.
+- Email capture and sending are separate concerns: Supabase stores email and
+  consent, while FastAPI sends via backend-only SMTP credentials. Proton SMTP
+  should use a generated SMTP token, not the Proton account password.
 
 ### P0 - assets-api Spot Freshness
 

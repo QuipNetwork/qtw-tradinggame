@@ -4,9 +4,18 @@ from __future__ import annotations
 
 import pytest
 
+from backend import config
 from backend.api.schemas import AgentConfig, AgentUpdate, SliderValues
-from backend.persistence.agents import get_agent_store
+from backend.persistence.agents import AgentStore, get_agent_store, set_agent_store
+from backend.persistence.db import (
+    DbAgentStore,
+    DbJobStore,
+    solve_snapshots_table,
+    valuation_snapshots_table,
+)
+from backend.persistence.jobs import JobStore, get_job_store, set_job_store
 from backend.persistence.leaderboard import build_leaderboard
+from backend.solvers.types import ProviderProvenance
 
 
 def _config(name: str) -> AgentConfig:
@@ -50,3 +59,105 @@ def test_leaderboard_ranks_by_total_descending():
     board = build_leaderboard(store)
     assert [e.agent_id for e in board] == [high.id, low.id]
     assert board[0].rank == 1
+
+
+def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
+    url = f"sqlite:///{tmp_path / 'agents.db'}"
+    store = DbAgentStore(url, environment="local", allow_reset=True)
+    record = store.create(_config("Dora"), bankroll=10_000.0)
+    store.update_assets(record.id, ["BTC", "ETH", "SOL"])
+    store.update_sliders(
+        record.id,
+        SliderValues(rebalanceFrequency=80, riskPreference=20, maxPositionSize=65),
+    )
+    store.apply_solve(record.id, {"BTC": 0.25, "ETH": 1.5}, total=10_500.0, provider_type="CPU")
+
+    reloaded = DbAgentStore(url, environment="local", allow_reset=True)
+    got = reloaded.get(record.id)
+    assert got is not None
+    assert got.assets == ["BTC", "ETH", "SOL"]
+    assert got.sliders.risk_preference == 20
+    assert got.holdings_units == {"BTC": 0.25, "ETH": 1.5}
+    assert got.total == 10_500.0
+    assert got.jobs_solved == 1
+
+
+def test_db_job_store_records_jobs_and_solve_snapshots(tmp_path):
+    url = f"sqlite:///{tmp_path / 'jobs.db'}"
+    agents = DbAgentStore(url, environment="local", allow_reset=True)
+    jobs = DbJobStore(url, environment="local", allow_reset=True)
+    agent = agents.create(_config("Eve"), bankroll=10_000.0)
+    provenance = ProviderProvenance(
+        provider="sa",
+        provider_role="CPU",
+        q_hash="a" * 64,
+        deadline_s=3.0,
+        solve_time_s=0.12,
+        feasible=True,
+    )
+
+    job = jobs.record(agent.id, provenance)
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id=agent.id,
+        sliders=_config("Eve").sliders.model_dump(by_alias=True),
+        assets=["BTC", "ETH"],
+        portfolio=[{"ticker": "BTC", "pct": 50.0, "usd": 5_000.0}],
+        holdings_units={"BTC": 0.1},
+        solver_results=[{"provider": "sa", "feasible": True}],
+        winner_provider="sa",
+    )
+
+    reloaded = DbJobStore(url, environment="local", allow_reset=True)
+    assert reloaded.get(job.id) is not None
+    assert reloaded.get(job.id).q_hash == "a" * 64
+    assert reloaded.solve_snapshots() == []
+
+    with jobs.engine.begin() as conn:
+        rows = conn.execute(solve_snapshots_table.select()).mappings().all()
+    assert rows[0]["winner_provider"] == "sa"
+    assert rows[0]["assets"] == ["BTC", "ETH"]
+
+
+def test_db_agent_store_records_sampled_valuation_snapshots(tmp_path):
+    url = f"sqlite:///{tmp_path / 'valuations.db'}"
+    store = DbAgentStore(url, environment="local", allow_reset=True)
+    agent = store.create(_config("Val"), bankroll=10_000.0)
+    update = AgentUpdate(
+        plUSD=100.0,
+        plPct=1.0,
+        total=10_100.0,
+        asOf="2026-06-17T12:00:00Z",
+        stale=True,
+        holdings=[],
+    )
+
+    store.record_valuation_snapshot(agent.id, update)
+
+    with store.engine.begin() as conn:
+        rows = conn.execute(valuation_snapshots_table.select()).mappings().all()
+    assert rows[0]["agent_id"] == agent.id
+    assert rows[0]["total"] == 10_100.0
+    assert rows[0]["stale"] is True
+
+
+def test_database_url_selects_db_stores(monkeypatch, tmp_path):
+    url = f"sqlite:///{tmp_path / 'selected.db'}"
+    set_agent_store(None)
+    set_job_store(None)
+    monkeypatch.setattr(config, "DATABASE_URL", url)
+    monkeypatch.setattr(config, "APP_ENV", "local")
+
+    assert isinstance(get_agent_store(), DbAgentStore)
+    assert isinstance(get_job_store(), DbJobStore)
+
+
+def test_store_overrides_force_in_memory_even_with_database_url(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "DATABASE_URL", f"sqlite:///{tmp_path / 'unused.db'}")
+    set_agent_store(AgentStore())
+    set_job_store(JobStore())
+
+    assert isinstance(get_agent_store(), AgentStore)
+    assert not isinstance(get_agent_store(), DbAgentStore)
+    assert isinstance(get_job_store(), JobStore)
+    assert not isinstance(get_job_store(), DbJobStore)

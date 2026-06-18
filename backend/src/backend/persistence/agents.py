@@ -1,9 +1,9 @@
 """Agent store — config + holdings + valuation + retune history.
 
-> In-memory only: a process-local dict guarded by a lock. State is lost on
-> restart and not shared across workers (run uvicorn with --workers 1). Holdings
-> are stored as token **units** (not USD) so mark-to-market is just units × spot.
-> Production durability would swap this class for SQLite/Postgres — see TODO.md.
+The base store is a process-local dict guarded by a lock. `DATABASE_URL` swaps
+the process singleton to a SQL-backed subclass while keeping this in-memory path
+for tests, offline runs, and local development. Holdings are stored as token
+units so mark-to-market is just units times spot.
 """
 
 from __future__ import annotations
@@ -120,14 +120,36 @@ class AgentStore:
             record.pl_usd = update.pl_usd
             record.pl_pct = update.pl_pct
 
+    def record_valuation_snapshot(self, agent_id: str, update: AgentUpdate) -> None:
+        """Persist/sink sampled valuation history. In-memory store does not log it."""
+
     def reset(self) -> None:
         with self._lock:
             self._agents.clear()
 
 
-_store = AgentStore()
+_store: AgentStore | None = None
 
 
 def get_agent_store() -> AgentStore:
     """Return the process-wide agent store singleton."""
+    global _store
+    if _store is None:
+        _store = _build_store()
     return _store
+
+
+def set_agent_store(store: AgentStore | None) -> None:
+    """Override the process-wide store for tests; None rebuilds from config."""
+    global _store
+    _store = store
+
+
+def _build_store() -> AgentStore:
+    from .. import config
+
+    if config.DATABASE_URL:
+        from .db import DbAgentStore
+
+        return DbAgentStore(config.DATABASE_URL, environment=config.APP_ENV)
+    return AgentStore()
