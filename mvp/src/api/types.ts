@@ -123,6 +123,14 @@ export type LeaderboardEntry = {
   primaryProvider: ProviderType;
 };
 
+export type ValuationHistoryPoint = {
+  total: number;
+  plUSD: number;
+  plPct: number;
+  asOf?: string | null;
+  stale?: boolean;
+};
+
 export type AgentUpdate = {
   plUSD: number;
   plPct: number;

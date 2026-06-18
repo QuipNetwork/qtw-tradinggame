@@ -1,16 +1,36 @@
-import type { LeaderboardEntry } from '../../api';
+import { useEffect, useMemo, useState } from 'react';
+import { getValuationHistory } from '../../api';
+import type { LeaderboardEntry, ValuationHistoryPoint } from '../../api';
 
 export default function StateB({ leaderboard, rankIndex }: { leaderboard: LeaderboardEntry[]; rankIndex: number }) {
   const agent = leaderboard[rankIndex % leaderboard.length];
+  const [history, setHistory] = useState<ValuationHistoryPoint[]>([]);
   const rankPadded = String(agent.rank).padStart(2, '0');
-  const positive = agent.plPct >= 0;
-  const lineColor = positive ? '#0A832E' : '#ff6467';
-  const sparkPath = positive
-    ? '0,72 40,70 80,66 120,68 160,60 200,58 240,52 280,55 320,46 360,40 400,42 440,33 480,28 520,22 560,18 600,12'
-    : '0,18 40,22 80,28 120,26 160,34 200,38 240,44 280,40 320,48 360,54 400,52 440,60 480,66 520,72 560,78 600,82';
-  const sparkFill = positive
-    ? `${sparkPath} 600,90 0,90`
-    : `${sparkPath} 600,90 0,90`;
+  const displayPct = Math.round(agent.plPct * 100) / 100;
+  const lineColor = displayPct > 0 ? '#0A832E' : displayPct < 0 ? '#ff6467' : '#71717b';
+  const changePrefix = displayPct > 0 ? '+' : displayPct < 0 ? '−' : '';
+  const { sparkPath, sparkFill } = useMemo(
+    () => buildSparkline(history, agent.total),
+    [history, agent.total],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const points = await getValuationHistory(agent.agentId, 60);
+        if (!cancelled) setHistory(points);
+      } catch {
+        if (!cancelled) setHistory([]);
+      }
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [agent.agentId]);
 
   return (
     <div className="bigscreen dir-quipsite v4 state-c">
@@ -44,7 +64,7 @@ export default function StateB({ leaderboard, rankIndex }: { leaderboard: Leader
               </div>
               <div className="ss-cell">
                 <div className="ss-lbl">Change</div>
-                <div className="ss-val ss-change" style={{ color: lineColor }}>{agent.plPct >= 0 ? '+' : '−'}{Math.abs(agent.plPct).toFixed(2)}%</div>
+                <div className="ss-val ss-change" style={{ color: lineColor }}>{changePrefix}{Math.abs(displayPct).toFixed(2)}%</div>
               </div>
               <div className="ss-cell">
                 <div className="ss-lbl">Current rank</div>
@@ -127,4 +147,39 @@ export default function StateB({ leaderboard, rankIndex }: { leaderboard: Leader
       </div>
     </div>
   );
+}
+
+function buildSparkline(history: ValuationHistoryPoint[], currentTotal: number) {
+  const values = history
+    .map(point => point.total)
+    .filter(value => Number.isFinite(value));
+  const last = values[values.length - 1];
+  if (last === undefined || Math.abs(last - currentTotal) >= 0.005) {
+    values.push(currentTotal);
+  }
+  if (values.length === 1) {
+    values.push(values[0]);
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min;
+  const width = 600;
+  const height = 90;
+  const padY = 8;
+  const usableHeight = height - padY * 2;
+  const path = values.map((value, index) => {
+    const x = values.length === 1 ? 0 : (index / (values.length - 1)) * width;
+    const y = span <= 0 ? height / 2 : padY + ((max - value) / span) * usableHeight;
+    return `${roundCoord(x)},${roundCoord(y)}`;
+  }).join(' ');
+
+  return {
+    sparkPath: path,
+    sparkFill: `${path} ${width},${height} 0,${height}`,
+  };
+}
+
+function roundCoord(value: number): number {
+  return Math.round(value * 10) / 10;
 }

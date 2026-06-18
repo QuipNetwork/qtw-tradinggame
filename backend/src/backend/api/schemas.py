@@ -121,6 +121,16 @@ class LeaderboardEntry(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ValuationHistoryPoint(BaseModel):
+    total: float
+    pl_usd: float = Field(alias="plUSD")
+    pl_pct: float = Field(alias="plPct")
+    as_of: str | None = Field(default=None, alias="asOf")
+    stale: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class AgentUpdate(BaseModel):
     """Pushed over WS by the MTM loop."""
 

@@ -13,8 +13,10 @@ from datetime import UTC, datetime, timedelta
 from threading import RLock
 from uuid import uuid4
 
-from ..api.schemas import AgentConfig, AgentUpdate, SliderValues
+from ..api.schemas import AgentConfig, AgentUpdate, SliderValues, ValuationHistoryPoint
 from ..financial.slider_map import rebalance_every_hours
+
+VALUATION_HISTORY_MAX_POINTS = 240
 
 
 def _now_iso() -> str:
@@ -48,6 +50,8 @@ class AgentRecord:
     last_solved_at: str | None = None
     next_rebalance_at: str | None = None
     rebalance_interval_hours: int | None = None
+    valuation_as_of: str | None = None
+    valuation_stale: bool = False
 
     def to_config(self) -> AgentConfig:
         return AgentConfig(
@@ -67,6 +71,7 @@ class AgentRecord:
 class AgentStore:
     def __init__(self) -> None:
         self._agents: dict[str, AgentRecord] = {}
+        self._valuation_history: dict[str, list[ValuationHistoryPoint]] = {}
         self._lock = RLock()
 
     def create(self, config: AgentConfig, bankroll: float) -> AgentRecord:
@@ -128,6 +133,8 @@ class AgentStore:
             record.last_solved_at = solved_at
             record.next_rebalance_at = next_at
             record.rebalance_interval_hours = interval_hours
+            record.valuation_as_of = solved_at
+            record.valuation_stale = False
 
     def ensure_rebalance_schedule(self, agent_id: str) -> None:
         """Initialize missing rebalance timestamps for a hydrated active agent."""
@@ -159,13 +166,32 @@ class AgentStore:
             record.total = update.total
             record.pl_usd = update.pl_usd
             record.pl_pct = update.pl_pct
+            record.valuation_as_of = update.as_of
+            record.valuation_stale = update.stale
 
     def record_valuation_snapshot(self, agent_id: str, update: AgentUpdate) -> None:
-        """Persist/sink sampled valuation history. In-memory store does not log it."""
+        """Sink sampled valuation history for charting and later analytics."""
+        with self._lock:
+            if agent_id not in self._agents:
+                return
+            history = self._valuation_history.setdefault(agent_id, [])
+            history.append(_point_from_update(update))
+            del history[:-VALUATION_HISTORY_MAX_POINTS]
+
+    def valuation_history(self, agent_id: str, limit: int = 60) -> list[ValuationHistoryPoint]:
+        """Return sampled valuation history plus the latest in-memory MTM value."""
+        limit = _bounded_history_limit(limit)
+        with self._lock:
+            record = self._agents.get(agent_id)
+            if record is None:
+                return []
+            points = list(self._valuation_history.get(agent_id, []))[-limit:]
+            return _with_current_point(points, _point_from_record(record))[-limit:]
 
     def reset(self) -> None:
         with self._lock:
             self._agents.clear()
+            self._valuation_history.clear()
 
 
 _store: AgentStore | None = None
@@ -193,3 +219,43 @@ def _build_store() -> AgentStore:
 
         return DbAgentStore(config.DATABASE_URL, environment=config.APP_ENV)
     return AgentStore()
+
+
+def _bounded_history_limit(limit: int) -> int:
+    return max(1, min(int(limit), VALUATION_HISTORY_MAX_POINTS))
+
+
+def _point_from_update(update: AgentUpdate) -> ValuationHistoryPoint:
+    return ValuationHistoryPoint(
+        total=update.total,
+        pl_usd=update.pl_usd,
+        pl_pct=update.pl_pct,
+        as_of=update.as_of,
+        stale=update.stale,
+    )
+
+
+def _point_from_record(record: AgentRecord) -> ValuationHistoryPoint:
+    return ValuationHistoryPoint(
+        total=record.total,
+        pl_usd=record.pl_usd,
+        pl_pct=record.pl_pct,
+        as_of=record.valuation_as_of or record.last_solved_at or record.created_at or _now_iso(),
+        stale=record.valuation_stale,
+    )
+
+
+def _with_current_point(
+    points: list[ValuationHistoryPoint], current: ValuationHistoryPoint
+) -> list[ValuationHistoryPoint]:
+    if not points:
+        return [current]
+    last = points[-1]
+    same_value = (
+        abs(last.total - current.total) < 0.005
+        and abs(last.pl_usd - current.pl_usd) < 0.005
+        and abs(last.pl_pct - current.pl_pct) < 0.0005
+    )
+    if same_value and last.as_of == current.as_of and last.stale == current.stale:
+        return points
+    return [*points, current]

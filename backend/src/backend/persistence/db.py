@@ -32,8 +32,14 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
 from .. import config
-from ..api.schemas import AgentConfig, AgentUpdate, SliderValues
-from .agents import AgentRecord, AgentStore
+from ..api.schemas import AgentConfig, AgentUpdate, SliderValues, ValuationHistoryPoint
+from .agents import (
+    AgentRecord,
+    AgentStore,
+    _bounded_history_limit,
+    _point_from_record,
+    _with_current_point,
+)
 from .jobs import JobRecord, JobStore
 from .qpu_budget import (
     QpuBudgetExceeded,
@@ -303,6 +309,7 @@ class DbAgentStore(AgentStore):
             )
 
     def record_valuation_snapshot(self, agent_id: str, update_: AgentUpdate) -> None:
+        super().record_valuation_snapshot(agent_id, update_)
         with self._engine.begin() as conn:
             conn.execute(
                 insert(valuation_snapshots_table),
@@ -318,6 +325,45 @@ class DbAgentStore(AgentStore):
                     "environment": self._environment,
                 },
             )
+
+    def valuation_history(self, agent_id: str, limit: int = 60) -> list[ValuationHistoryPoint]:
+        limit = _bounded_history_limit(limit)
+        record = self.get(agent_id)
+        if record is None:
+            return []
+
+        with self._engine.begin() as conn:
+            rows = (
+                conn.execute(
+                    select(
+                        valuation_snapshots_table.c.total,
+                        valuation_snapshots_table.c.pl_usd,
+                        valuation_snapshots_table.c.pl_pct,
+                        valuation_snapshots_table.c.as_of,
+                        valuation_snapshots_table.c.stale,
+                    )
+                    .where(valuation_snapshots_table.c.agent_id == agent_id)
+                    .where(valuation_snapshots_table.c.environment == self._environment)
+                    .order_by(valuation_snapshots_table.c.id.desc())
+                    .limit(limit)
+                )
+                .mappings()
+                .all()
+            )
+
+        points = [
+            ValuationHistoryPoint(
+                total=row["total"],
+                pl_usd=row["pl_usd"],
+                pl_pct=row["pl_pct"],
+                as_of=row["as_of"],
+                stale=row["stale"],
+            )
+            for row in reversed(rows)
+        ]
+        if points and record.valuation_as_of is None:
+            return points[-limit:]
+        return _with_current_point(points, _point_from_record(record))[-limit:]
 
     def reset(self) -> None:
         super().reset()

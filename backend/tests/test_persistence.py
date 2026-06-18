@@ -75,6 +75,32 @@ def test_leaderboard_ranks_by_total_descending():
     assert board[0].rank == 1
 
 
+def test_in_memory_valuation_history_includes_sampled_and_current_points():
+    store = get_agent_store()
+    agent = store.create(_config("Hist"), bankroll=10_000.0)
+    first = AgentUpdate(
+        plUSD=100.0,
+        plPct=1.0,
+        total=10_100.0,
+        asOf="2026-06-17T12:00:00Z",
+        holdings=[],
+    )
+    current = AgentUpdate(
+        plUSD=140.0,
+        plPct=1.4,
+        total=10_140.0,
+        asOf="2026-06-17T12:01:00Z",
+        holdings=[],
+    )
+
+    store.record_valuation_snapshot(agent.id, first)
+    store.set_valuation(agent.id, current)
+
+    history = store.valuation_history(agent.id)
+    assert [point.total for point in history] == [10_100.0, 10_140.0]
+    assert history[-1].as_of == "2026-06-17T12:01:00Z"
+
+
 def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     url = f"sqlite:///{tmp_path / 'agents.db'}"
     store = DbAgentStore(url, environment="local", allow_reset=True)
@@ -155,6 +181,36 @@ def test_db_agent_store_records_sampled_valuation_snapshots(tmp_path):
     assert rows[0]["agent_id"] == agent.id
     assert rows[0]["total"] == 10_100.0
     assert rows[0]["stale"] is True
+
+
+def test_db_agent_store_reads_valuation_history_with_current_tail(tmp_path):
+    url = f"sqlite:///{tmp_path / 'valuation_history.db'}"
+    store = DbAgentStore(url, environment="local", allow_reset=True)
+    agent = store.create(_config("Tail"), bankroll=10_000.0)
+    sampled = AgentUpdate(
+        plUSD=100.0,
+        plPct=1.0,
+        total=10_100.0,
+        asOf="2026-06-17T12:00:00Z",
+        holdings=[],
+    )
+    current = AgentUpdate(
+        plUSD=175.0,
+        plPct=1.75,
+        total=10_175.0,
+        asOf="2026-06-17T12:01:00Z",
+        holdings=[],
+    )
+
+    store.record_valuation_snapshot(agent.id, sampled)
+    store.set_valuation(agent.id, current)
+
+    history = store.valuation_history(agent.id, limit=10)
+    assert [point.total for point in history] == [10_100.0, 10_175.0]
+    assert history[-1].pl_pct == pytest.approx(1.75)
+
+    reloaded = DbAgentStore(url, environment="local", allow_reset=True)
+    assert [point.total for point in reloaded.valuation_history(agent.id, limit=10)] == [10_100.0]
 
 
 def test_database_url_selects_db_stores(monkeypatch, tmp_path):

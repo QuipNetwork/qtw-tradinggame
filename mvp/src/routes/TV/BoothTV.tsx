@@ -22,7 +22,17 @@ export default function BoothTV() {
   const [spotIndex, setSpotIndex] = useState(0);
 
   useEffect(() => {
-    getLeaderboard().then(setLeaderboard);
+    let cancelled = false;
+    const refresh = async () => {
+      const board = await getLeaderboard();
+      if (!cancelled) setLeaderboard(board);
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 10_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

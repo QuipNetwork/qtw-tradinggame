@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from .. import config
 from ..events.bus import get_bus
@@ -27,6 +27,7 @@ from .schemas import (
     OptimizeRequest,
     RoutingResult,
     SubmitAgentResponse,
+    ValuationHistoryPoint,
 )
 
 router = APIRouter()
@@ -102,3 +103,14 @@ async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> Routin
 @router.get("/leaderboard", response_model=list[LeaderboardEntry])
 async def leaderboard() -> list[LeaderboardEntry]:
     return build_leaderboard()
+
+
+@router.get("/agents/{agent_id}/valuation-history", response_model=list[ValuationHistoryPoint])
+async def valuation_history(
+    agent_id: str,
+    limit: int = Query(default=60, ge=1, le=240),
+) -> list[ValuationHistoryPoint]:
+    store = get_agent_store()
+    if store.get(agent_id) is None:
+        raise HTTPException(status_code=404, detail="agent not found")
+    return store.valuation_history(agent_id, limit=limit)

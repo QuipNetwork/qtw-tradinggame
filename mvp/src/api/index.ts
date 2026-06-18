@@ -11,4 +11,5 @@ export const getAgent = api.getAgent;
 export const updateAgent = api.updateAgent;
 export const requestOptimization = api.requestOptimization;
 export const getLeaderboard = api.getLeaderboard;
+export const getValuationHistory = api.getValuationHistory;
 export const subscribeAgent = api.subscribeAgent;

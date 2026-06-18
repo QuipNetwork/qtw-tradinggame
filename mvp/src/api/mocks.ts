@@ -12,6 +12,7 @@ import type {
   RoutingResult,
   SolverResult,
   SubmitAgentResponse,
+  ValuationHistoryPoint,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
 import { rebalanceEveryHours } from '../utils/strategy';
@@ -178,6 +179,31 @@ export async function requestOptimization(
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return delay(TOP_10);
+}
+
+export async function getValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  const agent = TOP_10.find(row => row.agentId === agentId);
+  const finalTotal = agent?.total ?? 10000;
+  const count = Math.max(2, Math.min(limit, 32));
+  const seed = [...agentId].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const startedAt = Date.now() - (count - 1) * 60_000;
+  const points = Array.from({ length: count }, (_, i) => {
+    const t = count === 1 ? 1 : i / (count - 1);
+    const wiggle = Math.sin(seed + i * 1.7) * 22 * (1 - Math.abs(t - 0.5));
+    const total = 10000 + (finalTotal - 10000) * t + wiggle;
+    const plUSD = total - 10000;
+    return {
+      total,
+      plUSD,
+      plPct: plUSD / 100,
+      asOf: new Date(startedAt + i * 60_000).toISOString(),
+      stale: false,
+    };
+  });
+  return delay(points, 120);
 }
 
 export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) => void): () => void {

@@ -9,6 +9,7 @@ import type {
   QpuBudgetStatus,
   RoutingResult,
   SubmitAgentResponse,
+  ValuationHistoryPoint,
 } from './types';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
@@ -130,6 +131,16 @@ export async function requestOptimization(
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return request<LeaderboardEntry[]>('/leaderboard');
+}
+
+export async function getValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request<ValuationHistoryPoint[]>(
+    `/agents/${encodeURIComponent(agentId)}/valuation-history?${params.toString()}`,
+  );
 }
 
 export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) => void): () => void {

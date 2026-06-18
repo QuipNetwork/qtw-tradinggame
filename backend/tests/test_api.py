@@ -8,7 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.api.app import create_app
-from backend.api.schemas import QpuBudgetStatus
+from backend.api.schemas import AgentUpdate, QpuBudgetStatus
+from backend.persistence.agents import get_agent_store
 from backend.persistence.qpu_budget import QpuBudgetExceeded
 
 requires_gurobi = pytest.mark.skipif(
@@ -94,6 +95,34 @@ def test_leaderboard_lists_created_agents():
         agent_id = _create(client)
         board = client.get("/leaderboard").json()
         assert any(entry["agentId"] == agent_id for entry in board)
+
+
+def test_valuation_history_returns_sampled_points_and_current_tail():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        store = get_agent_store()
+        sampled = AgentUpdate(
+            plUSD=100.0,
+            plPct=1.0,
+            total=10_100.0,
+            asOf="2026-06-17T12:00:00Z",
+            holdings=[],
+        )
+        current = AgentUpdate(
+            plUSD=125.0,
+            plPct=1.25,
+            total=10_125.0,
+            asOf="2026-06-17T12:01:00Z",
+            holdings=[],
+        )
+        store.record_valuation_snapshot(agent_id, sampled)
+        store.set_valuation(agent_id, current)
+
+        response = client.get(f"/agents/{agent_id}/valuation-history")
+        assert response.status_code == 200
+        body = response.json()
+        assert [point["total"] for point in body] == [10_100.0, 10_125.0]
+        assert body[-1]["plPct"] == 1.25
 
 
 @requires_gurobi
