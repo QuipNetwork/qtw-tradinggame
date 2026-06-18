@@ -171,24 +171,26 @@ export default function KioskWelcome() {
                 <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
               ))}
             </div>
-            {/* Grouped by class, weight-sorted within each. >12 holdings switches
-                to the dense three-column grid so even a full 28-asset basket fits. */}
-            {cryptoHoldings.length > 0 && (
-              <>
-                <div className="v4m-alloc-subhead">Crypto · {cryptoHoldings.length}</div>
-                <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
-                  {cryptoHoldings.map(allocRow)}
-                </div>
-              </>
-            )}
-            {stockHoldings.length > 0 && (
-              <>
-                <div className="v4m-alloc-subhead">Stocks · {stockHoldings.length}</div>
-                <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
-                  {stockHoldings.map(allocRow)}
-                </div>
-              </>
-            )}
+            <div className="v4m-holdings-scroll">
+              {/* Grouped by class, weight-sorted within each. >12 holdings switches
+                  to the dense three-column grid so even a full 28-asset basket fits. */}
+              {cryptoHoldings.length > 0 && (
+                <>
+                  <div className="v4m-alloc-subhead">Crypto · {cryptoHoldings.length}</div>
+                  <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
+                    {cryptoHoldings.map(allocRow)}
+                  </div>
+                </>
+              )}
+              {stockHoldings.length > 0 && (
+                <>
+                  <div className="v4m-alloc-subhead">Stocks · {stockHoldings.length}</div>
+                  <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
+                    {stockHoldings.map(allocRow)}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="v4m-agent-qr-row">

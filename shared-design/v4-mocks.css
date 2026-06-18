@@ -4689,7 +4689,10 @@
     margin-bottom: 10px;
   }
   .kiosk-welcome-v4.app-fit .v4m-alloc-stack {
+    flex-basis: 12px;
     height: 12px;
+    min-height: 12px;
+    margin: 8px 0 4px !important;
   }
   /* Grouped portfolio (Crypto/Stocks) adds two sub-headers; compress the
      sub-headers and dense rows so a full 28-asset basket still clears the QR. */
@@ -4698,8 +4701,16 @@
     font-size: 0.56rem;
   }
   .kiosk-welcome-v4.app-fit .v4m-alloc-subhead:first-of-type { margin-top: 2px; }
-  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-row { padding: 4.5px 0; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-row { padding: 3.5px 0; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-name,
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-pct { font-size: 0.72rem; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-usd { font-size: 0.64rem; }
   .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
+    flex: 0 0 auto;
     padding-top: 12px;
     margin-top: auto;   /* QR row anchors to the card bottom */
   }
@@ -4807,6 +4818,7 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
+    min-height: 0;
   }
   .kiosk-welcome-v4 .v4m-agent-header {
     display: grid;
@@ -4815,6 +4827,7 @@
     gap: 16px;
     padding-bottom: 16px;
     border-bottom: 1px solid #ececef;
+    flex: 0 0 auto;
   }
   .kiosk-welcome-v4 .v4m-agent-glyph {
     width: 84px; height: 84px;
@@ -4885,6 +4898,7 @@
     gap: 16px;
     padding-top: 16px;
     border-top: 1px solid #ececef;
+    flex: 0 0 auto;
   }
   .kiosk-welcome-v4 .v4m-agent-qr {
     width: 88px; height: 88px;
@@ -4914,6 +4928,7 @@
     padding: 2px 0 12px;
     border-bottom: 1px solid #ececef;
     margin-bottom: 14px;
+    flex: 0 0 auto;
   }
   .kiosk-welcome-v4 .v4m-strat-cell {
     display: flex;
@@ -4936,7 +4951,14 @@
   .kiosk-welcome-v4 .v4m-portfolio-block {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
+  }
+  .kiosk-welcome-v4 .v4m-holdings-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
   }
   /* Class sub-header inside the portfolio (Crypto / Stocks), above each grid. */
   .kiosk-welcome-v4 .v4m-alloc-subhead {
@@ -5138,7 +5160,9 @@
   /* Allocation stack */
   .kiosk-welcome-v4 .v4m-alloc-stack {
     display: flex;
+    flex: 0 0 10px;
     height: 10px;
+    min-height: 10px;
     border-radius: 999px;
     overflow: hidden;
     background: #ececef;
@@ -5539,6 +5563,32 @@
     letter-spacing: -0.01em;
     color: #18181b;
     text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .phone-v4 .v4m-rebalance-card {
+    border: 1px solid #d7d7dc;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+  .phone-v4 .v4m-rebalance-sub {
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .phone-v4 .v4m-rebalance-time {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #0891B2;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
 
