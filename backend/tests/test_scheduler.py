@@ -8,12 +8,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from backend.api.schemas import AgentConfig, SliderValues
+from backend.api.schemas import AgentConfig, QpuBudgetStatus, SliderValues
 from backend.events.bus import EventBus
 from backend.financial.prices.base import SpotSnapshot
 from backend.orchestration import scheduler
 from backend.orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
 from backend.persistence.agents import AgentStore
+from backend.persistence.qpu_budget import QpuBudgetExceeded
 
 
 class MovingSpot:
@@ -97,7 +98,8 @@ async def test_scheduled_rebalance_loop_runs_due_agent_and_publishes(monkeypatch
     )
     record.next_rebalance_at = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
 
-    def fake_optimization(agent_id, *, agents, jobs, market):
+    def fake_optimization(agent_id, *, agents, jobs, market, source):
+        assert source == "scheduled"
         agents.apply_solve(
             agent_id,
             holdings_units={"BTC": 0.11, "ETH": 0.9},
@@ -138,3 +140,63 @@ async def test_scheduled_rebalance_loop_runs_due_agent_and_publishes(monkeypatch
     assert payload["type"] == "scheduled-rebalance"
     assert agents.get(record.id).jobs_solved == 2
     assert datetime.fromisoformat(agents.get(record.id).next_rebalance_at) > datetime.now(UTC)
+
+
+@pytest.mark.asyncio
+async def test_scheduled_rebalance_defers_when_qpu_budget_is_exhausted(monkeypatch):
+    agents = AgentStore()
+    record = agents.create(
+        AgentConfig(
+            name="Deferred",
+            email="deferred@example.com",
+            sliders=SliderValues(
+                rebalanceFrequency=100,
+                riskPreference=70,
+                maxPositionSize=50,
+            ),
+            assets=["BTC", "ETH"],
+        ),
+        bankroll=10_000.0,
+    )
+    agents.apply_solve(
+        record.id,
+        holdings_units={"BTC": 0.1, "ETH": 1.0},
+        total=10_000.0,
+        provider_type="QPU",
+    )
+    record.next_rebalance_at = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
+    next_available = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
+    status = QpuBudgetStatus(
+        used=3,
+        limit=3,
+        windowSeconds=600,
+        retryAfterSeconds=300,
+        nextAvailableAt=next_available,
+    )
+
+    def fake_optimization(agent_id, *, agents, jobs, market, source):
+        raise QpuBudgetExceeded(status)
+
+    monkeypatch.setattr(scheduler, "run_optimization", fake_optimization)
+
+    bus = EventBus()
+    queue = bus.subscribe(f"agent:{record.id}")
+    stop = asyncio.Event()
+    task = asyncio.create_task(
+        run_scheduled_rebalance_loop(
+            bus,
+            stop,
+            agents=agents,
+            jobs=SimpleNamespace(),
+            market=MovingSpot(),
+            tick_s=60.0,
+        )
+    )
+    payload = await asyncio.wait_for(queue.get(), timeout=1.0)
+    stop.set()
+    await task
+
+    assert agents.get(record.id).jobs_solved == 1
+    assert agents.get(record.id).next_rebalance_at == next_available
+    assert payload["nextRebalanceAt"] == next_available
+    assert payload["qpuBudget"]["retryAfterSeconds"] == 300

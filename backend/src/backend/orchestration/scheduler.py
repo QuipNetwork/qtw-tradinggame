@@ -18,6 +18,7 @@ import time
 from datetime import UTC, datetime
 
 from .. import config
+from ..api.schemas import AgentUpdate
 from ..events.bus import EventBus
 from ..financial.pnl import mark_to_market
 from ..financial.prices.base import MarketDataSource, SpotSnapshot
@@ -25,6 +26,7 @@ from ..financial.prices.source import get_source
 from ..orchestration.job import run_optimization
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
+from ..persistence.qpu_budget import QpuBudgetExceeded
 
 
 async def run_mtm_loop(
@@ -136,7 +138,24 @@ async def run_scheduled_rebalance_loop(
                     agents=agents,
                     jobs=jobs,
                     market=market,
+                    source="scheduled",
                 )
+            except QpuBudgetExceeded as exc:
+                if exc.status.next_available_at:
+                    agents.defer_rebalance(agent.id, exc.status.next_available_at)
+                refreshed = agents.get(agent.id)
+                if refreshed is not None:
+                    update = AgentUpdate(
+                        plUSD=refreshed.pl_usd,
+                        plPct=refreshed.pl_pct,
+                        total=refreshed.total,
+                        nextRebalanceAt=refreshed.next_rebalance_at,
+                        rebalanceIntervalHours=refreshed.rebalance_interval_hours,
+                        qpuBudget=exc.status,
+                    )
+                    bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
+                log.info("scheduled rebalance deferred by QPU budget for %s", agent.id)
+                continue
             except Exception as exc:
                 log.warning("scheduled rebalance failed for %s: %s", agent.id, exc)
                 continue

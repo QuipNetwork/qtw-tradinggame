@@ -12,11 +12,17 @@ from backend.persistence.agents import AgentStore, get_agent_store, set_agent_st
 from backend.persistence.db import (
     DbAgentStore,
     DbJobStore,
+    DbQpuBudgetStore,
     solve_snapshots_table,
     valuation_snapshots_table,
 )
 from backend.persistence.jobs import JobStore, get_job_store, set_job_store
 from backend.persistence.leaderboard import build_leaderboard
+from backend.persistence.qpu_budget import (
+    QpuBudgetStore,
+    get_qpu_budget_store,
+    set_qpu_budget_store,
+)
 from backend.solvers.types import ProviderProvenance
 
 
@@ -155,19 +161,24 @@ def test_database_url_selects_db_stores(monkeypatch, tmp_path):
     url = f"sqlite:///{tmp_path / 'selected.db'}"
     set_agent_store(None)
     set_job_store(None)
+    set_qpu_budget_store(None)
     monkeypatch.setattr(config, "DATABASE_URL", url)
     monkeypatch.setattr(config, "APP_ENV", "local")
 
     assert isinstance(get_agent_store(), DbAgentStore)
     assert isinstance(get_job_store(), DbJobStore)
+    assert isinstance(get_qpu_budget_store(), DbQpuBudgetStore)
 
 
 def test_store_overrides_force_in_memory_even_with_database_url(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "DATABASE_URL", f"sqlite:///{tmp_path / 'unused.db'}")
     set_agent_store(AgentStore())
     set_job_store(JobStore())
+    set_qpu_budget_store(QpuBudgetStore())
 
     assert isinstance(get_agent_store(), AgentStore)
     assert not isinstance(get_agent_store(), DbAgentStore)
     assert isinstance(get_job_store(), JobStore)
     assert not isinstance(get_job_store(), DbJobStore)
+    assert isinstance(get_qpu_budget_store(), QpuBudgetStore)
+    assert not isinstance(get_qpu_budget_store(), DbQpuBudgetStore)

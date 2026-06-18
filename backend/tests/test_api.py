@@ -8,6 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.api.app import create_app
+from backend.api.schemas import QpuBudgetStatus
+from backend.persistence.qpu_budget import QpuBudgetExceeded
 
 requires_gurobi = pytest.mark.skipif(
     importlib.util.find_spec("gurobipy") is None, reason="gurobipy not installed"
@@ -59,6 +61,32 @@ def test_unknown_agent_is_404():
     with TestClient(create_app()) as client:
         assert client.get("/agents/nope").status_code == 404
         assert client.post("/agents/nope/optimize", json={}).status_code == 404
+
+
+def test_optimize_qpu_budget_exhaustion_is_429(monkeypatch):
+    from backend.api import routes
+
+    status = QpuBudgetStatus(
+        used=3,
+        limit=3,
+        windowSeconds=600,
+        retryAfterSeconds=120,
+        nextAvailableAt="2026-06-18T12:02:00+00:00",
+    )
+
+    def over_budget(agent_id, sliders=None, assets=None):
+        raise QpuBudgetExceeded(status)
+
+    monkeypatch.setattr(routes, "run_optimization", over_budget)
+
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        response = client.post(f"/agents/{agent_id}/optimize", json={})
+        assert response.status_code == 429
+        assert response.headers["retry-after"] == "120"
+        detail = response.json()["detail"]
+        assert detail["retryAfterSeconds"] == 120
+        assert detail["qpuBudget"]["used"] == 3
 
 
 def test_leaderboard_lists_created_agents():

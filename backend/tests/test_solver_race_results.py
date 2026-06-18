@@ -42,7 +42,7 @@ def test_race_keeps_winner_infeasible_and_failed_solver_rows(
     monkeypatch.setattr(
         router,
         "build_providers",
-        lambda: [
+        lambda include_qpu=True: [
             FakeProvider("winner", [1 / 3, 1 / 3, 1 / 3]),
             FakeProvider("bad", [1.0, 0.0, 0.0]),
             FakeProvider("failed", None, fail=True),
@@ -65,7 +65,7 @@ def test_race_winner_is_fastest_feasible_solve_time(monkeypatch, synthetic_probl
     monkeypatch.setattr(
         router,
         "build_providers",
-        lambda: [
+        lambda include_qpu=True: [
             FakeProvider("slow", [1 / 3, 1 / 3, 1 / 3], solve_time_s=0.5),
             FakeProvider("fast", [0.2, 0.4, 0.4], solve_time_s=0.1),
         ],

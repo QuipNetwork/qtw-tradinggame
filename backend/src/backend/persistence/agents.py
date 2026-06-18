@@ -142,6 +142,14 @@ class AgentStore:
             record.next_rebalance_at = next_at
             record.rebalance_interval_hours = interval_hours
 
+    def defer_rebalance(self, agent_id: str, next_rebalance_at: str) -> None:
+        """Move the next scheduled rebalance to a later timestamp."""
+        with self._lock:
+            record = self._agents.get(agent_id)
+            if record is None:
+                return
+            record.next_rebalance_at = next_rebalance_at
+
     def set_valuation(self, agent_id: str, update: AgentUpdate) -> None:
         """Update the mark-to-market valuation from the MTM loop."""
         with self._lock:

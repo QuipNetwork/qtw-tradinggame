@@ -24,6 +24,7 @@ export type AgentConfig = {
   lastSolvedAt?: string | null;
   nextRebalanceAt?: string | null;
   rebalanceIntervalHours?: number | null;
+  qpuBudget?: QpuBudgetStatus | null;
 };
 
 export type SubmitAgentResponse = {
@@ -38,6 +39,14 @@ export type OptimizePatch = {
 };
 
 export type ProviderType = 'QPU' | 'CPU';
+
+export type QpuBudgetStatus = {
+  used: number;
+  limit: number;
+  windowSeconds: number;
+  retryAfterSeconds: number;
+  nextAvailableAt?: string | null;
+};
 
 export type AssetClass = 'crypto' | 'stock';
 
@@ -99,6 +108,7 @@ export type RoutingResult = {
   solvedAt?: string | null;
   nextRebalanceAt?: string | null;
   rebalanceIntervalHours?: number | null;
+  qpuBudget?: QpuBudgetStatus | null;
 };
 
 export type LeaderboardEntry = {
@@ -122,4 +132,5 @@ export type AgentUpdate = {
   holdings?: HoldingUpdate[];
   nextRebalanceAt?: string | null;
   rebalanceIntervalHours?: number | null;
+  qpuBudget?: QpuBudgetStatus | null;
 };

@@ -28,6 +28,16 @@ class SliderValues(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class QpuBudgetStatus(BaseModel):
+    used: int
+    limit: int
+    window_seconds: int = Field(alias="windowSeconds")
+    retry_after_seconds: int = Field(alias="retryAfterSeconds")
+    next_available_at: str | None = Field(default=None, alias="nextAvailableAt")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class AgentConfig(BaseModel):
     name: str
     handle: str | None = None  # display handle, auto-derived from the name
@@ -41,6 +51,7 @@ class AgentConfig(BaseModel):
     last_solved_at: str | None = Field(default=None, alias="lastSolvedAt")
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
     rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
+    qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -91,6 +102,7 @@ class RoutingResult(BaseModel):
     solved_at: str | None = Field(default=None, alias="solvedAt")  # ISO-8601 UTC
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
     rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
+    qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -120,6 +132,7 @@ class AgentUpdate(BaseModel):
     holdings: list[HoldingUpdate] = Field(default_factory=list)
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
     rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
+    qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
 

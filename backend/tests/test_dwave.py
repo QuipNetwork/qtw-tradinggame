@@ -83,6 +83,7 @@ def test_race_field_requires_a_leap_token(monkeypatch):
 
     monkeypatch.setenv("DWAVE_API_TOKEN", "token")
     assert [p.name for p in build_providers()] == ["gurobi", "sa", "dwave"]
+    assert [p.name for p in build_providers(include_qpu=False)] == ["gurobi", "sa"]
 
 
 def test_production_race_excludes_gurobi(monkeypatch):

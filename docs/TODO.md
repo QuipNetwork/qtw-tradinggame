@@ -25,7 +25,9 @@ Run/test refs:
   solver race.
 - **Containerization**: backend Docker image build is in place; droplet deploy
   automation is still pending.
-- **Not yet wired**: Proton SMTP sending and QPU budget/rate limits.
+- **QPU budget**: each agent gets 3 QPU-admitted solves per rolling 10 minutes;
+  manual over-budget requests return 429 and scheduled rebalances defer.
+- **Not yet wired**: Proton SMTP sending.
 
 ## Next Work
 
@@ -122,18 +124,20 @@ Email/consent is stored today; sending is not implemented.
 - Log SMTP failures without failing signup.
 - Keep SMTP credentials out of Netlify/browser env.
 
-### P1 - QPU Budget And Retune Rate Limits
+### P1 - QPU Budget Operations
 
-Implement booth-safe solve metering before open use.
+Per-agent solve metering is implemented; booth operations may still need
+aggregate budget visibility.
 
-- Global token bucket metering QPU milliseconds.
-- Debit actual `qpu_access_time` per solve.
-- First solve and manual retune can be QPU-eligible.
-- Scheduled/background rebalances are QPU-capable; enforce cadence and QPU
-  budget controls before booth-scale use.
-- Add per-agent manual retune cooldown, likely around 5 minutes.
-- Return 429 + `Retry-After`; frontend should show the countdown.
-- Optional `/budget` endpoint for booth operations.
+- Current rule: 3 QPU-admitted solves per agent per rolling 10 minutes.
+- First solve, manual retune, and scheduled/background rebalance share the same
+  per-agent budget.
+- Manual over-budget optimize returns 429 + `Retry-After`.
+- Scheduled over-budget rebalance defers `next_rebalance_at` to the next budget
+  opening.
+- Future enhancement: global token bucket metering actual `qpu_access_time`
+  across all users.
+- Optional future `/budget` endpoint for booth operations.
 
 Budget note:
 - Current estimate: ~55 min QPU over 2 days, ~170ms access/solve at 500 reads,
@@ -180,6 +184,8 @@ Clean up temporary UI/state work after persistence and freshness are done.
   `DWAVE_API_TOKEN` is set.
 - **Scheduled rebalances**: Rebalance Frequency sets the next rebalance time;
   timestamps are persisted and shown on the phone profile.
+- **QPU per-agent budget**: shared 3-per-10-minute admission gate for first
+  solves, manual retunes, and scheduled rebalances.
 - **Kiosk dense portfolio layout**: allocation bar keeps a fixed visible band,
   dense holding rows are constrained to the portfolio area, and the QR footer no
   longer overlaps price rows.

@@ -46,6 +46,8 @@ Set these on the backend host/container, not in browser-visible env.
 | `DWAVE_API_TOKEN` | yes for QPU booth mode | `<Leap token>` | Enables D-Wave/QPU participation. Without it, the D-Wave provider is omitted. |
 | `GUROBI_IN_RACE` | yes | `0` | Keep `0` in production; Gurobi is local/dev only unless deployment has a valid license. |
 | `VALUATION_SNAPSHOT_INTERVAL_S` | no | `60` | Durable analytics snapshot cadence. Use `0` to disable snapshots. |
+| `QPU_BUDGET_MAX_ATTEMPTS` | no | `3` | Per-agent QPU-admitted solves allowed per rolling window. |
+| `QPU_BUDGET_WINDOW_S` | no | `600` | Rolling QPU budget window in seconds. |
 
 `MARKET_DATA_SOURCE` defaults to `assets-api`, so production usually does not
 need to set it. Set `MARKET_DATA_SOURCE=synthetic` only for offline demos or
@@ -55,6 +57,11 @@ D-Wave tuning knobs such as `DWAVE_NUM_READS`, `DWAVE_ANNEAL_TIME_US`, and
 `DWAVE_CHAIN_STRENGTH_PREFACTOR` have code defaults. Do not put them in the
 normal production env unless you are deliberately running a hardware tuning
 pass.
+
+The QPU budget defaults to 3 QPU-admitted solves per agent per 10 minutes.
+First solve, manual retune, and scheduled rebalance share that budget. Manual
+over-budget requests return 429 with `Retry-After`; scheduled over-budget
+rebalances defer to the next budget opening.
 
 Assets-api retry/logging knobs such as `ASSETS_API_RETRIES`,
 `ASSETS_API_RETRY_BACKOFF_S`, and `MTM_ERROR_LOG_INTERVAL_S` also have code
@@ -103,11 +110,12 @@ Cleanup for local smoke-test rows:
 ```sql
 begin;
 
-delete from valuation_snapshots where environment = 'local-smoke-azain';
-delete from solve_snapshots where environment = 'local-smoke-azain';
-delete from jobs where environment = 'local-smoke-azain';
-delete from agent_holdings where environment = 'local-smoke-azain';
-delete from agents where environment = 'local-smoke-azain';
+delete from valuation_snapshots where environment = 'local';
+delete from solve_snapshots where environment = 'local';
+delete from jobs where environment = 'local';
+delete from qpu_budget_events where environment = 'local';
+delete from agent_holdings where environment = 'local';
+delete from agents where environment = 'local';
 
 commit;
 ```

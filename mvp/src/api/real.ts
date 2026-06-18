@@ -12,6 +12,18 @@ import type {
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
 
+class BackendApiError extends Error {
+  status: number;
+  retryAfterSeconds?: number;
+
+  constructor(status: number, message: string, retryAfterSeconds?: number) {
+    super(message);
+    this.name = 'BackendApiError';
+    this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 function url(path: string): string {
   if (!API_BASE) {
     throw new Error('VITE_API_BASE is required for the real API adapter');
@@ -43,14 +55,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    let detail = response.statusText;
+    let message = response.statusText;
+    let retryAfterSeconds: number | undefined;
     try {
       const body = await response.json();
-      detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail ?? body);
+      const detail = body.detail ?? body;
+      if (typeof detail === 'string') {
+        message = detail;
+      } else {
+        message = typeof detail.message === 'string'
+          ? detail.message
+          : JSON.stringify(detail);
+        retryAfterSeconds = typeof detail.retryAfterSeconds === 'number'
+          ? detail.retryAfterSeconds
+          : undefined;
+      }
     } catch {
       // Keep the HTTP status text when the response is not JSON.
     }
-    throw new Error(`Backend request failed (${response.status}): ${detail}`);
+    throw new BackendApiError(response.status, message, retryAfterSeconds);
   }
 
   return response.json() as Promise<T>;

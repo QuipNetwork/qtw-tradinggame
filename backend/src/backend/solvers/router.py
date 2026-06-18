@@ -57,12 +57,12 @@ class RaceResult:
         return self.runner_up_classical.solve_time_s / self.winner.solve_time_s
 
 
-def build_providers() -> list:
+def build_providers(*, include_qpu: bool = True) -> list:
     """The race field: SA always, Gurobi unless disabled for production,
     the D-Wave QPU when a Leap token is set."""
     providers: list = [GurobiProvider()] if config.GUROBI_IN_RACE else []
     providers.append(SAProvider())
-    if dwave.is_configured():
+    if include_qpu and dwave.is_configured():
         providers.append(dwave.DWaveProvider())
     return providers
 
@@ -76,14 +76,19 @@ def _dispatch(provider: object, problem: PortfolioProblem, qubo: QuboMatrix, dea
     return solution, time.perf_counter() - started
 
 
-def race(problem: PortfolioProblem, deadline_s: float | None = None) -> RaceResult:
+def race(
+    problem: PortfolioProblem,
+    deadline_s: float | None = None,
+    *,
+    include_qpu: bool = True,
+) -> RaceResult:
     """Run the race; raise SolverFailed if nothing feasible arrives in time."""
     overall_deadline = deadline_s if deadline_s is not None else config.RACE_OVERALL_DEADLINE_S
     per_solver_deadline = config.SOLVER_DEADLINE_S
 
     qubo = encode_qubo(problem)
     q_h = qubo_hash(qubo)
-    providers = build_providers()
+    providers = build_providers(include_qpu=include_qpu)
 
     results: list[Solution] = []
     solver_runs: list[SolverRun] = []

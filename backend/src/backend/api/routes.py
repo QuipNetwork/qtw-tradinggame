@@ -18,6 +18,7 @@ from ..financial.basket import validate_basket
 from ..orchestration.job import run_optimization
 from ..persistence.agents import get_agent_store
 from ..persistence.leaderboard import build_leaderboard
+from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
 from ..solvers.types import SolverFailed
 from .schemas import (
     AgentConfig,
@@ -63,7 +64,9 @@ async def get_agent(agent_id: str) -> AgentConfig:
     record = get_agent_store().get(agent_id)
     if record is None:
         raise HTTPException(status_code=404, detail="agent not found")
-    return record.to_config()
+    config_out = record.to_config()
+    config_out.qpu_budget = get_qpu_budget_store().status(agent_id)
+    return config_out
 
 
 @router.post("/agents/{agent_id}/optimize", response_model=RoutingResult)
@@ -76,6 +79,17 @@ async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> Routin
         raise HTTPException(status_code=404, detail="agent not found") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except QpuBudgetExceeded as exc:
+        detail = {
+            "message": str(exc),
+            "retryAfterSeconds": exc.status.retry_after_seconds,
+            "qpuBudget": exc.status.model_dump(by_alias=True),
+        }
+        raise HTTPException(
+            status_code=429,
+            detail=detail,
+            headers={"Retry-After": str(exc.status.retry_after_seconds)},
+        ) from exc
     except SolverFailed as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

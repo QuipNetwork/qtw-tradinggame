@@ -17,8 +17,10 @@ and the solver race.
   out of the production race with `GUROBI_IN_RACE=0`.
 - Scheduled rebalances are implemented. They call the same optimization path as
   manual retunes, so they are QPU-capable when D-Wave is configured.
-- The backend Docker image build is implemented. Proton SMTP sending, QPU budget
-  limits, and droplet deploy automation are still pending.
+- Per-agent QPU budgeting is implemented: 3 QPU-admitted solves per rolling
+  10 minutes, shared by first solve, manual retune, and scheduled rebalance.
+- The backend Docker image build is implemented. Proton SMTP sending and
+  droplet deploy automation are still pending.
 
 ## High-Level DAG
 
@@ -45,6 +47,7 @@ flowchart TB
     %% ===== Orchestration =====
     subgraph ORCH["Orchestration"]
         JOB["job.py<br/>build problem -> race -> allocate -> persist"]
+        QBUD["qpu_budget.py<br/>3 QPU admissions / 10 min / agent"]
         MTM["scheduler.py<br/>MTM loop every MTM_TICK_S"]
         REB["scheduler.py<br/>scheduled rebalance check"]
     end
@@ -73,13 +76,14 @@ flowchart TB
         GU["Gurobi<br/>continuous QP; dev/oracle"]
         SA["Simulated Annealing<br/>QUBO on CPU"]
         DW["D-Wave Advantage<br/>QUBO on QPU with DWAVE_API_TOKEN"]
-        FEAS["feasibility.py<br/>budget + box gate"]
+        FEAS["feasibility.py<br/>sum + box gate"]
     end
 
     %% ===== Persistence =====
     subgraph PERS["Persistence"]
         AG["AgentStore / DbAgentStore<br/>config, basket, holdings, valuation"]
         JBS["JobStore / DbJobStore<br/>winner audit + solve snapshots"]
+        QBS["QpuBudgetStore / DbQpuBudgetStore<br/>QPU admission events"]
         VS["valuation_snapshots<br/>sampled analytics history"]
         LB["leaderboard.py<br/>rank from current agent totals"]
     end
@@ -114,8 +118,9 @@ flowchart TB
     ER --> QP
     CV --> QP
     SL --> QP
+    QP --> QBUD
+    QBUD --> RTR
     QP --> ENC
-    QP --> RTR
     ENC --> RTR
     RTR --> GU
     RTR --> SA
@@ -128,6 +133,7 @@ flowchart TB
 
     JOB --> AG
     JOB --> JBS
+    JOB --> QBS
     JOB --> BUS
     JOB --> A3
 
@@ -150,7 +156,7 @@ flowchart TB
     classDef solver fill:#f0e6ff,stroke:#6600cc,color:#2a0a52
 
     class ASSETS external
-    class AG,JBS,VS,LB storage
+    class AG,JBS,QBS,VS,LB storage
     class GU,SA,DW,RTR solver
 ```
 
@@ -172,7 +178,7 @@ No solve happens here. The kiosk calls optimize after creation.
 `POST /agents/:id/optimize` runs the full optimization pipeline.
 
 1. Load the agent from `AgentStore`.
-2. Apply any changed sliders or basket.
+2. Validate the candidate sliders/basket without persisting them yet.
 3. Fetch hourly returns from the configured market data source.
 4. Estimate expected returns and covariance from real returns only.
 5. Build the mean-variance problem:
@@ -182,16 +188,20 @@ No solve happens here. The kiosk calls optimize after creation.
    subject to: weights sum to 1, and every selected asset stays between
    `w_min` and `w_max`
 
-6. Race providers:
+6. If D-Wave is configured, reserve one QPU admission for the agent.
+   - Manual over-budget requests return 429 + `Retry-After`.
+   - The request does not persist changed sliders/assets when rejected.
+7. Race providers:
    - Gurobi solves the continuous QP when enabled.
    - Simulated annealing solves the QUBO on CPU.
    - D-Wave solves the same QUBO on QPU when `DWAVE_API_TOKEN` is set.
-7. Keep all provider results for display/audit.
-8. Pick the feasible result with the lowest reported solve/access time.
-9. Liquidate the previous basket at spot and allocate the full value into the
+8. Keep all provider results for display/audit.
+9. Pick the feasible result with the lowest reported solve/access time.
+10. Persist accepted slider/basket changes.
+11. Liquidate the previous basket at spot and allocate the full value into the
    winning weights.
-10. Persist holdings, solve metadata, solve snapshots, and rebalance timestamps.
-11. Publish an immediate `AgentUpdate` over the per-agent websocket.
+12. Persist holdings, solve metadata, solve snapshots, and rebalance timestamps.
+13. Publish an immediate `AgentUpdate` over the per-agent websocket.
 
 Current code treats every solve as a fresh allocation. There is no turnover
 penalty and no transaction fee in the live path.
@@ -208,6 +218,8 @@ penalty and no transaction fee in the live path.
   basket.
 - Because it uses the normal optimization path, scheduled/background rebalances
   are QPU-capable when D-Wave is configured.
+- If the shared per-agent QPU budget is exhausted, the loop defers
+  `next_rebalance_at` to the next budget opening instead of running CPU-only.
 - Failures are logged and retried after `REBALANCE_RETRY_BACKOFF_S`.
 
 This loop is separate from MTM so a solve does not block valuation pushes.
@@ -297,8 +309,8 @@ LISTEN/NOTIFY plus advisory locks.
   sender exists yet.
 - Droplet deploy automation: the Dockerfile exists, but CI/registry/pull-and-
   restart wiring is still pending.
-- QPU budget and retune rate limits: scheduled rebalances and manual retunes are
-  QPU-capable, but token-bucket enforcement is still pending.
+- Global QPU budget operations: per-agent admission is implemented; aggregate
+  booth-wide QPU millisecond metering is still optional future work.
 - assets-api spot freshness: QTW consumes the spot contract; faster freshness
   belongs in `../assets-api`.
 - MTM cadence alignment: once assets-api spot freshness is finalized, align

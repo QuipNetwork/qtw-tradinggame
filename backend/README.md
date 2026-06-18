@@ -88,6 +88,11 @@ provider uses the clique sampler (cached embeddings — no per-solve embedding
 search) and picks the best *feasible* anneal read, not just the lowest-energy
 one.
 
+QPU admission is budgeted per agent: 3 QPU-admitted solves per rolling
+10 minutes. First solve, manual retune, and scheduled rebalance share that
+budget. Manual over-budget optimize returns HTTP 429 + `Retry-After`;
+scheduled over-budget rebalance defers `nextRebalanceAt`.
+
 Tuning knobs are env vars: `DWAVE_NUM_READS` (500), `DWAVE_ANNEAL_TIME_US`
 (100), `DWAVE_CHAIN_STRENGTH_PREFACTOR` (3). `qtw verify-dwave [--assets …]`
 submits one QUBO to Leap and reports chip, embedding, chain breaks, timing, and
@@ -173,6 +178,8 @@ Things worth checking in the response:
 - `portfolio` holds **every basket asset** (min-position floor) and the `pct` values sum to 100.
 - `kind` is `"first"` then `"retune"`; `jobId` and `solvedAt` are populated.
 - `nextRebalanceAt` and `rebalanceIntervalHours` are populated after a solve.
+- `qpuBudget` reports used/limit/window and the next QPU opening when D-Wave is
+  configured or prior QPU attempts exist.
 - `solverResults` lists every solver that ran, including infeasible, failed, or
   timed-out providers.
 
@@ -201,5 +208,5 @@ PY
 
 See `../docs/ENVIRONMENT.md` for production environment variables,
 Supabase/Postgres behavior, Proton SMTP status, and the selected DigitalOcean
-Droplet + Docker deployment shape. Proton email sending and QPU budget limits
-are still not implemented.
+Droplet + Docker deployment shape. Proton email sending is still not
+implemented.

@@ -7,7 +7,7 @@ the env var is unset.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import (
@@ -31,9 +31,18 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
+from .. import config
 from ..api.schemas import AgentConfig, AgentUpdate, SliderValues
 from .agents import AgentRecord, AgentStore
 from .jobs import JobRecord, JobStore
+from .qpu_budget import (
+    QpuBudgetExceeded,
+    QpuBudgetSource,
+    QpuBudgetStatus,
+    QpuBudgetStore,
+    _coerce_utc,
+    _status_from_times,
+)
 
 metadata = MetaData()
 
@@ -115,6 +124,16 @@ valuation_snapshots_table = Table(
     Column("as_of", String, nullable=True),
     Column("stale", Boolean, nullable=False),
     Column("created_at", String, nullable=False),
+    Column("environment", String, nullable=False),
+)
+
+qpu_budget_events_table = Table(
+    "qpu_budget_events",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("agent_id", String(32), ForeignKey("agents.id"), nullable=False),
+    Column("source", String(16), nullable=False),
+    Column("reserved_at", String, nullable=False),
     Column("environment", String, nullable=False),
 )
 
@@ -271,6 +290,16 @@ class DbAgentStore(AgentStore):
                     rebalance_interval_hours=record.rebalance_interval_hours,
                     updated_at=_now_iso(),
                 )
+            )
+
+    def defer_rebalance(self, agent_id: str, next_rebalance_at: str) -> None:
+        super().defer_rebalance(agent_id, next_rebalance_at)
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(agents_table)
+                .where(agents_table.c.id == agent_id)
+                .where(agents_table.c.environment == self._environment)
+                .values(next_rebalance_at=next_rebalance_at, updated_at=_now_iso())
             )
 
     def record_valuation_snapshot(self, agent_id: str, update_: AgentUpdate) -> None:
@@ -477,3 +506,93 @@ class DbJobStore(JobStore):
                         solved_at=row["solved_at"],
                     )
                     self._jobs[job.id] = job
+
+
+class DbQpuBudgetStore(QpuBudgetStore):
+    """SQL-backed QPU budget store, scoped by APP_ENV."""
+
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        environment: str,
+        allow_reset: bool = False,
+    ) -> None:
+        super().__init__()
+        self._engine = create_db_engine(database_url)
+        self._environment = environment
+        self._allow_reset = allow_reset
+        metadata.create_all(self._engine)
+
+    @property
+    def engine(self) -> Engine:
+        return self._engine
+
+    def reserve(
+        self,
+        agent_id: str,
+        *,
+        source: QpuBudgetSource,
+        now: datetime | None = None,
+    ) -> QpuBudgetStatus:
+        now = _coerce_utc(now)
+        with self._lock:
+            self._prune(now)
+            status = self.status(agent_id, now=now)
+            if status.used >= status.limit:
+                raise QpuBudgetExceeded(status)
+            with self._engine.begin() as conn:
+                conn.execute(
+                    insert(qpu_budget_events_table),
+                    {
+                        "agent_id": agent_id,
+                        "source": source,
+                        "reserved_at": now.isoformat(),
+                        "environment": self._environment,
+                    },
+                )
+            return self.status(agent_id, now=now)
+
+    def status(self, agent_id: str, *, now: datetime | None = None) -> QpuBudgetStatus:
+        now = _coerce_utc(now)
+        with self._lock:
+            self._prune(now)
+            return _status_from_times(self._event_times(agent_id, now), now=now)
+
+    def reset(self) -> None:
+        super().reset()
+        if not self._allow_reset:
+            return
+        with self._engine.begin() as conn:
+            conn.execute(
+                delete(qpu_budget_events_table).where(
+                    qpu_budget_events_table.c.environment == self._environment
+                )
+            )
+
+    def _event_times(self, agent_id: str, now: datetime) -> list[datetime]:
+        cutoff = now - timedelta(seconds=config.QPU_BUDGET_WINDOW_S)
+        with self._engine.begin() as conn:
+            rows = conn.execute(
+                select(qpu_budget_events_table.c.reserved_at)
+                .where(qpu_budget_events_table.c.agent_id == agent_id)
+                .where(qpu_budget_events_table.c.environment == self._environment)
+                .where(qpu_budget_events_table.c.reserved_at > cutoff.isoformat())
+            ).scalars()
+            return [_parse_iso(row) for row in rows]
+
+    def _prune(self, now: datetime) -> None:
+        cutoff = now - timedelta(seconds=config.QPU_BUDGET_WINDOW_S)
+        with self._engine.begin() as conn:
+            conn.execute(
+                delete(qpu_budget_events_table)
+                .where(qpu_budget_events_table.c.environment == self._environment)
+                .where(qpu_budget_events_table.c.reserved_at <= cutoff.isoformat())
+            )
+
+
+def _parse_iso(value: str) -> datetime:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)

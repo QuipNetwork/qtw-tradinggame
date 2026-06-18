@@ -8,6 +8,11 @@ from backend.financial.prices.synthetic import SyntheticMarketSource
 from backend.financial.types import PortfolioProblem
 from backend.persistence.agents import AgentStore, get_agent_store, set_agent_store
 from backend.persistence.jobs import JobStore, get_job_store, set_job_store
+from backend.persistence.qpu_budget import (
+    QpuBudgetStore,
+    get_qpu_budget_store,
+    set_qpu_budget_store,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -21,15 +26,19 @@ def isolated_state():
     """Reset stores and pin a fixed-clock market so pipeline math is reproducible."""
     set_agent_store(AgentStore())
     set_job_store(JobStore())
+    set_qpu_budget_store(QpuBudgetStore())
     get_agent_store().reset()
     get_job_store().reset()
+    get_qpu_budget_store().reset()
     set_source(SyntheticMarketSource(clock=lambda: 1000.0))
     yield
     set_source(None)
     get_agent_store().reset()
     get_job_store().reset()
+    get_qpu_budget_store().reset()
     set_agent_store(None)
     set_job_store(None)
+    set_qpu_budget_store(None)
 
 
 @pytest.fixture

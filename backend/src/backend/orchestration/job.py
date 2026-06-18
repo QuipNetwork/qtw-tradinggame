@@ -24,6 +24,13 @@ from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
+from ..persistence.qpu_budget import (
+    QpuBudgetExceeded,
+    QpuBudgetSource,
+    QpuBudgetStore,
+    get_qpu_budget_store,
+)
+from ..solvers.providers import dwave
 from ..solvers.router import SolverRun, race
 from ..solvers.types import ProviderProvenance, Solution
 
@@ -56,6 +63,8 @@ def run_optimization(
     agents: AgentStore | None = None,
     jobs: JobStore | None = None,
     market: MarketDataSource | None = None,
+    qpu_budget: QpuBudgetStore | None = None,
+    source: QpuBudgetSource = "manual",
     deadline_s: float | None = None,
 ) -> OptimizeOutcome:
     """Run one job. Raises KeyError for unknown agents, ValueError for a bad
@@ -63,19 +72,20 @@ def run_optimization(
     agents = agents if agents is not None else get_agent_store()
     jobs = jobs if jobs is not None else get_job_store()
     market = market if market is not None else get_source()
+    qpu_budget = qpu_budget if qpu_budget is not None else get_qpu_budget_store()
 
     agent = agents.get(agent_id)
     if agent is None:
         raise KeyError(f"unknown agent {agent_id!r}")
 
-    if sliders is not None:
-        agents.update_sliders(agent_id, sliders)
-    if assets is not None:
-        agents.update_assets(agent_id, validate_basket(assets))
-    agent = agents.get(agent_id)
-
-    tickers = validate_basket(agent.assets)
-    params = map_sliders(agent.sliders, len(tickers))
+    candidate_sliders = sliders if sliders is not None else agent.sliders
+    tickers = validate_basket(assets if assets is not None else agent.assets)
+    params = map_sliders(candidate_sliders, len(tickers))
+    include_qpu = dwave.is_configured()
+    if include_qpu:
+        status = qpu_budget.status(agent_id)
+        if status.used >= status.limit:
+            raise QpuBudgetExceeded(status)
 
     # Σ over the fixed 720h window, μ over the fixed lookback within it.
     returns = market.hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
@@ -89,7 +99,10 @@ def run_optimization(
         asset_tickers=tickers,
     )
 
-    race_result = race(problem, deadline_s=deadline_s)
+    qpu_budget_status = (
+        qpu_budget.reserve(agent_id, source=source) if include_qpu else qpu_budget.status(agent_id)
+    )
+    race_result = race(problem, deadline_s=deadline_s, include_qpu=include_qpu)
     winner = race_result.winner
 
     # Liquidate everything at spot, reallocate the full value by the winner's
@@ -106,6 +119,11 @@ def run_optimization(
         for t, w in zip(tickers, winner.weights, strict=True)
         if w > 0.0
     }
+
+    if sliders is not None:
+        agents.update_sliders(agent_id, sliders)
+    if assets is not None:
+        agents.update_assets(agent_id, tickers)
 
     agents.apply_solve(
         agent_id,
@@ -141,11 +159,14 @@ def run_optimization(
         rebalance_interval_hours=(
             scheduled_agent.rebalance_interval_hours if scheduled_agent else None
         ),
+        qpu_budget=qpu_budget_status,
     )
     jobs.record_solve_snapshot(
         job_id=job.id,
         agent_id=agent_id,
-        sliders=agent.sliders.model_dump(by_alias=True),
+        sliders=(scheduled_agent.sliders if scheduled_agent else candidate_sliders).model_dump(
+            by_alias=True
+        ),
         assets=tickers,
         portfolio=[entry.model_dump() for entry in result.portfolio],
         holdings_units=holdings_units,
@@ -158,6 +179,7 @@ def run_optimization(
     update.rebalance_interval_hours = (
         scheduled_agent.rebalance_interval_hours if scheduled_agent else None
     )
+    update.qpu_budget = qpu_budget_status
     events = [Event(channel=f"agent:{agent_id}", payload=update.model_dump(by_alias=True))]
     if is_first:
         events.append(
