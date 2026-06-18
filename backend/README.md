@@ -112,6 +112,38 @@ For a container or remote host, the process must bind to `0.0.0.0`:
 Keep one worker for the first production deployment. The websocket event bus,
 MTM scheduler, and scheduled rebalance loop are in-process.
 
+## Run with Docker
+
+Build from the repo root so Docker can see `backend/`:
+
+```bash
+docker build -f backend/Dockerfile -t qtw-backend:local .
+```
+
+Run an offline smoke test with synthetic market data:
+
+```bash
+docker run --rm -p 8001:8000 \
+  -e APP_ENV=local-container \
+  -e MARKET_DATA_SOURCE=synthetic \
+  -e GUROBI_IN_RACE=0 \
+  qtw-backend:local
+```
+
+Run against the normal assets-api path with a local env file:
+
+```bash
+cp backend/.env.example backend/.env.local
+# edit backend/.env.local if you want DATABASE_URL or other real services
+docker run --rm --env-file backend/.env.local -p 8001:8000 qtw-backend:local
+```
+
+Check the container:
+
+```bash
+curl http://127.0.0.1:8001/healthz
+```
+
 ## Test the API by hand
 
 ```bash
@@ -168,6 +200,6 @@ PY
 ## Production wiring status
 
 See `../docs/ENVIRONMENT.md` for production environment variables,
-Supabase/Postgres behavior, Proton SMTP status, and the planned
-DigitalOcean/container deployment shape. As of now, Proton email sending and the
-backend Dockerfile are not implemented.
+Supabase/Postgres behavior, Proton SMTP status, and the selected DigitalOcean
+Droplet + Docker deployment shape. Proton email sending and QPU budget limits
+are still not implemented.

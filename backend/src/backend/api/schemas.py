@@ -146,3 +146,15 @@ class OptimizeRequest(BaseModel):
 
     sliders: SliderValues | None = None
     assets: list[str] | None = None
+
+
+class HealthResponse(BaseModel):
+    status: Literal["ok"] = "ok"
+    app_env: str = Field(alias="appEnv")
+    persistence: Literal["memory", "sql"]
+    market_data_source: str = Field(alias="marketDataSource")
+    assets_api_base_url: str = Field(alias="assetsApiBaseUrl")
+    qpu_configured: bool = Field(alias="qpuConfigured")
+    gurobi_in_race: bool = Field(alias="gurobiInRace")
+
+    model_config = ConfigDict(populate_by_name=True)

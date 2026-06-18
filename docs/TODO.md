@@ -23,7 +23,9 @@ Run/test refs:
 - **Scheduled rebalances**: optimized agents persist rebalance timestamps and
   the backend runs due background rebalances through the normal QPU-capable
   solver race.
-- **Not yet wired**: Proton SMTP sending and backend containerization.
+- **Containerization**: backend Docker image build is in place; droplet deploy
+  automation is still pending.
+- **Not yet wired**: Proton SMTP sending and QPU budget/rate limits.
 
 ## Next Work
 
@@ -32,9 +34,8 @@ Run/test refs:
 The SQL-backed store path is implemented; production still needs operational
 rollout and one real Supabase-backed smoke test.
 
-- Add the backend Dockerfile/container runtime, then verify the FastAPI
-  container with Supabase `DATABASE_URL` and `APP_ENV=production` or
-  `APP_ENV=booth`.
+- Verify the FastAPI container with Supabase `DATABASE_URL` and
+  `APP_ENV=production` or `APP_ENV=booth`.
 - Confirm table creation and startup hydration against the live Supabase
   project.
 - Keep tests/offline work on forced in-memory stores; this is already wired in
@@ -101,10 +102,8 @@ MTM publishing to it.
 
 Make the deployed frontend and backend agree on URLs and runtime env.
 
-- Add `backend/Dockerfile` or `Dockerfile.backend`, `.dockerignore`, and a
-  production run command that binds Uvicorn to `0.0.0.0`.
-- Choose deployment automation: DigitalOcean droplet + Docker image pull, or
-  DigitalOcean App Platform branch/container autodeploy.
+- Add droplet deployment automation: build AMD64 image, push to a registry, pull
+  and restart it on the DigitalOcean droplet.
 - Netlify frontend env: set `VITE_API_BASE` to the deployed backend.
 - Set `VITE_WS_BASE` only if websocket traffic uses a different host.
 - Backend env: set `DATABASE_URL`, `ASSETS_API_BASE_URL`, `QR_BASE_URL`, CORS
@@ -184,6 +183,9 @@ Clean up temporary UI/state work after persistence and freshness are done.
 - **Kiosk dense portfolio layout**: allocation bar keeps a fixed visible band,
   dense holding rows are constrained to the portfolio area, and the QR footer no
   longer overlaps price rows.
+- **Backend Docker image**: `backend/Dockerfile`, `.dockerignore`,
+  `backend/.env.example`, and `/healthz` support local and droplet container
+  smoke tests.
 
 ## Watch Items
 

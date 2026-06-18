@@ -17,8 +17,8 @@ and the solver race.
   out of the production race with `GUROBI_IN_RACE=0`.
 - Scheduled rebalances are implemented. They call the same optimization path as
   manual retunes, so they are QPU-capable when D-Wave is configured.
-- Proton SMTP sending and backend containerization are not implemented yet. See
-  `docs/ENVIRONMENT.md` for the required wiring.
+- The backend Docker image build is implemented. Proton SMTP sending, QPU budget
+  limits, and droplet deploy automation are still pending.
 
 ## High-Level DAG
 
@@ -295,8 +295,8 @@ LISTEN/NOTIFY plus advisory locks.
 
 - Proton SMTP sender: email/consent fields are stored, but no backend email
   sender exists yet.
-- Backend containerization: there is no `Dockerfile`, compose file, or
-  DigitalOcean app spec in this repo yet.
+- Droplet deploy automation: the Dockerfile exists, but CI/registry/pull-and-
+  restart wiring is still pending.
 - QPU budget and retune rate limits: scheduled rebalances and manual retunes are
   QPU-capable, but token-bucket enforcement is still pending.
 - assets-api spot freshness: QTW consumes the spot contract; faster freshness

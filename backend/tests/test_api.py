@@ -34,6 +34,17 @@ def _create(client: TestClient, name: str = "Neo") -> str:
     return body["agentId"]
 
 
+def test_healthz_reports_runtime_shape():
+    with TestClient(create_app()) as client:
+        response = client.get("/healthz")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "ok"
+        assert body["persistence"] == "memory"
+        assert body["marketDataSource"] == "assets-api"
+        assert body["qpuConfigured"] is False
+
+
 def test_create_and_get_agent():
     with TestClient(create_app()) as client:
         agent_id = _create(client)

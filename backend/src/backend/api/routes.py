@@ -8,6 +8,7 @@ resulting events are published on the loop afterwards.
 from __future__ import annotations
 
 import asyncio
+import os
 
 from fastapi import APIRouter, HTTPException
 
@@ -20,6 +21,7 @@ from ..persistence.leaderboard import build_leaderboard
 from ..solvers.types import SolverFailed
 from .schemas import (
     AgentConfig,
+    HealthResponse,
     LeaderboardEntry,
     OptimizeRequest,
     RoutingResult,
@@ -27,6 +29,19 @@ from .schemas import (
 )
 
 router = APIRouter()
+
+
+@router.get("/healthz", response_model=HealthResponse)
+async def healthz() -> HealthResponse:
+    """Cheap container/proxy health check. Does not contact external services."""
+    return HealthResponse(
+        app_env=config.APP_ENV,
+        persistence="sql" if config.DATABASE_URL else "memory",
+        market_data_source=config.MARKET_DATA_SOURCE,
+        assets_api_base_url=config.ASSETS_API_BASE_URL,
+        qpu_configured=bool(os.environ.get("DWAVE_API_TOKEN")),
+        gurobi_in_race=config.GUROBI_IN_RACE,
+    )
 
 
 @router.post("/agents", response_model=SubmitAgentResponse)

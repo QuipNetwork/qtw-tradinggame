@@ -17,8 +17,8 @@ With no production env vars set:
 - Backend points at `https://asset-tracker.quip.network` by default.
 - Tests force in-memory stores and synthetic market data.
 - Email sending is not wired yet; signup currently stores email/consent only.
-- The backend is not containerized yet; there is no `Dockerfile`,
-  `docker-compose.yml`, or DigitalOcean app spec in this repo.
+- The backend has a Dockerfile at `backend/Dockerfile`; deployment automation
+  for the DigitalOcean droplet is still pending.
 
 ## Frontend Env - Netlify
 
@@ -153,10 +153,10 @@ Code changes needed:
 
 ## Backend Containerization And DigitalOcean
 
-Status: not implemented yet.
+Status: backend image build is in place; droplet deployment automation is still
+pending.
 
-The repo currently has no backend `Dockerfile`, `Containerfile`, compose file,
-or CI deploy workflow. Local/server execution is still direct Python:
+Local/server execution without Docker is still direct Python:
 
 ```bash
 cd backend
@@ -165,21 +165,42 @@ cd backend
 
 Chosen production path: **DigitalOcean droplet + Docker**.
 
-Containerization should add, at minimum:
+Build from the repo root:
 
-- `backend/Dockerfile` or root `Dockerfile.backend`
-- `.dockerignore`
-- a production command that binds publicly inside the container:
+```bash
+docker build -f backend/Dockerfile -t qtw-backend:local .
+```
+
+Run an offline smoke test:
+
+```bash
+docker run --rm -p 8001:8000 \
+  -e APP_ENV=local-container \
+  -e MARKET_DATA_SOURCE=synthetic \
+  -e GUROBI_IN_RACE=0 \
+  qtw-backend:local
+```
+
+Run with a local env file:
+
+```bash
+cp backend/.env.example backend/.env.local
+docker run --rm --env-file backend/.env.local -p 8001:8000 qtw-backend:local
+```
+
+The container command binds publicly inside the container:
 
 ```bash
 uvicorn backend.api.app:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
+The container exposes `/healthz` for Docker/reverse-proxy checks.
+
 The one-worker constraint is intentional for the first deployment. The websocket
 event bus, MTM scheduler, and scheduled rebalance loop are in-process. More than
 one worker/container would need an external event bus plus scheduler locking.
 
-The deploy loop should be:
+The remaining deploy loop should be:
 
 - Build an AMD64 backend image from the chosen deployment branch.
 - Push the image to a container registry.
