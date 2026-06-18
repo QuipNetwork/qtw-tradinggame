@@ -5,10 +5,12 @@ import { getAgent, requestOptimization, subscribeAgent, assetIconSrc, assetColor
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
+import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams } from '../../utils/strategy';
 import KioskStage from './Stage';
 
 const BANKROLL = 10000;
+const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
@@ -74,16 +76,14 @@ export default function KioskWelcome() {
       <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
       <span className="v4m-alloc-name">{entry.ticker}</span>
       <span className="v4m-alloc-pct">{entry.pct.toFixed(1)}%</span>
-      <span className="v4m-alloc-usd">${entry.usd.toLocaleString()}</span>
+      <span className="v4m-alloc-usd">${WHOLE_USD.format(entry.usd)}</span>
     </div>
   );
   const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');
 
-  const isQpu = result?.providerType === 'QPU';
   const solveTime = result?.solveTime ?? 0.42;
-  const classicalTime = result ? Math.max(solveTime * result.vsClassical, solveTime + 0.1) : 5.88;
-  const qBarPct = isQpu ? Math.max(4, (solveTime / classicalTime) * 100) : 100;
-  const cBarPct = isQpu ? 100 : Math.max(4, (classicalTime / solveTime) * 100);
+  const raceRows = solverRaceRows(result);
+  const raceComparison = solverRaceComparison(result);
 
   return (
     <KioskStage>
@@ -124,22 +124,22 @@ export default function KioskWelcome() {
               <span className="v4m-stat-lbl">Solve Time</span>
             </div>
             <div>
-              <div className="v4m-stat-mid">{result?.vsClassical ?? 14}×</div>
-              <span className="v4m-stat-lbl">Vs Classical</span>
+              <div className="v4m-stat-mid">{raceComparison.value}</div>
+              <span className="v4m-stat-lbl">{raceComparison.label}</span>
             </div>
           </div>
 
           <div className="v4m-race">
-            <div className="v4m-race-row">
-              <span className="v4m-race-label q">{(result?.provider ?? 'D-Wave').split(' ')[0]} · {result?.providerType ?? 'QPU'}</span>
-              <div className="v4m-race-bar"><div className="v4m-race-fill q" style={{ width: `${qBarPct}%` }}></div></div>
-              <span className="v4m-race-time">{(isQpu ? solveTime : classicalTime).toFixed(2)}s</span>
-            </div>
-            <div className="v4m-race-row">
-              <span className="v4m-race-label">Classical baseline</span>
-              <div className="v4m-race-bar"><div className="v4m-race-fill" style={{ width: `${cBarPct}%` }}></div></div>
-              <span className="v4m-race-time">{(isQpu ? classicalTime : solveTime).toFixed(2)}s</span>
-            </div>
+            {raceRows.map(row => (
+              <div className={`v4m-race-row${row.isWinner ? ' winner' : ''}${row.feasible ? '' : ' muted'}`} key={`${row.provider}-${row.status}`}>
+                <span className={`v4m-race-label${row.isWinner ? ' q' : ''}`}>
+                  {row.label}
+                  <span className="v4m-race-detail">{row.detail}</span>
+                </span>
+                <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
+                <span className="v4m-race-time">{row.timeLabel}</span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -152,7 +152,7 @@ export default function KioskWelcome() {
             </div>
             <div className="v4m-agent-bankroll">
               <div className="v4m-agent-bankroll-lbl">Bankroll</div>
-              <div className="v4m-agent-bankroll-num">${BANKROLL.toLocaleString()}</div>
+              <div className="v4m-agent-bankroll-num">${WHOLE_USD.format(BANKROLL)}</div>
             </div>
           </div>
 

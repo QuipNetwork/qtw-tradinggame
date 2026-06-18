@@ -5,7 +5,7 @@ costs real money; see router.build_providers). Uses DWaveCliqueSampler: our
 QUBO is dense (the budget penalty couples every pair of bits), and the clique
 sampler reuses precomputed clique embeddings instead of re-running a minutes-
 long minor-embedding search per solve. The reported solve time is QPU access
-time, not wall clock; the race winner is still decided by arrival order.
+time, not wall clock; feasible races are ranked by reported solve/access time.
 """
 
 from __future__ import annotations

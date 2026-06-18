@@ -144,7 +144,7 @@ def cmd_optimize(args: argparse.Namespace) -> None:
 
 
 def cmd_race(args: argparse.Namespace) -> None:
-    """Race the solvers, streaming each result as it finishes (winner first)."""
+    """Race the solvers, then pick the fastest feasible solve/access time."""
     tickers = _basket(args)
     problem = _build_problem(tickers, args)
     qubo = encode_qubo(problem)
@@ -154,7 +154,7 @@ def cmd_race(args: argparse.Namespace) -> None:
     )
     print(
         f"racing {', '.join(p.name for p in providers)} over {len(tickers)} assets{note} — "
-        f"first feasible wins, printed as each finishes\n",
+        f"fastest feasible solve/access time wins\n",
         flush=True,
     )
 
@@ -163,7 +163,6 @@ def cmd_race(args: argparse.Namespace) -> None:
             return provider.solve_qp(problem, config.SOLVER_DEADLINE_S)
         return provider.solve_qubo(qubo, problem, config.SOLVER_DEADLINE_S)
 
-    winner = None
     results = []
     with ThreadPoolExecutor(max_workers=len(providers)) as executor:
         futures = {executor.submit(dispatch, p): p for p in providers}
@@ -176,16 +175,15 @@ def cmd_race(args: argparse.Namespace) -> None:
                 continue
             feas = check_feasibility(solution.weights, problem.w_max, problem.w_min)
             solution.feasible = feas.feasible
-            tag = ""
-            if feas.feasible and winner is None:
-                winner = solution
-                tag = "  ← WINNER"
-            _print_solution(provider.name, provider.role, solution, feas, tickers, tag)
+            _print_solution(provider.name, provider.role, solution, feas, tickers)
             results.append(solution)
 
+    feasible = [solution for solution in results if solution.feasible]
+    winner = min(feasible, key=lambda solution: solution.solve_time_s, default=None)
     if winner is None:
         print("\nno feasible solution from any solver")
         return
+    print(f"\nwinner by solve/access time: {winner.provider} ({winner.provider_role})")
     _print_speedup(winner, results, winner.provider)
 
 

@@ -51,6 +51,19 @@ class PortfolioEntry(BaseModel):
     usd: float  # holdings value in USD
 
 
+class SolverResult(BaseModel):
+    provider: str
+    provider_type: ProviderType = Field(alias="providerType")
+    status: Literal["winner", "feasible", "infeasible", "failed", "timeout"]
+    feasible: bool
+    solve_time: float | None = Field(default=None, alias="solveTime")
+    race_time: float | None = Field(default=None, alias="raceTime")
+    objective: float | None = None
+    error: str | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class HoldingUpdate(BaseModel):
     ticker: str
     units: float
@@ -65,8 +78,9 @@ class RoutingResult(BaseModel):
     provider: str  # 'dwave' | 'sa' | 'gurobi'
     provider_type: ProviderType = Field(alias="providerType")
     solve_time: float = Field(alias="solveTime")  # seconds (winning solver)
-    vs_classical: float = Field(alias="vsClassical")  # ×-faster than the classical runner-up
+    vs_classical: float = Field(alias="vsClassical")  # legacy multiplier for older clients
     portfolio: list[PortfolioEntry]
+    solver_results: list[SolverResult] = Field(default_factory=list, alias="solverResults")
 
     # Extensions beyond the mock contract
     kind: Literal["first", "retune"] | None = None

@@ -5086,12 +5086,20 @@
   }
   .kiosk-welcome-v4 .v4m-race-row {
     display: grid;
-    grid-template-columns: 130px 1fr 60px;
+    grid-template-columns: 172px 1fr 74px;
     align-items: center;
     gap: 12px;
     padding: 6px 0;
   }
+  .kiosk-welcome-v4 .v4m-race-row.muted {
+    opacity: 0.58;
+  }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    line-height: 1.15;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.62rem;
     letter-spacing: 0.16em;
@@ -5099,6 +5107,11 @@
     color: #71717b;
   }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-detail {
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+    color: #71717b;
+  }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-bar {
     height: 8px;
     background: #ececef;
@@ -5484,7 +5497,15 @@
     gap: 8px;
     padding: 4px 0;
   }
+  .phone-v4 .v4m-race-row.muted {
+    opacity: 0.58;
+  }
   .phone-v4 .v4m-race-row .v4m-race-label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    line-height: 1.12;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.58rem;
     letter-spacing: 0.16em;
@@ -5492,6 +5513,11 @@
     color: #71717b;
   }
   .phone-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .phone-v4 .v4m-race-row .v4m-race-detail {
+    font-size: 0.48rem;
+    letter-spacing: 0.12em;
+    color: #71717b;
+  }
   .phone-v4 .v4m-race-row .v4m-race-bar {
     height: 6px;
     background: #ececef;

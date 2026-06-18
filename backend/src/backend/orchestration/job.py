@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .. import config
-from ..api.schemas import RoutingResult, SliderValues
+from ..api.schemas import RoutingResult, SliderValues, SolverResult
 from ..financial.basket import get_asset, validate_basket
 from ..financial.estimators.covariance import covariance
 from ..financial.estimators.expected_return import expected_return
@@ -24,7 +24,7 @@ from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
-from ..solvers.router import race
+from ..solvers.router import SolverRun, race
 from ..solvers.types import ProviderProvenance, Solution
 
 _PROVIDER_LABELS = {
@@ -129,9 +129,23 @@ def run_optimization(
         solve_time=winner.solve_time_s,
         vs_classical=race_result.vs_classical,
         portfolio=weights_to_portfolio(winner.weights, tickers, portfolio_value),
+        solver_results=[
+            _solver_run_result(run, winner_provider=winner.provider)
+            for run in race_result.solver_runs
+        ],
         kind="first" if is_first else "retune",
         job_id=job.id,
         solved_at=job.solved_at,
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id=agent_id,
+        sliders=agent.sliders.model_dump(by_alias=True),
+        assets=tickers,
+        portfolio=[entry.model_dump() for entry in result.portfolio],
+        holdings_units=holdings_units,
+        solver_results=[_solver_run_summary(run) for run in race_result.solver_runs],
+        winner_provider=winner.provider,
     )
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
@@ -154,3 +168,29 @@ def run_optimization(
         solver_results=race_result.all_results,
         winner_provider=winner.provider,
     )
+
+
+def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
+    return SolverResult(
+        provider=_PROVIDER_LABELS.get(run.provider, run.provider),
+        providerType=run.provider_role,
+        status="winner" if run.provider == winner_provider else run.status,
+        feasible=run.feasible,
+        solveTime=run.solve_time_s,
+        raceTime=run.race_time_s,
+        objective=run.objective,
+        error=run.error,
+    )
+
+
+def _solver_run_summary(run: SolverRun) -> dict:
+    return {
+        "provider": run.provider,
+        "providerRole": run.provider_role,
+        "status": run.status,
+        "feasible": run.feasible,
+        "solveTime": run.solve_time_s,
+        "raceTime": run.race_time_s,
+        "objective": run.objective,
+        "error": run.error,
+    }

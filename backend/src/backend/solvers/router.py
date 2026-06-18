@@ -1,15 +1,17 @@
-"""Parallel solver race — first feasible solution wins.
+"""Parallel solver race — fastest feasible solve/access time wins.
 
 Each provider gets the problem in its native form: Gurobi the continuous QP,
 SA/D-Wave the bit-discretized QUBO. The solve work releases the GIL, so a
 thread pool gives real parallelism. All results are kept for the audit log
-and the vsClassical baseline (decision Q7).
+and the solver comparison display.
 """
 
 from __future__ import annotations
 
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from typing import Literal
 
 from .. import config
 from ..financial.qubo_encoder import encode_qubo, qubo_hash
@@ -20,19 +22,36 @@ from .providers.gurobi import GurobiProvider
 from .providers.sa import SAProvider
 from .types import QuboMatrix, Solution, SolverFailed
 
+SolverStatus = Literal["winner", "feasible", "infeasible", "failed", "timeout"]
+
+
+@dataclass
+class SolverRun:
+    provider: str
+    provider_role: str
+    status: SolverStatus
+    feasible: bool
+    solve_time_s: float | None
+    race_time_s: float | None
+    objective: float | None
+    error: str | None = None
+
 
 @dataclass
 class RaceResult:
     winner: Solution
     runner_up_classical: Solution | None
     all_results: list[Solution]
+    solver_runs: list[SolverRun]
     q_hash: str
 
     @property
     def vs_classical(self) -> float:
-        """How many times faster the winner was than the classical runner-up
-        (runner_up_time / winner_time, ≥1 when the winner is faster). The
-        frontend renders this as "N× vs classical". 1.0 if no baseline."""
+        """Legacy multiplier against the classical runner-up.
+
+        The frontend now renders percentage margin from solver_results; this is
+        retained for older clients and cached mock responses.
+        """
         if self.runner_up_classical is None or self.winner.solve_time_s <= 0.0:
             return 1.0
         return self.runner_up_classical.solve_time_s / self.winner.solve_time_s
@@ -48,12 +67,13 @@ def build_providers() -> list:
     return providers
 
 
-def _dispatch(
-    provider: object, problem: PortfolioProblem, qubo: QuboMatrix, deadline_s: float
-) -> Solution:
+def _dispatch(provider: object, problem: PortfolioProblem, qubo: QuboMatrix, deadline_s: float):
+    started = time.perf_counter()
     if provider.name == "gurobi":  # type: ignore[attr-defined]
-        return provider.solve_qp(problem, deadline_s)  # type: ignore[attr-defined]
-    return provider.solve_qubo(qubo, problem, deadline_s)  # type: ignore[attr-defined]
+        solution = provider.solve_qp(problem, deadline_s)  # type: ignore[attr-defined]
+    else:
+        solution = provider.solve_qubo(qubo, problem, deadline_s)  # type: ignore[attr-defined]
+    return solution, time.perf_counter() - started
 
 
 def race(problem: PortfolioProblem, deadline_s: float | None = None) -> RaceResult:
@@ -66,6 +86,7 @@ def race(problem: PortfolioProblem, deadline_s: float | None = None) -> RaceResu
     providers = build_providers()
 
     results: list[Solution] = []
+    solver_runs: list[SolverRun] = []
     winner: Solution | None = None
 
     with ThreadPoolExecutor(max_workers=len(providers)) as executor:
@@ -76,24 +97,73 @@ def race(problem: PortfolioProblem, deadline_s: float | None = None) -> RaceResu
         try:
             for future in as_completed(futures, timeout=overall_deadline):
                 try:
-                    solution = future.result()
-                except SolverFailed:
+                    solution, race_time_s = future.result()
+                except SolverFailed as exc:
+                    provider = next(p for p in providers if p.name == futures[future])
+                    solver_runs.append(
+                        SolverRun(
+                            provider=provider.name,
+                            provider_role=provider.role,
+                            status="failed",
+                            feasible=False,
+                            solve_time_s=None,
+                            race_time_s=None,
+                            objective=None,
+                            error=str(exc),
+                        )
+                    )
                     continue
                 feas = check_feasibility(solution.weights, problem.w_max, problem.w_min)
                 solution.feasible = feas.feasible
                 results.append(solution)
-                if solution.feasible and winner is None:
-                    winner = solution  # keep collecting for the vsClassical baseline
+                solver_runs.append(
+                    SolverRun(
+                        provider=solution.provider,
+                        provider_role=solution.provider_role,
+                        status="feasible" if solution.feasible else "infeasible",
+                        feasible=solution.feasible,
+                        solve_time_s=solution.solve_time_s,
+                        race_time_s=race_time_s,
+                        objective=solution.objective,
+                    )
+                )
         except TimeoutError:
             pass  # deadline hit; proceed with whatever finished
 
+        finished = set(futures) - {f for f in futures if not f.done()}
+        timed_out_provider_names = {
+            futures[future] for future in futures if future not in finished
+        }
+        seen_provider_names = {run.provider for run in solver_runs}
+        for provider in providers:
+            if provider.name in timed_out_provider_names and provider.name not in seen_provider_names:
+                solver_runs.append(
+                    SolverRun(
+                        provider=provider.name,
+                        provider_role=provider.role,
+                        status="timeout",
+                        feasible=False,
+                        solve_time_s=None,
+                        race_time_s=overall_deadline,
+                        objective=None,
+                    )
+                )
+
+    feasible_results = [solution for solution in results if solution.feasible]
+    winner = min(feasible_results, key=lambda solution: solution.solve_time_s, default=None)
     if winner is None:
         raise SolverFailed("no feasible solution from any provider before deadline")
+
+    for run in solver_runs:
+        if run.provider == winner.provider:
+            run.status = "winner"
+            break
 
     return RaceResult(
         winner=winner,
         runner_up_classical=_pick_runner_up_classical(winner, results),
         all_results=results,
+        solver_runs=solver_runs,
         q_hash=q_h,
     )
 

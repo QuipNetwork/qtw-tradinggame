@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import type { AgentConfig, AgentUpdate, RoutingResult, SliderValues, AssetTicker, AssetInfo } from '../../api';
 import { getAgent, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
+import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
@@ -13,6 +14,7 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
 
 // A basket needs at least this many assets (mirrors the kiosk sign-up rule).
 const MIN_ASSETS = 3;
+const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 function sparkPoints(values: number[]): string {
   const series = values.length >= 2 ? values : [10000, 10000];
@@ -151,13 +153,10 @@ export default function PhoneProfile() {
   const lineColor = positive ? '#0A832E' : '#ff6467';
   const spark = sparkPoints(totalHistory);
 
-  const isQpu = result?.providerType === 'QPU';
   const solveTime = result?.solveTime ?? 0.42;
-  const classicalTime = result ? Math.max(solveTime * result.vsClassical, solveTime + 0.1) : 5.88;
-  const qBarPct = isQpu ? Math.max(4, (solveTime / classicalTime) * 100) : 100;
-  const cBarPct = isQpu ? 100 : Math.max(4, (classicalTime / solveTime) * 100);
   const providerName = result?.provider ?? 'D-Wave Advantage';
-  const providerShort = providerName.split(' ')[0];
+  const raceRows = solverRaceRows(result);
+  const raceComparison = solverRaceComparison(result);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a10', padding: 16 }}>
@@ -213,9 +212,9 @@ export default function PhoneProfile() {
             <div className="v4m-pl">
               <div>
                 <div className="v4m-section-eyebrow">Total · {live?.stale ? 'Last close' : 'Live'}</div>
-                <div className="v4m-pl-num">${total.toLocaleString()}</div>
+                <div className="v4m-pl-num">${WHOLE_USD.format(total)}</div>
                 <div className={`v4m-pl-change ${positive ? 'up' : 'down'}`}>
-                  {positive ? '+' : '−'}${Math.abs(plUSD).toLocaleString()} · {positive ? '+' : '−'}{Math.abs(plPct).toFixed(2)}%
+                  {positive ? '+' : '−'}${WHOLE_USD.format(Math.abs(plUSD))} · {positive ? '+' : '−'}{Math.abs(plPct).toFixed(2)}%
                 </div>
               </div>
               <svg className="v4m-spark" viewBox="0 0 80 36" preserveAspectRatio="none" aria-hidden="true" style={{ color: lineColor }}>
@@ -234,7 +233,7 @@ export default function PhoneProfile() {
                 <div>
                   <div className="v4m-phone-mega-hero">{providerName}</div>
                   <div className="v4m-phone-mega-meta">
-                    {isQpu ? 'Quantum' : 'Classical'} · {result?.vsClassical ?? 14}× vs classical
+                    {raceComparison.summary}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -244,16 +243,16 @@ export default function PhoneProfile() {
                 </div>
               </div>
               <div className="v4m-race-block" style={{ borderTop: '1px solid #ececef', paddingTop: 8 }}>
-                <div className="v4m-race-row" style={{ gridTemplateColumns: '70px 1fr 50px' }}>
-                  <span className="v4m-race-label q">{providerShort}</span>
-                  <div className="v4m-race-bar"><div className="v4m-race-fill q" style={{ width: `${qBarPct}%` }}></div></div>
-                  <span className="v4m-race-time">{(isQpu ? solveTime : classicalTime).toFixed(2)}s</span>
-                </div>
-                <div className="v4m-race-row" style={{ gridTemplateColumns: '70px 1fr 50px' }}>
-                  <span className="v4m-race-label">Classical</span>
-                  <div className="v4m-race-bar"><div className="v4m-race-fill" style={{ width: `${cBarPct}%` }}></div></div>
-                  <span className="v4m-race-time">{(isQpu ? classicalTime : solveTime).toFixed(2)}s</span>
-                </div>
+                {raceRows.map(row => (
+                  <div className={`v4m-race-row${row.isWinner ? ' winner' : ''}${row.feasible ? '' : ' muted'}`} style={{ gridTemplateColumns: '122px 1fr 54px' }} key={`${row.provider}-${row.status}`}>
+                    <span className={`v4m-race-label${row.isWinner ? ' q' : ''}`}>
+                      {row.label}
+                      <span className="v4m-race-detail">{row.detail}</span>
+                    </span>
+                    <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
+                    <span className="v4m-race-time">{row.timeLabel}</span>
+                  </div>
+                ))}
               </div>
             </div>
 

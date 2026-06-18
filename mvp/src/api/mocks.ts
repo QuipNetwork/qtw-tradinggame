@@ -10,6 +10,7 @@ import type {
   OptimizePatch,
   PortfolioEntry,
   RoutingResult,
+  SolverResult,
   SubmitAgentResponse,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
@@ -110,23 +111,61 @@ export async function requestOptimization(
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
     const classical = 3.5 + Math.random() * 4.5;     // 3.5–8s
+    const solverResults: SolverResult[] = [
+      {
+        provider: 'D-Wave Advantage',
+        providerType: 'QPU' as const,
+        status: 'winner',
+        feasible: true,
+        solveTime: qpu,
+        raceTime: qpu + 0.08,
+      },
+      {
+        provider: 'Simulated Annealing',
+        providerType: 'CPU' as const,
+        status: 'feasible',
+        feasible: true,
+        solveTime: classical,
+        raceTime: classical,
+      },
+    ];
     return delay({
       provider: 'D-Wave Advantage',
       providerType: 'QPU' as const,
       solveTime: qpu,
       vsClassical: Math.round((classical / qpu) * 10) / 10,
       portfolio,
+      solverResults,
     });
   }
   const c = CLASSICAL_PROVIDERS[Math.floor(Math.random() * CLASSICAL_PROVIDERS.length)];
   const cpu = 1.6 + Math.random() * 1.0;
   const qpu = Math.max(0.4, cpu - 0.4 - Math.random() * 0.3);
+  const solverResults: SolverResult[] = [
+    {
+      provider: c.name,
+      providerType: 'CPU' as const,
+      status: 'winner',
+      feasible: true,
+      solveTime: cpu,
+      raceTime: cpu,
+    },
+    {
+      provider: 'D-Wave Advantage',
+      providerType: 'QPU' as const,
+      status: 'infeasible',
+      feasible: false,
+      solveTime: qpu,
+      raceTime: qpu + 0.35,
+    },
+  ];
   return delay({
     provider: c.name,
     providerType: 'CPU' as const,
     solveTime: cpu,
     vsClassical: Math.round((qpu / cpu) * 10) / 10,
     portfolio,
+    solverResults,
   });
 }
 

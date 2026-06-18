@@ -71,12 +71,26 @@ export type HoldingUpdate = {
   pct: number;
 };
 
+export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout';
+
+export type SolverResult = {
+  provider: string;
+  providerType: ProviderType;
+  status: SolverStatus;
+  feasible: boolean;
+  solveTime: number | null;
+  raceTime: number | null;      // audit/debug only; UI ranks by solveTime
+  objective?: number | null;
+  error?: string | null;
+};
+
 export type RoutingResult = {
   provider: string;             // e.g. 'D-Wave Advantage' or 'Helios-12'
   providerType: ProviderType;
   solveTime: number;            // seconds, e.g. 0.42
-  vsClassical: number;          // multiplier, e.g. 14 (means 14× faster than classical)
+  vsClassical: number;          // legacy multiplier; UI uses solverResults
   portfolio: PortfolioEntry[];
+  solverResults?: SolverResult[];
   kind?: 'first' | 'retune';
   jobId?: string | null;
   solvedAt?: string | null;
