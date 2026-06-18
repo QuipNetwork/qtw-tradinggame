@@ -6,7 +6,8 @@ and drops to a full queue (a slow consumer just misses a tick — the next MTM
 update supersedes it).
 
 V0 is single-process and in-memory. Fan-out across processes (multiple uvicorn
-workers) would need Redis pub/sub or Postgres LISTEN/NOTIFY here — see TODO.md.
+workers) would need Redis pub/sub or Postgres LISTEN/NOTIFY here — see
+docs/TODO.md.
 All publish/subscribe calls happen on the server event loop, so the queues stay
 loop-safe without extra locking.
 """

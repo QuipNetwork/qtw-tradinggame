@@ -3,7 +3,7 @@
 Python backend for the booth trading competition. Reads market data from the
 **assets-api** service by default; a deterministic synthetic source
 (`MARKET_DATA_SOURCE=synthetic`) runs the whole pipeline offline. See
-`../docs/BACKEND_DAG.md` for the dataflow and `../TODO.md` for what's left.
+`../docs/BACKEND_DAG.md` for the dataflow and `../docs/TODO.md` for what's left.
 
 ## Setup
 
