@@ -20,6 +20,11 @@ Dev server: `http://localhost:5173`
 | `/p/:agentId` | Personal profile + retune | Phone (linked via QR) |
 | `/tv` | Booth TV rotation (A→B→C, D interrupts) | 1920×1080 booth display |
 | `/tv?state=A\|B\|C\|D` | Force a single TV state — useful for design review | Booth display |
+| `/tv?agent=<id>` | Force spotlight rotation to a specific leaderboard agent | Booth display |
+
+The development index page at `/` stores the latest created agent id in
+`localStorage` after sign-up and uses it for the welcome/profile preview links.
+If no local agent has been created yet, those links send you to `/kiosk` first.
 
 ## Design source of truth
 
@@ -39,6 +44,9 @@ All backend interactions go through `src/api/`:
 - `src/api/index.ts` — single re-export point; uses `real.ts` when `VITE_API_BASE` is set, mocks otherwise
 
 The UI never imports from `mocks.ts` or `real.ts` directly — only via `./index`.
+TV routes also use `getLeaderboard`, `getRoutingStats`, and
+`getValuationHistory` so the leaderboard, QPU-vs-CPU winner share, provider
+breakdown, and spotlight chart come from backend state when connected.
 
 ## Deploy
 

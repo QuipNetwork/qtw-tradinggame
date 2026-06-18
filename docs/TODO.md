@@ -17,6 +17,8 @@ Run/test refs:
 - **Optimizer inputs**: no fabricated closed-hour returns. Missing stock hours
   and pre-listing gaps stay missing/NaN.
 - **Live display**: frontend consumes backend websocket `AgentUpdate` messages.
+- **TV display**: leaderboard, spotlight P&L chart, and QPU-vs-CPU solve winner
+  share read from backend routes when `VITE_API_BASE` is set.
 - **QR**: agent profile links default to `https://qtw.quip.network/p/{agentId}`.
 - **Persistence**: `DATABASE_URL` selects SQL-backed stores for
   Supabase/Postgres; unset keeps the local/test in-memory path.
@@ -192,6 +194,13 @@ Clean up temporary UI/state work after persistence and freshness are done.
 - **Backend Docker image**: `backend/Dockerfile`, `.dockerignore`,
   `backend/.env.example`, and `/healthz` support local and droplet container
   smoke tests.
+- **TV routing stats**: `/routing-stats` computes QPU-vs-CPU winner share and
+  provider breakdown from recorded solve jobs.
+- **TV valuation history**: `/agents/{id}/valuation-history` drives the
+  spotlight chart from sampled MTM history plus the current valuation.
+- **Frontend dev landing**: `/` links to the latest locally created
+  `/p/{agentId}` and `/kiosk/welcome?agent={agentId}` instead of hardcoded demo
+  agent `a06`.
 
 ## Watch Items
 

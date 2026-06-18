@@ -7,25 +7,7 @@ type Surface = {
   links: { label: string; to: string; note?: string }[];
 };
 
-const SURFACES: Surface[] = [
-  {
-    title: 'Kiosk',
-    blurb: 'The booth laptop attendees walk up to. Name an agent, tune three sliders, launch.',
-    formFactor: 'Laptop · landscape',
-    links: [
-      { label: 'Sign-up', to: '/kiosk', note: 'Entry point — fills sliders and submits' },
-      { label: 'Welcome (post-launch)', to: '/kiosk/welcome?agent=a06', note: 'Confirmation + QR (using demo agent a06)' },
-    ],
-  },
-  {
-    title: 'Phone',
-    blurb: 'Personal profile each player gets via QR. Live P&L, retune sliders mid-conference.',
-    formFactor: 'Phone · portrait',
-    links: [
-      { label: 'Profile · Lattice Theory', to: '/p/a06', note: 'Demo agent — drag the sliders to trigger a re-route' },
-      { label: 'Profile · Hilbert Spaceship', to: '/p/a01', note: 'Top of leaderboard' },
-    ],
-  },
+const STATIC_SURFACES: Surface[] = [
   {
     title: 'Booth TV',
     blurb: 'Big-screen rotator behind the booth. Welcome splash, leaderboard, top-10 spotlight.',
@@ -72,6 +54,9 @@ const kickerStyle: React.CSSProperties = {
 };
 
 export default function Index() {
+  const latestAgentId = latestCreatedAgentId();
+  const surfaces = buildSurfaces(latestAgentId);
+
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa', padding: '48px 24px 80px' }}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
@@ -116,7 +101,7 @@ export default function Index() {
           <div style={kickerStyle}>Live MVP · React app</div>
           <h2 style={{ fontSize: 22, fontWeight: 600, margin: '6px 0 16px' }}>Surfaces</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
-            {SURFACES.map(surface => (
+            {surfaces.map(surface => (
               <div key={surface.title} style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                   <h3 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{surface.title}</h3>
@@ -152,4 +137,61 @@ export default function Index() {
       </div>
     </div>
   );
+}
+
+function buildSurfaces(latestAgentId: string | null): Surface[] {
+  const latestAgentLinks = latestAgentId
+    ? {
+        welcome: {
+          label: 'Welcome · latest created agent',
+          to: `/kiosk/welcome?agent=${latestAgentId}`,
+          note: 'Uses the agent created during this browser session.',
+        },
+        profile: {
+          label: 'Profile · latest created agent',
+          to: `/p/${latestAgentId}`,
+          note: 'Direct phone profile for local visual testing.',
+        },
+      }
+    : {
+        welcome: {
+          label: 'Welcome · create an agent first',
+          to: '/kiosk',
+          note: 'Create an agent to enable the latest-agent welcome link.',
+        },
+        profile: {
+          label: 'Profile · create an agent first',
+          to: '/kiosk',
+          note: 'Create an agent to enable /p/{agent_id} local testing.',
+        },
+      };
+
+  return [
+    {
+      title: 'Kiosk',
+      blurb: 'The booth laptop attendees walk up to. Name an agent, tune three sliders, launch.',
+      formFactor: 'Laptop · landscape',
+      links: [
+        { label: 'Sign-up', to: '/kiosk', note: 'Entry point — fills sliders and submits' },
+        latestAgentLinks.welcome,
+      ],
+    },
+    {
+      title: 'Phone',
+      blurb: 'Personal profile each player gets via QR. Live P&L, retune sliders mid-conference.',
+      formFactor: 'Phone · portrait',
+      links: [
+        latestAgentLinks.profile,
+      ],
+    },
+    ...STATIC_SURFACES,
+  ];
+}
+
+function latestCreatedAgentId(): string | null {
+  try {
+    return localStorage.getItem('quip:lastAgentId');
+  } catch {
+    return null;
+  }
 }

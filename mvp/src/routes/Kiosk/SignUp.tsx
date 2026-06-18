@@ -132,6 +132,7 @@ export default function KioskSignUp() {
       const result = await requestOptimization(agentId);
       sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
       sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      localStorage.setItem('quip:lastAgentId', agentId);
       navigate(`/kiosk/welcome?agent=${agentId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your agent. Check the backend connection.');
