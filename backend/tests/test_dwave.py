@@ -35,9 +35,11 @@ class FakeSampler:
         self._samples = samples
         self._qpu_access_us = qpu_access_us
         self.last_qubo: dict | None = None
+        self.last_kwargs: dict | None = None
 
     def sample_qubo(self, qdict, **kwargs):
         self.last_qubo = qdict
+        self.last_kwargs = kwargs
         return FakeResponse(self._samples, self._qpu_access_us)
 
 
@@ -75,6 +77,22 @@ def test_best_feasible_read_beats_lowest_energy(synthetic_problem_3assets):
 
     assert solution.weights.sum() == pytest.approx(1.0)
     assert np.array_equal(solution.raw_bitstring, feasible)
+
+
+def test_reads_scale_with_basket_size():
+    from backend.solvers.providers.dwave import reads_for_vars
+
+    assert reads_for_vars(24) == 150  # small, feasibility-rich (e.g. 6 assets b4)
+    assert reads_for_vars(48) == 350  # mid (e.g. 12 assets b4)
+    assert reads_for_vars(56) == 600  # large, feasibility-poor (e.g. 28 assets b2)
+
+
+def test_solve_qubo_uses_size_based_reads(synthetic_problem_3assets):
+    qubo = encode_qubo(synthetic_problem_3assets)  # 3 assets × b4 = 12 vars → small tier
+    bits = _bits_for_levels([8, 8, 5], qubo.n)
+    sampler = FakeSampler([_as_sample(bits)])
+    DWaveProvider(sampler=sampler).solve_qubo(qubo, synthetic_problem_3assets, deadline_s=2.0)
+    assert sampler.last_kwargs["num_reads"] == 150
 
 
 def test_race_field_requires_a_leap_token(monkeypatch):

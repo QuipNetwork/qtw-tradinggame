@@ -28,6 +28,14 @@ def is_configured() -> bool:
     return bool(os.environ.get("DWAVE_API_TOKEN"))
 
 
+def reads_for_vars(n_vars: int) -> int:
+    """num_reads for a QUBO of n_vars logical variables — see DWAVE_READS_BY_VARS."""
+    for max_vars, reads in config.DWAVE_READS_BY_VARS:
+        if n_vars <= max_vars:
+            return reads
+    return config.DWAVE_NUM_READS
+
+
 def sample_kwargs(num_reads: int) -> dict:
     """Shared QPU sampling parameters (also used by the verify-dwave CLI).
 
@@ -69,16 +77,17 @@ class DWaveProvider:
 
     def __init__(self, sampler=None, num_reads: int | None = None) -> None:
         self._sampler = sampler  # injectable for tests
-        self._num_reads = num_reads if num_reads is not None else config.DWAVE_NUM_READS
+        self._num_reads = num_reads  # None → size-based schedule (reads_for_vars)
 
     def solve_qubo(
         self, qubo: QuboMatrix, problem: PortfolioProblem, deadline_s: float
     ) -> Solution:
         sampler = self._sampler or _get_sampler()
+        num_reads = self._num_reads if self._num_reads is not None else reads_for_vars(qubo.n)
         t0 = time.perf_counter()
         try:
             response = sampler.sample_qubo(
-                qubo.to_dict(), label="qtw-tradinggame", **sample_kwargs(self._num_reads)
+                qubo.to_dict(), label="qtw-tradinggame", **sample_kwargs(num_reads)
             )
         except Exception as e:
             raise SolverFailed(f"D-Wave sampling failed: {e}") from e

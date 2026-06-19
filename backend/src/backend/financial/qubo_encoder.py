@@ -33,6 +33,10 @@ Budget penalty λ_sum (Σw - 1)² with Σw = n·w_min + uᵀx, u = Dᵀ1:
     = λ_sum (uᵀx - r)²,  r := 1 - n·w_min
     → λ_sum u uᵀ on the quadratic, -2 λ_sum r u on the linear.
 
+    λ_sum := pmult · obj_scale / u_max²  (u_max = max u = c·2^(b-1)), so that
+    max|A_budget| = pmult · max|A_obj| — pmult is the penalty:objective peak-
+    coefficient ratio, invariant to n, b, and w_max.
+
 CONVENTION
 ----------
 
@@ -88,17 +92,23 @@ def encode_qubo(
     A_obj = (problem.gamma / 2.0) * D.T @ problem.Sigma @ D
     b_obj = D.T @ (problem.gamma * (problem.Sigma @ m) - problem.mu)
 
-    # Penalty weight tracks the largest objective coefficient (tiny epsilon
-    # guard only — a hard floor would blow the penalty:objective ratio to ~10⁶
-    # and erase the objective below QPU precision after coupler auto-scaling).
-    obj_scale = max(float(np.abs(A_obj).max()), float(np.abs(b_obj).max()), 1e-12)
-    lambda_sum = pmult_budget * obj_scale
-
     # -------------------------------------------------------------------------
     # Budget penalty: λ_sum (uᵀx - r)²,  u = Dᵀ1,  r = 1 - N·w_min
     # -------------------------------------------------------------------------
     u = D.T @ np.ones(N)
     r = 1.0 - N * w_min
+
+    # Normalize λ_sum by the budget term's own quadratic scale (u_max²) so pmult
+    # IS the penalty:objective peak-coefficient ratio, independent of basket size,
+    # bit depth, and w_max — i.e. max|A_budget| = pmult · max|A_obj|. Without the
+    # /u_max², the *effective* ratio is pmult·u_max², which swings ~270× across the
+    # max-position slider (25-asset basket) and under-penalizes the budget at low
+    # w_max → Σw drift. The epsilon clamps keep the ratio finite and bounded; a
+    # runaway ratio (~10⁶) would erase the objective below QPU coupler precision.
+    obj_scale = max(float(np.abs(A_obj).max()), float(np.abs(b_obj).max()), 1e-12)
+    u_max_sq = max(float((u**2).max()), 1e-12)
+    lambda_sum = pmult_budget * obj_scale / u_max_sq
+
     A_budget = lambda_sum * np.outer(u, u)
     b_budget = -2.0 * lambda_sum * r * u
 
