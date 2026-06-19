@@ -29,16 +29,31 @@ export function solverRaceRows(result: RoutingResult | null): SolverRaceRow[] {
     if (statusDelta !== 0) return statusDelta;
     return displaySeconds(a) - displaySeconds(b);
   });
-  const maxSeconds = Math.max(...sorted.map(displaySeconds), 0.01);
+  // Bars represent solve time, so only solvers that produced a timed, usable
+  // result get one; failed/timeout/infeasible rows render empty rather than a
+  // misleading "fastest-looking" sliver.
+  const solvedSeconds = sorted.filter(solved).map(row => row.solveTime as number);
+  const maxSeconds = Math.max(...solvedSeconds, 0.01);
 
   return sorted.map(row => ({
     ...row,
     label: `${row.provider} · ${row.providerType}`,
     detail: detailFor(row),
     timeLabel: timeLabelFor(row),
-    barPct: Math.max(4, Math.min(100, (displaySeconds(row) / maxSeconds) * 100)),
+    barPct: solved(row)
+      ? Math.max(4, Math.min(100, ((row.solveTime as number) / maxSeconds) * 100))
+      : 0,
     isWinner: row.status === 'winner',
   }));
+}
+
+function solved(row: SolverResult): boolean {
+  return (
+    row.solveTime != null &&
+    row.status !== 'failed' &&
+    row.status !== 'timeout' &&
+    row.status !== 'infeasible'
+  );
 }
 
 export function solverRaceComparison(result: RoutingResult | null): SolverRaceComparison {
