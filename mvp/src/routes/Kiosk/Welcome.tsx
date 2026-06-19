@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams, Navigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import type { AgentConfig, AgentUpdate, RoutingResult } from '../../api';
 import { getAgent, requestOptimization, subscribeAgent, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import type { PortfolioEntry } from '../../api';
@@ -8,12 +8,14 @@ import { renderQR } from '../../utils/qr';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams } from '../../utils/strategy';
 import KioskStage from './Stage';
+import ResetControl from './ResetControl';
 
 const BANKROLL = 10000;
 const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const agentId = params.get('agent');
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
@@ -60,6 +62,16 @@ export default function KioskWelcome() {
     renderQR(qrRef.current, value).catch(() => {});
   }, [agentId, qrUrl]);
 
+  // Kiosk back-guard: neutralize the browser Back gesture so an accidental
+  // swipe/tap can't drop the attendee out of their completion screen before
+  // they've scanned. The attendant advances deliberately via "New entry".
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+    const onPop = () => window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   if (!agentId) return <Navigate to="/kiosk" replace />;
   if (!agent) return null;
 
@@ -75,7 +87,7 @@ export default function KioskWelcome() {
     <div className="v4m-alloc-row" key={entry.ticker}>
       <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
       <span className="v4m-alloc-name">{entry.ticker}</span>
-      <span className="v4m-alloc-pct">{entry.pct.toFixed(1)}%</span>
+      <span className="v4m-alloc-pct">{Math.round(entry.pct)}%</span>
       <span className="v4m-alloc-usd">${WHOLE_USD.format(entry.usd)}</span>
     </div>
   );
@@ -93,23 +105,22 @@ export default function KioskWelcome() {
         <div className="v4m-mark">
           <svg className="quip-wm"><use href="#quip-wm" /></svg>
           <div className="v4m-nav-divider"></div>
-          <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
+          <span className="v4m-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
         <span className="v4m-pill">Live · Sign-up</span>
       </div>
 
       <div className="v4m-hero">
-        <h1>Welcome to <span className="it">the competition.</span></h1>
+        <h1>Welcome to the <span className="it">quantum</span> trading competition.</h1>
+        <ResetControl onConfirm={() => navigate('/kiosk', { replace: true })} />
       </div>
 
       <div className="v4m-body">
 
         <section className="v4m-main">
-          <div style={{ marginBottom: 4 }}>
-            <span className="v4m-section-eyebrow cyan-dot cyan">Routed via Quip Network · Solved Just Now</span>
-          </div>
+          <div className="v4m-routed-banner">Routed via <span className="accent">Quip Network</span></div>
 
-          <span className="v4m-route-tag">{result?.providerType ?? 'QPU'}</span>
+          <span className={`v4m-route-tag${(result?.providerType ?? 'QPU') === 'CPU' ? ' classical' : ''}`}>Solved via {result?.providerType ?? 'QPU'}</span>
           <div className="v4m-main-hero">
             {/* Last word of the provider name gets the italic accent:
                 "D-Wave Advantage" → D-Wave <it>Advantage.</it>; "Atlas-9" → <it>Atlas-9.</it> */}
@@ -133,8 +144,11 @@ export default function KioskWelcome() {
             {raceRows.map(row => (
               <div className={`v4m-race-row${row.isWinner ? ' winner' : ''}${row.feasible ? '' : ' muted'}`} key={`${row.provider}-${row.status}`}>
                   <span className={`v4m-race-label${row.isWinner ? ' q' : ''}`}>
-                    {row.label}
-                    <span className="v4m-race-detail">{row.detail}</span>
+                    <span className="v4m-race-l1">
+                      {row.isWinner && <span className="v4m-race-star" aria-label="winner">★</span>}
+                      {row.provider.split(' ')[0]}
+                    </span>
+                    <span className="v4m-race-l2">{row.provider.split(' ').slice(1).join(' ')} {row.providerType}</span>
                   </span>
                 <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
                 <span className="v4m-race-time">{row.timeLabel}</span>

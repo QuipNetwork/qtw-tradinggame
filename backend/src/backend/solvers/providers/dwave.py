@@ -4,8 +4,9 @@ Joins the race only when DWAVE_API_TOKEN is set (explicit opt-in — QPU time
 costs real money; see router.build_providers). Uses DWaveCliqueSampler: our
 QUBO is dense (the budget penalty couples every pair of bits), and the clique
 sampler reuses precomputed clique embeddings instead of re-running a minutes-
-long minor-embedding search per solve. The reported solve time is QPU access
-time, not wall clock; feasible races are ranked by reported solve/access time.
+long minor-embedding search per solve. The reported solve time is the pure
+quantum anneal time (anneal-per-sample × num_reads), excluding programming/
+readout/network latency; feasible races are ranked by that reported time.
 """
 
 from __future__ import annotations
@@ -85,11 +86,22 @@ class DWaveProvider:
         wall = time.perf_counter() - t0
 
         weights, bits = select_solution(response, qubo, problem)
-        qpu_access_us = response.info.get("timing", {}).get("qpu_access_time")
+        # Report the pure quantum compute time — total annealing across all reads
+        # (anneal-per-sample × num_reads) — NOT qpu_access_time, which bundles in
+        # programming + readout latency. This is the QPU's actual solve cost and
+        # the basis the race ranks on. Falls back to access time, then wall clock.
+        timing = response.info.get("timing", {})
+        anneal_per_sample_us = timing.get("qpu_anneal_time_per_sample")
+        if anneal_per_sample_us:
+            solve_time_s = anneal_per_sample_us * self._num_reads / 1e6
+        elif timing.get("qpu_access_time"):
+            solve_time_s = timing["qpu_access_time"] / 1e6
+        else:
+            solve_time_s = wall
         return Solution(
             weights=weights,
             objective=problem.objective(weights),
-            solve_time_s=qpu_access_us / 1e6 if qpu_access_us else wall,
+            solve_time_s=solve_time_s,
             provider="dwave",
             provider_role="QPU",
             feasible=False,  # set by the router's feasibility gate

@@ -44,6 +44,9 @@ class AgentConfig(BaseModel):
     email: str | None = None  # required at sign-up; optional for seeded demo agents
     reach_out: list[str] | None = Field(default=None, alias="reachOut")
     updates_opt_in: bool | None = Field(default=None, alias="updatesOptIn")
+    # Cadence for portfolio-result emails: 'daily' | 'hourly' (see notifications
+    # scaffold). Only meaningful when updates_opt_in is true.
+    update_frequency: str | None = Field(default=None, alias="updateFrequency")
     sliders: SliderValues
     # The player's selected basket — a subset of the 28-asset universe.
     # None/empty falls back to the full universe; re-selectable on retune.
@@ -140,6 +143,18 @@ class RoutingProviderStat(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class RecentRouting(BaseModel):
+    """One solved routing for the TV "recent routings" feed (newest first)."""
+
+    provider: str  # raw key: 'dwave' | 'sa' | 'gurobi' (frontend maps to label)
+    provider_type: ProviderType = Field(alias="providerType")  # 'QPU' | 'CPU'
+    solve_time: float = Field(alias="solveTime")  # winner seconds
+    vs_time: float | None = Field(default=None, alias="vsTime")  # runner-up seconds
+    solved_at: str = Field(alias="solvedAt")  # ISO-8601 UTC
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class RoutingStats(BaseModel):
     total: int
     qpu_wins: int = Field(alias="qpuWins")
@@ -147,6 +162,7 @@ class RoutingStats(BaseModel):
     qpu_pct: float = Field(alias="qpuPct")
     cpu_pct: float = Field(alias="cpuPct")
     providers: list[RoutingProviderStat]
+    recent: list[RecentRouting] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 

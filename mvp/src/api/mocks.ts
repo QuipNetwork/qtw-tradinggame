@@ -183,6 +183,22 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 }
 
 export async function getRoutingStats(): Promise<RoutingStats> {
+  // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU.
+  const now = Date.now();
+  const recent = Array.from({ length: 16 }, (_, i) => {
+    const qpu = i % 6 !== 2;                       // ~1 in 6 is a CPU win
+    const winSec = qpu ? 0.1 + Math.random() * 0.25 : 1.6 + Math.random();
+    const vsSec = qpu
+      ? 3.5 + Math.random() * 3.5
+      : Math.max(0.4, winSec - 0.5 - Math.random() * 0.3);
+    return {
+      provider: qpu ? 'dwave' : 'sa',
+      providerType: (qpu ? 'QPU' : 'CPU') as 'QPU' | 'CPU',
+      solveTime: Math.round(winSec * 100) / 100,
+      vsTime: Math.round(vsSec * 100) / 100,
+      solvedAt: new Date(now - i * 47_000).toISOString(),
+    };
+  });
   return delay({
     total: 10,
     qpuWins: 8,
@@ -193,6 +209,7 @@ export async function getRoutingStats(): Promise<RoutingStats> {
       { provider: 'dwave', providerType: 'QPU', count: 8, pct: 80 },
       { provider: 'sa', providerType: 'CPU', count: 2, pct: 20 },
     ],
+    recent,
   });
 }
 

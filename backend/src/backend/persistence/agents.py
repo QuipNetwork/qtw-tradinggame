@@ -52,6 +52,7 @@ class AgentRecord:
     rebalance_interval_hours: int | None = None
     valuation_as_of: str | None = None
     valuation_stale: bool = False
+    update_frequency: str | None = None  # 'daily' | 'hourly' email cadence (opt-in)
 
     def to_config(self) -> AgentConfig:
         return AgentConfig(
@@ -60,6 +61,7 @@ class AgentRecord:
             email=self.email,
             reach_out=self.reach_out,
             updates_opt_in=self.updates_opt_in,
+            update_frequency=self.update_frequency,
             sliders=self.sliders,
             assets=self.assets,
             last_solved_at=self.last_solved_at,
@@ -84,6 +86,7 @@ class AgentStore:
                 email=config.email,
                 reach_out=config.reach_out,
                 updates_opt_in=config.updates_opt_in,
+                update_frequency=config.update_frequency,
                 sliders=config.sliders,
                 assets=list(config.assets) if config.assets else None,
                 bankroll=bankroll,

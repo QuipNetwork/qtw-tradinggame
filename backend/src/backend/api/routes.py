@@ -26,12 +26,16 @@ from .schemas import (
     HealthResponse,
     LeaderboardEntry,
     OptimizeRequest,
+    RecentRouting,
     RoutingProviderStat,
     RoutingResult,
     RoutingStats,
     SubmitAgentResponse,
     ValuationHistoryPoint,
 )
+
+# How many recent solves to surface for the TV "recent routings" feed.
+RECENT_ROUTING_LIMIT = 24
 
 router = APIRouter()
 
@@ -110,7 +114,8 @@ async def leaderboard() -> list[LeaderboardEntry]:
 
 @router.get("/routing-stats", response_model=RoutingStats)
 async def routing_stats() -> RoutingStats:
-    jobs = get_job_store().all()
+    store = get_job_store()
+    jobs = store.all()
     total = len(jobs)
     qpu_wins = sum(1 for job in jobs if job.provider_role == "QPU")
     cpu_wins = sum(1 for job in jobs if job.provider_role == "CPU")
@@ -130,6 +135,33 @@ async def routing_stats() -> RoutingStats:
             provider_counts.items(), key=lambda item: (-item[1], item[0][0])
         )
     ]
+    # Recent routings feed (newest first) for the TV roulette strip. Winner +
+    # timestamp come from the job log; the runner-up time (for the head-to-head
+    # comparison) comes from the matching solve snapshot when one is available.
+    snapshots_by_job = {snap["job_id"]: snap for snap in store.solve_snapshots()}
+    recent: list[RecentRouting] = []
+    for job in reversed(jobs[-RECENT_ROUTING_LIMIT:]):
+        vs_time: float | None = None
+        snap = snapshots_by_job.get(job.id)
+        if snap:
+            others = [
+                run["solveTime"]
+                for run in snap.get("solver_results", [])
+                if run.get("provider") != snap.get("winner_provider")
+                and run.get("solveTime") is not None
+            ]
+            if others:
+                vs_time = min(others)
+        recent.append(
+            RecentRouting(
+                provider=job.provider,
+                provider_type=job.provider_role,
+                solve_time=job.solve_time_s,
+                vs_time=vs_time,
+                solved_at=job.solved_at,
+            )
+        )
+
     return RoutingStats(
         total=total,
         qpu_wins=qpu_wins,
@@ -137,6 +169,7 @@ async def routing_stats() -> RoutingStats:
         qpu_pct=_pct(qpu_wins, total),
         cpu_pct=_pct(cpu_wins, total),
         providers=providers,
+        recent=recent,
     )
 
 

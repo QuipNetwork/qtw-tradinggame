@@ -8,3 +8,7 @@ __pycache__/
 # Environments / lockfile-managed venvs
 .venv/
 venv/
+
+# Local run script — contains secrets (D-Wave token). Never commit.
+run-local.sh
+.env.local

@@ -18,7 +18,8 @@ export type AgentConfig = {
   handle?: string;              // display handle, auto-derived from the player name
   email?: string;               // required at sign-up; optional here for seeded demo agents
   reachOut?: string[];          // optional, multi-select — "Would you like someone from our team to reach out to you?" (verbatim Luma event options). Captures consent + intent + segment in one; "No thanks" = opt out.
-  updatesOptIn?: boolean;       // "Sign me up for updates from Quip Network" — general newsletter opt-in, separate from the direct reach-out request
+  updatesOptIn?: boolean;       // "Email me my portfolio results" — opt-in to performance update emails
+  updateFrequency?: 'daily' | 'hourly';  // cadence for the result emails (only meaningful when updatesOptIn); default 'daily'
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 28-asset universe)
   lastSolvedAt?: string | null;
@@ -138,6 +139,15 @@ export type RoutingProviderStat = {
   pct: number;
 };
 
+// One solved routing for the TV "recent routings" feed (newest first).
+export type RecentRouting = {
+  provider: string;             // raw key: 'dwave' | 'sa' | 'gurobi'
+  providerType: ProviderType;   // 'QPU' | 'CPU'
+  solveTime: number;            // winner seconds
+  vsTime: number | null;        // runner-up seconds (null if unavailable)
+  solvedAt: string;             // ISO-8601 UTC
+};
+
 export type RoutingStats = {
   total: number;
   qpuWins: number;
@@ -145,6 +155,7 @@ export type RoutingStats = {
   qpuPct: number;
   cpuPct: number;
   providers: RoutingProviderStat[];
+  recent: RecentRouting[];
 };
 
 export type AgentUpdate = {

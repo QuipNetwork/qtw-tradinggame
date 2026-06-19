@@ -2738,7 +2738,10 @@
   .dir-quipsite .qs-row.top1 .rank,
   .dir-quipsite .qs-row.top2 .rank,
   .dir-quipsite .qs-row.top3 .rank { display: inline-flex; align-items: center; gap: 0.5cqw; }
-  .dir-quipsite .qs-row .rank .medal { font-size: 2.8cqh; line-height: 1; flex-shrink: 0; }
+  /* Fixed-width rank number so the medal always starts at the same x across rows
+     even though rank 1's number is larger — keeps the medals on a vertical line. */
+  .dir-quipsite .qs-row .rank .rank-num { display: inline-block; width: 3cqw; text-align: left; }
+  .dir-quipsite .qs-row .rank .medal { font-size: 2.6cqh; line-height: 1; flex-shrink: 0; }
   .dir-quipsite .qs-row.top1,
   .dir-quipsite .qs-row.top2,
   .dir-quipsite .qs-row.top3 { background: #ffffff; }
@@ -2765,13 +2768,17 @@
   .v3-panel-body { padding: 1.4cqh 1.4cqw; flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .v3-qc { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.6cqh; }
   .v3-qc .num-row { display: flex; align-items: baseline; gap: 1cqw; }
-  .v3-qc .num-q { font-family: Georgia, serif; font-style: italic; font-size: 14cqh; line-height: 0.85; letter-spacing: -0.04em; color: #18181b; }
-  .v3-qc .num-q .pct { font-size: 0.55em; }
-  .v3-qc .num-c { font-family: Georgia, serif; font-style: italic; font-size: 6cqh; line-height: 0.85; color: #71717b; margin-left: auto; }
-  .v3-qc .num-c .pct { font-size: 0.55em; }
+  /* Win-rate numbers: the leader grows + darkens, the trailer shrinks + greys,
+     a tie keeps both equal. Sizing is driven by .lead/.trail/.even, NOT by
+     QPU-vs-CPU — we don't assume the quantum side wins. */
+  .v3-qc .num-q, .v3-qc .num-c { font-family: Georgia, serif; font-style: italic; line-height: 0.85; letter-spacing: -0.04em; color: #71717b; }
+  .v3-qc .num-c { margin-left: auto; }
+  .v3-qc .num-q.lead, .v3-qc .num-c.lead { font-size: 14cqh; color: #18181b; }
+  .v3-qc .num-q.trail, .v3-qc .num-c.trail { font-size: 6cqh; color: #71717b; }
+  .v3-qc .num-q.even, .v3-qc .num-c.even { font-size: 9cqh; color: #18181b; }
+  .v3-qc .num-q .pct, .v3-qc .num-c .pct { font-size: 0.55em; }
   .v3-qc .names { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.4cqh; }
-  .v3-qc .names .n-q { font-family: Georgia, serif; font-style: italic; font-size: 1.7cqh; color: #18181b; }
-  .v3-qc .names .n-c { font-family: Georgia, serif; font-style: italic; font-size: 1.4cqh; color: #71717b; }
+  .v3-qc .names .n-q, .v3-qc .names .n-c { font-family: Georgia, serif; font-style: italic; font-size: 1.6cqh; color: #52525b; }
   .v3-qc .ms-bar { height: 1cqh; display: flex; background: #dbdbde; border-radius: 999px; overflow: hidden; margin-top: 0.6cqh; }
   .v3-qc .ms-bar .q { width: 88%; background: #ff6467; }
   .v3-qc .ms-bar .c { width: 12%; background: #71717b; }
@@ -2782,7 +2789,7 @@
 
   /* v4 main layout */
   .dir-quipsite.v4 { display: grid; grid-template-rows: auto auto 1fr auto; }
-  .dir-quipsite.v4 .qs-body-v4 { display: grid; grid-template-columns: 1fr 22cqw; grid-template-rows: auto 1fr; column-gap: 1.6cqw; row-gap: 0; padding: 0 2.4cqw 1cqh; min-height: 0; }
+  .dir-quipsite.v4 .qs-body-v4 { display: grid; grid-template-columns: 1fr 25.5cqw; grid-template-rows: auto 1fr; column-gap: 1.6cqw; row-gap: 0; padding: 0 2.4cqw 1cqh; min-height: 0; }
   .dir-quipsite.v4 .qs-hero-left { grid-column: 1; grid-row: 1; padding: 2.4cqh 0 1.4cqh; display: flex; justify-content: space-between; align-items: end; gap: 2cqw; }
   .dir-quipsite.v4 .qs-hero-left .left h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; font-size: 5.6cqh; line-height: 1; letter-spacing: -0.025em; color: #18181b; }
   .dir-quipsite.v4 .qs-hero-left .left h1 .it { font-style: italic; font-weight: 400; letter-spacing: -0.04em; }
@@ -2805,8 +2812,7 @@
   .dir-quipsite.v4 .v3-panel-body { padding: 2cqh 2cqw; }
   .dir-quipsite.v4 .v3-panel-foot { padding: 1.4cqh 2cqw; font-size: 1.85cqh; letter-spacing: 0.12em; }
   .dir-quipsite.v4 .v3-qc { gap: 1cqh; }
-  .dir-quipsite.v4 .v3-qc .names .n-q { font-size: 2.3cqh; }
-  .dir-quipsite.v4 .v3-qc .names .n-c { font-size: 1.9cqh; }
+  .dir-quipsite.v4 .v3-qc .names .n-q, .dir-quipsite.v4 .v3-qc .names .n-c { font-size: 2.1cqh; }
   .dir-quipsite.v4 .v3-qc .ms-bar { height: 1.2cqh; margin-top: 1cqh; }
   .dir-quipsite.v4 .v3-plist { gap: 1.4cqh; }
   .dir-quipsite.v4 .v3-plist .pr { gap: 1.2cqw; }
@@ -2860,6 +2866,29 @@
   .v4-pr.c .type { background: #52525b; }
   .v4-pr .nm { font-family: Georgia, serif; font-style: italic; font-size: 2.6cqh; line-height: 1; color: #18181b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .v4-pr .pct { font-family: 'JetBrains Mono', monospace; font-size: 2.4cqh; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; }
+
+  /* Aggregate footnote — makes the QPU-vs-CPU split read as all-time, not the
+     recent strip below it. */
+  .v3-qc-foot { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.3cqh; letter-spacing: 0.1em; text-transform: uppercase; color: #a1a1aa; margin-top: 0.8cqh; }
+
+  /* Recent routings feed (TV rail) — newest first; each line tells the story:
+     winning solver (pill), its solve time, then how much faster it was than the
+     runner-up (with the runner-up's time). */
+  .v4-feed { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 1cqh; }
+  .v4-feed-legend { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.2cqh; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #a1a1aa; }
+  .v4-feed-rows { display: flex; flex-direction: column; min-height: 0; }
+  /* Two readable lines per routing (TV-legible): line 1 the winner + its time,
+     line 2 the margin over the runner-up. Fewer rows, but clear from across a
+     room. */
+  .v4-feed-row { display: flex; flex-direction: column; gap: 0.4cqh; padding: 0.75cqh 0; white-space: nowrap; }
+  .v4-feed-row + .v4-feed-row { border-top: 1px solid #f1f1f3; }
+  .v4-feed-row .line1 { display: flex; align-items: center; gap: 1.4cqw; }
+  .v4-feed-row .type { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.7cqh; font-weight: 700; letter-spacing: 0.12em; color: white; padding: 0.55cqh 1.1cqw; border-radius: 999px; text-transform: uppercase; line-height: 1; background: #52525b; }
+  .v4-feed-row.q .type { background: #0891B2; box-shadow: 0 0 1cqh rgba(8,145,178,0.35); }
+  .v4-feed-row .win-t { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 2.8cqh; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; }
+  .v4-feed-row .line2 { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 2cqh; color: #71717b; font-variant-numeric: tabular-nums; }
+  .v4-feed-row .line2 .alt { color: #18181b; }
+  .v4-feed-empty { font-family: Georgia, serif; font-style: italic; font-size: 2.2cqh; color: #a1a1aa; }
 
   /* v4 overrides on bigscreen to disable legacy effects that bleed in */
   .bigscreen.dir-quipsite::before,
@@ -3559,6 +3588,7 @@
 
   /* ─── Shared v4-mock primitives ─── */
   .qs-v4-mock {
+    position: relative;
     background: #fafafa;
     color: #18181b;
     font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
@@ -3629,6 +3659,97 @@
     text-transform: uppercase;
     color: #18181b;
   }
+  /* Attendant-facing kiosk reset. Secondary member of the CTA family (same cyan
+     + Inter), but outlined so it stays subordinate to the primary "Create your
+     agent" action. Sits at the right edge of the hero row. */
+  .qs-v4-mock .v4m-reset {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    color: #0891B2;
+    background: white;
+    border: 1px solid #0891B2;
+    padding: 9px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .qs-v4-mock .v4m-reset:hover { background: #0891B2; color: white; }
+  .qs-v4-mock .v4m-reset .ico { font-size: 0.95rem; line-height: 1; }
+
+  /* Confirm dialog — absolute inside the (scaled) kiosk canvas, not fixed, so it
+     tracks the Stage transform. */
+  .qs-v4-mock .v4m-confirm-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(9, 9, 11, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .qs-v4-mock .v4m-confirm-card {
+    background: white;
+    border: 1px solid #dbdbde;
+    padding: 28px 30px 24px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(9, 9, 11, 0.3);
+  }
+  .qs-v4-mock .v4m-confirm-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 1.5rem;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #18181b;
+  }
+  .qs-v4-mock .v4m-confirm-title .it { font-style: italic; }
+  .qs-v4-mock .v4m-confirm-sub {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    color: #52525c;
+    margin: 10px 0 22px;
+  }
+  .qs-v4-mock .v4m-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .qs-v4-mock .v4m-confirm-cancel {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #52525c;
+    background: white;
+    border: 1px solid #d4d4d8;
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .qs-v4-mock .v4m-confirm-cancel:hover { background: #f4f4f5; }
+  .qs-v4-mock .v4m-confirm-go {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: white;
+    background: #0891B2;
+    border: 1px solid #0891B2;
+    padding: 9px 18px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.12s ease;
+  }
+  .qs-v4-mock .v4m-confirm-go:hover { background: #0E7490; }
+  .qs-v4-mock .v4m-confirm-go .ico { font-size: 0.95rem; line-height: 1; }
   .qs-v4-mock .v4m-hero {
     padding: 20px 22px 16px;
     display: flex;
@@ -4277,6 +4398,22 @@
     color: #a1a1aa;
     margin-left: 6px;
   }
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label .lead {
+    display: block;
+    margin-top: 9px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-style: normal;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: #71717b;
+  }
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label .req {
+    font-style: normal;
+    font-weight: 700;
+    color: #ef4444;
+    margin-left: 3px;
+  }
   .kiosk-v4 .v4m-checklist {
     display: flex;
     flex-direction: column;
@@ -4658,6 +4795,15 @@
   .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
   .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
 
+  /* Email-frequency segmented toggle — revealed under the "Email me my portfolio
+     results" opt-in. Aligned under the checkbox label; cyan = selected. */
+  .kiosk-v4 .v4m-freq { display: flex; gap: 6px; margin: 6px 0 0 27px; }
+  .kiosk-v4 .v4m-freq-opt { font-family: 'Inter', system-ui, sans-serif; font-size: 0.78rem; font-weight: 600; color: #52525b; background: white; border: 1px solid #d4d4d8; padding: 5px 14px; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease; }
+  .kiosk-v4 .v4m-freq-opt:hover { border-color: #a1a1aa; }
+  .kiosk-v4 .v4m-freq-opt.on { background: #0891B2; border-color: #0891B2; color: white; }
+  .kiosk-v4.app-fit .v4m-freq { margin-top: 5px; }
+  .kiosk-v4.app-fit .v4m-freq-opt { padding: 4px 12px; font-size: 0.74rem; }
+
   /* ─── App mode for the strategy-return screen — compact chrome so a
      full 28-holding portfolio + QR fit the 1024×768 stage. ─── */
   .kiosk-welcome-v4.app-fit {
@@ -4801,7 +4947,10 @@
   }
   .kiosk-welcome-v4 .v4m-body {
     display: grid;
-    grid-template-columns: 3fr 2fr;       /* agent panel 60% / solver outcome 40% */
+    grid-template-columns: 2fr 1fr;       /* portfolio two-thirds / solver outcome one-third */
+    grid-template-rows: minmax(0, 1fr);   /* bound the row so panels never grow past
+                                             the stage — holdings stay contained and
+                                             can never overlap the QR below them */
     gap: 22px;
     padding: 4px 22px 18px;
     align-items: stretch;
@@ -4958,7 +5107,8 @@
   .kiosk-welcome-v4 .v4m-holdings-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;   /* safety net: if a basket ever can't fit, holdings scroll
+                           inside their own area instead of overlapping the QR */
   }
   /* Class sub-header inside the portfolio (Crypto / Stocks), above each grid. */
   .kiosk-welcome-v4 .v4m-alloc-subhead {
@@ -5046,10 +5196,21 @@
     margin: 8px 0 4px;
   }
   /* QPU/CPU type chip above the provider name on the kiosk welcome */
+  /* Prominent "Routed via Quip Network" headline (no status dot). */
+  .kiosk-welcome-v4 .v4m-main .v4m-routed-banner {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #71717b;
+    line-height: 1.2;
+  }
+  .kiosk-welcome-v4 .v4m-main .v4m-routed-banner .accent { color: #0891B2; }
   .kiosk-welcome-v4 .v4m-main .v4m-route-tag {
     display: inline-block;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -5072,7 +5233,7 @@
   .kiosk-welcome-v4 .v4m-stat-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    gap: 32px;
     margin: 16px 0 16px;
     align-items: baseline;
   }
@@ -5108,10 +5269,10 @@
   }
   .kiosk-welcome-v4 .v4m-race-row {
     display: grid;
-    grid-template-columns: 172px 1fr 74px;
+    grid-template-columns: 138px 1fr 56px;
     align-items: center;
-    gap: 12px;
-    padding: 6px 0;
+    gap: 10px;
+    padding: 9px 0;
   }
   .kiosk-welcome-v4 .v4m-race-row.muted {
     opacity: 0.58;
@@ -5119,23 +5280,25 @@
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-label {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
     min-width: 0;
     line-height: 1.15;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #71717b;
+    color: #52525b;
   }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-l1 { line-height: 1; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-star { color: #F59E0B; font-size: 1.5rem; letter-spacing: 0; margin-right: 5px; line-height: 0; vertical-align: middle; }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-detail {
-    font-size: 0.52rem;
-    letter-spacing: 0.14em;
-    color: #71717b;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: #a1a1aa;
   }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-bar {
-    height: 8px;
+    height: 10px;
     background: #ececef;
     border-radius: 999px;
     overflow: hidden;
@@ -5151,7 +5314,7 @@
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-time {
     font-family: Georgia, 'Times New Roman', serif;
     font-style: italic;
-    font-size: 1rem;
+    font-size: 1.15rem;
     letter-spacing: -0.01em;
     color: #18181b;
     text-align: right;
@@ -5639,6 +5802,14 @@
     justify-content: center;
     padding: 2cqh 0;
   }
+  /* Fewer than 10 agents: top-align with natural row heights instead of
+     stretching rows to fill the height (which spreads a short board out). */
+  .bigscreen.dir-quipsite.v4.state-a .qs-table-area.top-align {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .dir-quipsite.v4 .qs-table-area.top-align .qs-table { flex: 0 0 auto; height: auto; width: 100%; }
+  .dir-quipsite .qs-table-area.top-align .qs-row { flex: 0 0 auto; }
   .bigscreen.dir-quipsite.v4.state-a .welcome-stage {
     display: flex;
     flex-direction: column;

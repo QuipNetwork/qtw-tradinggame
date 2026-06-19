@@ -417,7 +417,7 @@ export default function PhoneProfile() {
                   <div className={`v4m-race-row${row.isWinner ? ' winner' : ''}${row.feasible ? '' : ' muted'}`} style={{ gridTemplateColumns: '122px 1fr 54px' }} key={`${row.provider}-${row.status}`}>
                     <span className={`v4m-race-label${row.isWinner ? ' q' : ''}`}>
                       {row.label}
-                      <span className="v4m-race-detail">{row.detail}</span>
+                      {row.detail && <span className="v4m-race-detail">{row.detail}</span>}
                     </span>
                     <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
                     <span className="v4m-race-time">{row.timeLabel}</span>

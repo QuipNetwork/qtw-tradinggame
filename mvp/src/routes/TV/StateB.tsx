@@ -47,7 +47,7 @@ export default function StateB({
         <div className="qs-mark">
           <svg className="quip-wm"><use href="#quip-wm" /></svg>
           <div className="nav-divider"></div>
-          <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
+          <span className="nav-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
         <div className="h-eyebrow"><span className="lbl">Spotlight · Rank {rankPadded}</span><span className="bar"></span></div>
       </div>
@@ -69,7 +69,7 @@ export default function StateB({
             <div className="spot-stats">
               <div className="ss-cell">
                 <div className="ss-lbl">Total P&amp;L</div>
-                <div className="ss-val ss-pl">${agent.total.toLocaleString()}</div>
+                <div className="ss-val ss-pl">${Math.round(agent.total).toLocaleString()}</div>
               </div>
               <div className="ss-cell">
                 <div className="ss-lbl">Change</div>
@@ -126,7 +126,7 @@ export default function StateB({
                       <div className={`qs-row${top}${isSpotlit ? ' spotlit' : ''}`} key={row.agentId}>
                         <span className="rank">{String(row.rank).padStart(2, '0')}</span>
                         <span className="name">{row.name}</span>
-                        <span className="pnl">${row.total.toLocaleString()}</span>
+                        <span className="pnl">${Math.round(row.total).toLocaleString()}</span>
                       </div>
                     );
                   })}
