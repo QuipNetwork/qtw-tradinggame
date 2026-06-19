@@ -20,6 +20,7 @@ const EMPTY_ROUTING_STATS: RoutingStats = {
   qpuPct: 0,
   cpuPct: 0,
   providers: [],
+  recent: [],
 };
 
 export default function BoothTV() {
@@ -36,7 +37,7 @@ export default function BoothTV() {
     let cancelled = false;
     const refresh = async () => {
       const board = await getLeaderboard();
-      if (!cancelled) setLeaderboard(board);
+      if (!cancelled) setLeaderboard(board.slice(0, 10));  // Top ten only — never overflow the TV
       try {
         const stats = await getRoutingStats();
         if (!cancelled) setRoutingStats(stats);

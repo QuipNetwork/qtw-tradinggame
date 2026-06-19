@@ -1,6 +1,6 @@
 # Quip Network · QTW 2026 Trading Competition · MVP
 
-Vite + React + TypeScript app for the Quantum Tech World 2026 booth experience.
+Vite + React + TypeScript app for the Quantum.Tech World 2026 booth experience.
 
 ## Run
 

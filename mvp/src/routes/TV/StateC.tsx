@@ -34,7 +34,7 @@ export default function StateC() {
         <div className="qs-mark">
           <svg className="quip-wm"><use href="#quip-wm" /></svg>
           <div className="nav-divider"></div>
-          <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
+          <span className="nav-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
         <div className="h-eyebrow"><span className="lbl">Welcome · Sign-up</span><span className="bar"></span></div>
       </div>
@@ -43,7 +43,7 @@ export default function StateC() {
 
         <div className="state-d-intro">
           <div className="state-d-eyebrow">What's happening here</div>
-          <h1>Quantum trading, <span className="it">live.</span></h1>
+          <h1><span className="it">Quantum</span> trading, live.</h1>
           <p>Attendees build trading agents at the booth kiosk — name, strategy, $10K virtual bankroll — and deploy them onto the leaderboard.</p>
           <p>Every order routes through Quip Network. Quantum and classical solvers race in parallel; the fastest valid optimum wins the job.</p>
           <p>Live P&amp;L tracked across the conference. Climb the board, retune anytime. <strong>Top 10 win prizes.</strong></p>

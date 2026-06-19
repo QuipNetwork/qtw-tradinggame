@@ -1,6 +1,6 @@
 # Quip Network · QTW 2026 Trading Competition
 
-Booth activation for **Quantum Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
+Booth activation for **Quantum.Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
 
 ## Start here
 

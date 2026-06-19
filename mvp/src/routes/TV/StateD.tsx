@@ -19,7 +19,7 @@ export default function StateD({ name = 'Lattice Theory' }: { name?: string }) {
         <div className="qs-mark">
           <svg className="quip-wm"><use href="#quip-wm" /></svg>
           <div className="nav-divider"></div>
-          <span className="nav-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
+          <span className="nav-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
         <div className="h-eyebrow"><span className="lbl">Welcome · 14:22:08</span><span className="bar"></span></div>
       </div>

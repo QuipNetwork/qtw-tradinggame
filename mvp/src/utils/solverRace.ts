@@ -75,7 +75,7 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
   const rounded = Math.round(fasterPct);
   return {
     value: `${rounded}%`,
-    label: 'Faster Than Next',
+    label: `Faster than ${opponent.providerType}`,
     summary: `${rounded}% faster than ${opponent.providerType}`,
   };
 }
@@ -106,5 +106,8 @@ function timeLabelFor(row: SolverResult): string {
 }
 
 function detailFor(row: SolverResult): string {
-  return row.status === 'winner' ? 'winner' : row.status;
+  if (row.status === 'winner') return 'winner';
+  // 'feasible' is internal jargon — a valid runner-up needs no extra label.
+  if (row.status === 'feasible') return '';
+  return row.status; // infeasible / failed / timeout stay informative
 }
