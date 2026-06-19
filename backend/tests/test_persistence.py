@@ -104,7 +104,10 @@ def test_in_memory_valuation_history_includes_sampled_and_current_points():
 def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     url = f"sqlite:///{tmp_path / 'agents.db'}"
     store = DbAgentStore(url, environment="local", allow_reset=True)
-    record = store.create(_config("Dora"), bankroll=10_000.0)
+    config_in = _config("Dora").model_copy(
+        update={"updates_opt_in": True, "update_frequency": "hourly"}
+    )
+    record = store.create(config_in, bankroll=10_000.0)
     store.update_assets(record.id, ["BTC", "ETH", "SOL"])
     store.update_sliders(
         record.id,
@@ -122,6 +125,9 @@ def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     assert got.jobs_solved == 1
     assert got.next_rebalance_at == record.next_rebalance_at
     assert got.rebalance_interval_hours == 1
+    assert got.updates_opt_in is True
+    assert got.update_frequency == "hourly"
+    assert got.to_config().update_frequency == "hourly"
 
 
 def test_db_job_store_records_jobs_and_solve_snapshots(tmp_path):

@@ -61,6 +61,7 @@ agents_table = Table(
     Column("email", String, nullable=True),
     Column("reach_out", JSON, nullable=True),
     Column("updates_opt_in", Boolean, nullable=True),
+    Column("update_frequency", String(16), nullable=True),
     Column("sliders", JSON, nullable=False),
     Column("assets", JSON, nullable=True),
     Column("bankroll", Float, nullable=False),
@@ -192,6 +193,7 @@ class DbAgentStore(AgentStore):
                 "last_solved_at": "VARCHAR",
                 "next_rebalance_at": "VARCHAR",
                 "rebalance_interval_hours": "INTEGER",
+                "update_frequency": "VARCHAR",
             },
         )
         self._load()
@@ -393,6 +395,7 @@ class DbAgentStore(AgentStore):
                         email=row["email"],
                         reach_out=list(row["reach_out"]) if row["reach_out"] else None,
                         updates_opt_in=row["updates_opt_in"],
+                        update_frequency=row["update_frequency"],
                         sliders=SliderValues(**row["sliders"]),
                         assets=list(row["assets"]) if row["assets"] else None,
                         bankroll=row["bankroll"],
@@ -428,6 +431,7 @@ class DbAgentStore(AgentStore):
             "email": record.email,
             "reach_out": record.reach_out,
             "updates_opt_in": record.updates_opt_in,
+            "update_frequency": record.update_frequency,
             "sliders": record.sliders.model_dump(by_alias=True),
             "assets": record.assets,
             "bankroll": record.bankroll,
