@@ -91,8 +91,17 @@ class AssetsApiSource:
         for col, ticker in enumerate(tickers):
             for bar in bars[ticker]:
                 idx = row.get(_parse_ts(bar["t"]))
-                if idx is not None:
-                    prices[idx, col] = bar["c"]
+                if idx is None:
+                    continue
+                # Coerce and keep only finite, positive closes. A bad payload
+                # (0, null, string) would otherwise yield inf/−1 returns that
+                # poison μ/Σ; leave it missing for the NaN-aware path instead.
+                try:
+                    close = float(bar["c"])
+                except (TypeError, ValueError):
+                    close = float("nan")
+                if np.isfinite(close) and close > 0.0:
+                    prices[idx, col] = close
 
         # Returns between consecutive grid hours; a NaN endpoint propagates to
         # NaN, leaving closed hours and pre-listing history absent, not faked.
@@ -117,7 +126,9 @@ class AssetsApiSource:
                 raise
             cached = {t: self._spot_cache[t].price for t in tickers}
             as_of_values = [c.as_of for c in self._spot_cache.values() if c.as_of]
-            return SpotSnapshot(prices=cached, as_of=min(as_of_values) if as_of_values else None, stale=True)
+            return SpotSnapshot(
+                prices=cached, as_of=min(as_of_values) if as_of_values else None, stale=True
+            )
 
     def _fetch_spot(self, tickers: list[str]) -> tuple[dict[str, float], str | None]:
         body = self._get("/v1/spot", {"tickers": ",".join(tickers)})

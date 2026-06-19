@@ -47,6 +47,34 @@ def test_stock_gaps_stay_nan_and_overnight_jump_is_excluded():
     assert col[3] == pytest.approx(51.0 / 52.0 - 1.0)
 
 
+def test_bad_close_prices_become_nan_not_inf_or_minus_one():
+    # A zero close (BTC) or a non-numeric close (HON) must drop to NaN, not
+    # produce a finite −1.0 (its own return) or +inf (next hour's 1/0 divide),
+    # which would otherwise poison μ/Σ.
+    hours = [f"2026-06-05T{h:02d}:00:00Z" for h in range(6)]
+    btc = [100.0, 101.0, 0.0, 103.0, 104.0, 105.0]  # zero at hour 2
+    hon = [50.0, 51.0, "n/a", 53.0, 54.0, 55.0]  # unparseable at hour 2
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "bars": {
+                    "BTC": [_bar(t, c) for t, c in zip(hours, btc, strict=True)],
+                    "HON": [_bar(t, c) for t, c in zip(hours, hon, strict=True)],
+                }
+            },
+        )
+
+    returns = _source(handler).hourly_returns(["BTC", "HON"], window_hours=5)
+    for col in (returns[:, 0], returns[:, 1]):
+        assert np.isnan(col[1])  # was -1.0 (bad/0 close ÷ prev)
+        assert np.isnan(col[2])  # was +inf (next ÷ bad/0 close)
+        assert np.isfinite(col[[0, 3, 4]]).all()
+    assert returns[0, 0] == pytest.approx(0.01)
+    assert returns[3, 1] == pytest.approx(54.0 / 53.0 - 1.0)
+
+
 def test_missing_history_raises():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"bars": {"BTC": [_bar("2026-06-05T00:00:00Z", 1.0)]}})
