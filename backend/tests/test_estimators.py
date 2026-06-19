@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from backend import config
 from backend.financial.estimators.covariance import _psd_floor, covariance
 from backend.financial.estimators.expected_return import expected_return
 
@@ -51,6 +52,39 @@ def test_covariance_zeros_low_overlap_pairs():
     returns[50:, 1] = rng.standard_normal(50) * 0.01
     sigma = covariance(returns, ["crypto", "crypto"])
     assert sigma[0, 1] == 0.0
+
+
+def test_covariance_offdiagonal_uses_overlap_consistent_correlation():
+    # Asset 1 only trades the first 30 hours; asset 0 trades all 40 and is far
+    # more volatile in the last 10 (outside the overlap). The off-diagonal must
+    # estimate correlation on the SHARED overlap rows, then rescale by the stored
+    # full-window vol — not normalize the overlap covariance by a full-window
+    # variance computed from a different sample.
+    t = 40
+    returns = np.full((t, 2), np.nan)
+    rng = np.random.default_rng(7)
+    returns[:, 0] = rng.standard_normal(t) * 0.01
+    returns[30:, 0] *= 5.0  # asset 0 much more volatile outside the overlap
+    returns[:30, 1] = returns[:30, 0] * 0.5 + rng.standard_normal(30) * 0.01
+
+    # Isolate the off-diagonal estimator: no shrinkage, no eigen-floor.
+    sigma = covariance(returns, ["crypto", "crypto"], shrinkage=0.0, eig_floor_rel=0.0)
+
+    mask = np.isfinite(returns[:, 0]) & np.isfinite(returns[:, 1])
+    cov = np.cov(returns[mask, 0], returns[mask, 1], ddof=1)
+    rho = np.clip(
+        cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1]),
+        -config.COV_MAX_ABS_CORR,
+        config.COV_MAX_ABS_CORR,
+    )
+    std0 = np.sqrt(np.nanvar(returns[:, 0], ddof=1))  # stored full-window vol
+    std1 = np.sqrt(np.nanvar(returns[:, 1], ddof=1))
+
+    assert sigma[0, 1] == pytest.approx(rho * std0 * std1)
+    assert sigma[0, 1] == pytest.approx(sigma[1, 0])
+    # Distinct from the old behavior (clipping the raw overlap covariance), since
+    # asset 0's full-window vol differs from its overlap vol.
+    assert sigma[0, 1] != pytest.approx(cov[0, 1])
 
 
 def test_psd_floor_repairs_an_indefinite_matrix():

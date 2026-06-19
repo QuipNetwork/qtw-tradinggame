@@ -7,8 +7,9 @@ overlaps:
   • diagonal var_i — from asset i's real returns; floored at the class-median
     variance when i has < MIN_RETURN_OBS observations, so a thin / just-listed
     asset can't read as artificially calm;
-  • off-diagonal cov(i,j) — over the hours where both i and j are real; set to 0
-    below MIN_COV_PAIRS overlapping points.
+  • off-diagonal cov(i,j) — correlation estimated over the hours where both i and
+    j are real (so it is a valid |ρ| ≤ 1), then rescaled by the per-asset vols;
+    set to 0 below MIN_COV_PAIRS overlapping points.
 
 Pairwise overlaps don't form a valid covariance on their own, so we (1) clip
 implied correlations into range, (2) shrink toward the diagonal to damp noise,
@@ -74,9 +75,17 @@ def covariance(
             mask = finite[:, i] & finite[:, j]
             if int(mask.sum()) < min_pairs:
                 continue  # too little overlap — leave the pair uncorrelated (0)
-            cov_ij = float(np.cov(returns[mask, i], returns[mask, j], ddof=1)[0, 1])
-            cap = max_abs_corr * std[i] * std[j]  # keep implied |corr| ≤ max
-            sigma[i, j] = sigma[j, i] = float(np.clip(cov_ij, -cap, cap))
+            # Estimate correlation on the SAME overlap sample (variances and
+            # covariance share rows, so |ρ| ≤ 1 by construction), then rescale by
+            # the trusted per-asset vol. Normalizing an overlap covariance by
+            # full-window variances mixes samples and can imply |corr| > 1 — the
+            # clip would mask that, not fix it.
+            cov = np.cov(returns[mask, i], returns[mask, j], ddof=1)
+            var_i_o, var_j_o, cov_ij = float(cov[0, 0]), float(cov[1, 1]), float(cov[0, 1])
+            if var_i_o <= 0.0 or var_j_o <= 0.0:
+                continue  # degenerate overlap variance — leave uncorrelated (0)
+            rho = float(np.clip(cov_ij / np.sqrt(var_i_o * var_j_o), -max_abs_corr, max_abs_corr))
+            sigma[i, j] = sigma[j, i] = rho * std[i] * std[j]
 
     sigma = (1.0 - shrinkage) * sigma + shrinkage * np.diag(np.diag(sigma))
     return _psd_floor(sigma, eig_floor_rel)
@@ -104,9 +113,7 @@ def _variances(
     return var
 
 
-def _class_floor(
-    i: int, classes: Sequence[str], raw: np.ndarray, reliable: np.ndarray
-) -> float:
+def _class_floor(i: int, classes: Sequence[str], raw: np.ndarray, reliable: np.ndarray) -> float:
     """Median reliable variance of i's class, widening to all assets if needed."""
     same = [raw[j] for j in range(len(classes)) if reliable[j] and classes[j] == classes[i]]
     if same:
