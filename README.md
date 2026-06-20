@@ -17,6 +17,9 @@ The MVP index page at `/` lists every surface (kiosk, phone, booth TV states) wi
 ```
 design-doc.html        Full project summary (open in any browser)
 mvp/                   Vite + React + TypeScript app — the live MVP
+backend/               FastAPI backend, solver race, persistence, Docker image
+docs/                  Environment, deployment, and backend dataflow notes
+deploy/                Droplet deploy script and Caddy proxy example
 reference-files/       Base @ Consensys Miami screenshots (referenced by design doc)
 shared-design/         CSS + canvas glyph algorithms shared between MVP and doc
 ```
@@ -34,7 +37,13 @@ See [`backend/README.md`](./backend/README.md) for the Python backend (solver ra
 
 ## Deploy
 
-`netlify.toml` is wired up. Every push to `main` triggers an auto-build for the Netlify deployment surfaced at https://qtw.quip.network.
+Frontend: `netlify.toml` is wired up. Every push to `main` triggers an auto-build
+for the Netlify deployment surfaced at https://qtw.quip.network.
+
+Backend: `.gitlab-ci.yml` can test, build, and push the FastAPI Docker image,
+with a manual deploy job for a DigitalOcean droplet. See
+[`docs/ENVIRONMENT.md`](./docs/ENVIRONMENT.md) for required GitLab CI variables,
+`/opt/qtw/backend.env`, Caddy, DNS, and the first live smoke test.
 
 ## Engineering handoff
 

@@ -208,5 +208,9 @@ PY
 
 See `../docs/ENVIRONMENT.md` for production environment variables,
 Supabase/Postgres behavior, Proton SMTP status, and the selected DigitalOcean
-Droplet + Docker deployment shape. Proton email sending is still not
-implemented.
+Droplet + Docker deployment shape.
+
+GitLab CI now includes backend test/build image jobs and a manual droplet deploy
+job. The deploy job becomes usable after the droplet is provisioned, Docker/Caddy
+are installed, `/opt/qtw/backend.env` exists, and the GitLab CI deploy variables
+are set. Proton email sending is still not implemented.

@@ -3,8 +3,8 @@
 This project has three runtime surfaces:
 
 - Netlify hosts the React frontend in `mvp/`.
-- A long-lived backend process hosts FastAPI, likely inside a container on a
-  DigitalOcean droplet once containerization is added.
+- A long-lived backend process hosts FastAPI inside a Docker container on a
+  DigitalOcean droplet.
 - Supabase hosts Postgres only. The browser should never connect to Postgres.
 
 ## Local Defaults
@@ -17,8 +17,8 @@ With no production env vars set:
 - Backend points at `https://asset-tracker.quip.network` by default.
 - Tests force in-memory stores and synthetic market data.
 - Email sending is not wired yet; signup currently stores email/consent only.
-- The backend has a Dockerfile at `backend/Dockerfile`; deployment automation
-  for the DigitalOcean droplet is still pending.
+- The backend has a Dockerfile and GitLab CI deployment scaffold. The remaining
+  external step is provisioning the droplet and setting CI/CD variables.
 
 ## Frontend Env - Netlify
 
@@ -36,6 +36,11 @@ keys in Netlify frontend env.
 ## Backend Env - FastAPI Container
 
 Set these on the backend host/container, not in browser-visible env.
+On the droplet, store them in:
+
+```text
+/opt/qtw/backend.env
+```
 
 | Variable | Required | Example | Notes |
 |---|---:|---|---|
@@ -161,8 +166,9 @@ Code changes needed:
 
 ## Backend Containerization And DigitalOcean
 
-Status: backend image build is in place; droplet deployment automation is still
-pending.
+Status: backend image build and GitLab CI deployment scaffold are in place.
+The manual deploy job becomes usable after the DigitalOcean droplet exists and
+GitLab CI/CD variables are set.
 
 Local/server execution without Docker is still direct Python:
 
@@ -208,18 +214,76 @@ The one-worker constraint is intentional for the first deployment. The websocket
 event bus, MTM scheduler, and scheduled rebalance loop are in-process. More than
 one worker/container would need an external event bus plus scheduler locking.
 
-The remaining deploy loop should be:
+### GitLab CI Deploy Automation
 
-- Build an AMD64 backend image from the chosen deployment branch.
-- Push the image to a container registry.
-- Pull and restart that image on the droplet, either manually at first or via CI
-  over SSH.
-- Terminate TLS on the droplet with Caddy/Nginx/Traefik for
-  `api.qtw.quip.network`, proxying traffic to the FastAPI container.
+`.gitlab-ci.yml` defines:
+
+- `backend:test` — installs the backend package and runs pytest.
+- `backend:image` — builds `backend/Dockerfile` with Kaniko and pushes to the
+  GitLab Container Registry.
+- `backend:deploy` — manual job for `deployment-dev` or `main`; SSHes into the
+  droplet, pulls the selected image, restarts one container, and checks
+  `/healthz`.
+
+Image tags:
+
+```text
+$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_SLUG
+$CI_REGISTRY_IMAGE/backend:deployment-dev   # only on deployment-dev
+$CI_REGISTRY_IMAGE/backend:main             # only on main
+$CI_REGISTRY_IMAGE/backend:latest           # only on main
+```
+
+Set these GitLab CI/CD variables before using the manual deploy job:
+
+| Variable | Example | Notes |
+|---|---|---|
+| `DEPLOY_HOST` | `203.0.113.10` | Droplet IP or DNS name. |
+| `DEPLOY_USER` | `deploy` | SSH user; defaults to `deploy` in CI. |
+| `DEPLOY_SSH_PRIVATE_KEY` | `<private key>` | Private key for the deploy user. Store masked/protected where possible. |
+| `DEPLOY_SSH_PORT` | `22` | Optional override. |
+| `DEPLOY_BACKEND_ENV_PATH` | `/opt/qtw/backend.env` | Optional override; must exist on the droplet. |
+
+The deploy job uses `deploy/backend-deploy.sh` on the droplet. The script:
+
+- Pulls the CI-built image.
+- Restarts container `qtw-backend` with `--restart unless-stopped`.
+- Reads runtime env from `/opt/qtw/backend.env`.
+- Publishes the container only on `127.0.0.1:8000`.
+- Checks `http://127.0.0.1:8000/healthz`.
+- Rolls back to the previous image if the new container fails health checks.
+
+### Droplet Bootstrap
+
+Provision the droplet once:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io caddy curl
+sudo useradd --create-home --shell /bin/bash deploy
+sudo usermod -aG docker deploy
+sudo install -d -m 755 /opt/qtw
+sudo install -m 600 /dev/null /opt/qtw/backend.env
+sudoedit /opt/qtw/backend.env
+sudo chown root:root /opt/qtw/backend.env
+sudo chmod 600 /opt/qtw/backend.env
+```
+
+Use `backend/.env.example` as the template for `/opt/qtw/backend.env`; fill in
+the real `DATABASE_URL` and `DWAVE_API_TOKEN` on the droplet.
+
+Copy `deploy/Caddyfile.example` to `/etc/caddy/Caddyfile`, then reload Caddy:
+
+```bash
+sudo systemctl reload caddy
+```
+
+DNS must point `api.qtw.quip.network` at the droplet before Caddy can issue TLS.
 
 ## First Production Shape
 
-Recommended first deployment after containerization:
+Recommended first production shape:
 
 ```text
 Netlify React frontend

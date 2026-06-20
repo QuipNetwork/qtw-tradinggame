@@ -50,4 +50,15 @@ breakdown, and spotlight chart come from backend state when connected.
 
 ## Deploy
 
-`netlify.toml` configured. Set the build base to `mvp/` and `dist/` as publish dir.
+`netlify.toml` is configured. Set the build base to `mvp/` and `dist/` as the
+publish dir.
+
+Production frontend env:
+
+```bash
+VITE_API_BASE=https://api.qtw.quip.network
+```
+
+Only set `VITE_WS_BASE` if websocket traffic uses a different host than
+`VITE_API_BASE`. Backend secrets such as `DATABASE_URL`, `DWAVE_API_TOKEN`, and
+SMTP credentials belong only on the FastAPI backend host/container.

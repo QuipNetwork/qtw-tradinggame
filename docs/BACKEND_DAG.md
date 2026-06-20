@@ -21,8 +21,8 @@ and the solver race.
   10 minutes, shared by first solve, manual retune, and scheduled rebalance.
 - TV views now consume live backend data for leaderboard rows, valuation
   history, and QPU-vs-CPU winner share instead of hardcoded demo stats.
-- The backend Docker image build is implemented. Proton SMTP sending and
-  droplet deploy automation are still pending.
+- The backend Docker image build and GitLab deploy scaffold are implemented.
+  Droplet provisioning and Proton SMTP sending remain pending.
 
 ## High-Level DAG
 
@@ -308,7 +308,8 @@ snapshots are sampled separately.
 
 - Frontend env (`VITE_API_BASE`, optional `VITE_WS_BASE`) belongs in Netlify.
 - Backend env (`DATABASE_URL`, `ASSETS_API_BASE_URL`, `DWAVE_API_TOKEN`,
-  `QR_BASE_URL`, SMTP secrets later) belongs only on the backend host/container.
+  `QR_BASE_URL`, SMTP secrets later) belongs only on the backend host/container,
+  normally `/opt/qtw/backend.env` on the droplet.
 - Supabase hosts Postgres only; the browser never connects to the database.
 - assets-api owns provider fallback, rate-limit protection, quote freshness, and
   history/spot caching.
@@ -332,8 +333,9 @@ LISTEN/NOTIFY plus advisory locks.
 
 - Proton SMTP sender: email/consent fields are stored, but no backend email
   sender exists yet.
-- Droplet deploy automation: the Dockerfile exists, but CI/registry/pull-and-
-  restart wiring is still pending.
+- Droplet rollout: GitLab CI can build/push/deploy the backend image, but the
+  droplet, DNS, `/opt/qtw/backend.env`, and CI deploy variables still need to be
+  provisioned before the first live deploy.
 - Global QPU budget operations: per-agent admission is implemented; aggregate
   booth-wide QPU millisecond metering is still optional future work.
 - assets-api spot freshness: QTW consumes the spot contract; faster freshness

@@ -25,8 +25,8 @@ Run/test refs:
 - **Scheduled rebalances**: optimized agents persist rebalance timestamps and
   the backend runs due background rebalances through the normal QPU-capable
   solver race.
-- **Containerization**: backend Docker image build is in place; droplet deploy
-  automation is still pending.
+- **Containerization/deploy**: backend Docker image build and GitLab deploy
+  scaffold are in place; droplet provisioning and first live deploy remain.
 - **QPU budget**: each agent gets 3 QPU-admitted solves per rolling 10 minutes;
   manual over-budget requests return 429 and scheduled rebalances defer.
 - **Not yet wired**: Proton SMTP sending.
@@ -106,8 +106,9 @@ MTM publishing to it.
 
 Make the deployed frontend and backend agree on URLs and runtime env.
 
-- Add droplet deployment automation: build AMD64 image, push to a registry, pull
-  and restart it on the DigitalOcean droplet.
+- Provision the DigitalOcean droplet, install Docker/Caddy, create
+  `/opt/qtw/backend.env`, set GitLab CI/CD deploy variables, and run the manual
+  deploy job.
 - Netlify frontend env: set `VITE_API_BASE` to the deployed backend.
 - Set `VITE_WS_BASE` only if websocket traffic uses a different host.
 - Backend env: set `DATABASE_URL`, `ASSETS_API_BASE_URL`, `QR_BASE_URL`, CORS
@@ -194,6 +195,9 @@ Clean up temporary UI/state work after persistence and freshness are done.
 - **Backend Docker image**: `backend/Dockerfile`, `.dockerignore`,
   `backend/.env.example`, and `/healthz` support local and droplet container
   smoke tests.
+- **Backend deploy automation scaffold**: GitLab CI can test, build, push the
+  backend image to the GitLab registry, and manually deploy to a provisioned
+  droplet.
 - **TV routing stats**: `/routing-stats` computes QPU-vs-CPU winner share and
   provider breakdown from recorded solve jobs.
 - **TV valuation history**: `/agents/{id}/valuation-history` drives the

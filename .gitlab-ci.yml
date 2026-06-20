@@ -1,0 +1,85 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  BACKEND_IMAGE_SHA: "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA"
+  BACKEND_IMAGE_REF: "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_SLUG"
+  DEPLOY_USER: "deploy"
+  DEPLOY_SSH_PORT: "22"
+  DEPLOY_BACKEND_ENV_PATH: "/opt/qtw/backend.env"
+  DEPLOY_BACKEND_HEALTH_URL: "http://127.0.0.1:8000/healthz"
+
+backend:test:
+  stage: test
+  image: python:3.12-slim
+  cache:
+    key: "pip-$CI_COMMIT_REF_SLUG"
+    paths:
+      - .cache/pip
+  before_script:
+    - python -m pip install --upgrade pip
+    - python -m pip install -e backend pytest pytest-asyncio
+  script:
+    - cd backend
+    - python -m pytest -q
+
+backend:image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  needs:
+    - backend:test
+  script:
+    - mkdir -p /kaniko/.docker
+    - >
+      printf '{"auths":{"%s":{"username":"%s","password":"%s"}}}'
+      "$CI_REGISTRY" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD"
+      > /kaniko/.docker/config.json
+    - |
+      DESTINATIONS="--destination ${BACKEND_IMAGE_SHA} --destination ${BACKEND_IMAGE_REF}"
+      if [ "$CI_COMMIT_BRANCH" = "deployment-dev" ]; then
+        DESTINATIONS="$DESTINATIONS --destination ${CI_REGISTRY_IMAGE}/backend:deployment-dev"
+      fi
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        DESTINATIONS="$DESTINATIONS --destination ${CI_REGISTRY_IMAGE}/backend:main --destination ${CI_REGISTRY_IMAGE}/backend:latest"
+      fi
+      /kaniko/executor \
+        --context "$CI_PROJECT_DIR" \
+        --dockerfile "$CI_PROJECT_DIR/backend/Dockerfile" \
+        --cache=true \
+        --cache-repo "$CI_REGISTRY_IMAGE/cache/backend" \
+        $DESTINATIONS
+
+backend:deploy:
+  stage: deploy
+  image: alpine:3.20
+  needs:
+    - backend:image
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "deployment-dev" || $CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - when: never
+  before_script:
+    - apk add --no-cache openssh-client
+    - test -n "$DEPLOY_HOST"
+    - test -n "$DEPLOY_USER"
+    - test -n "$DEPLOY_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - eval "$(ssh-agent -s)"
+    - printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -p "$DEPLOY_SSH_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+  script:
+    - scp -P "$DEPLOY_SSH_PORT" deploy/backend-deploy.sh "$DEPLOY_USER@$DEPLOY_HOST:/tmp/qtw-backend-deploy.sh"
+    - printf '%s' "$CI_REGISTRY_PASSWORD" | ssh -p "$DEPLOY_SSH_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY'"
+    - >
+      ssh -p "$DEPLOY_SSH_PORT" "$DEPLOY_USER@$DEPLOY_HOST"
+      "chmod +x /tmp/qtw-backend-deploy.sh &&
+      BACKEND_IMAGE='$BACKEND_IMAGE_SHA'
+      DEPLOY_BACKEND_ENV_PATH='$DEPLOY_BACKEND_ENV_PATH'
+      DEPLOY_BACKEND_HEALTH_URL='$DEPLOY_BACKEND_HEALTH_URL'
+      /tmp/qtw-backend-deploy.sh"
