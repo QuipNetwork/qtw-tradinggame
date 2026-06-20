@@ -94,3 +94,29 @@ def test_no_basket_defaults_to_full_universe():
     record = store.create(_config(assets=None), bankroll=10_000.0)
     result = run_optimization(record.id).result
     assert {e.ticker for e in result.portfolio} == set(TICKERS)
+
+
+def test_method3_holds_exactly_k_of_the_basket(monkeypatch):
+    # holdCount sub-selects K of the 7-asset basket (force mode for env-independence)
+    from backend import config
+
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "method3")
+    store = get_agent_store()
+    record = store.create(_config(holdCount=3), bankroll=10_000.0)
+    result = run_optimization(record.id).result
+
+    assert len(result.portfolio) == 3
+    assert {e.ticker for e in result.portfolio} <= set(BASKET)
+    assert sum(e.pct for e in result.portfolio) == pytest.approx(100.0, abs=1e-3)
+    assert sum(e.usd for e in result.portfolio) == pytest.approx(10_000.0, abs=1e-2)
+
+
+def test_convex_fallback_holds_all_and_ignores_hold_count(monkeypatch):
+    from backend import config
+
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "convex")
+    store = get_agent_store()
+    record = store.create(_config(holdCount=3), bankroll=10_000.0)
+    result = run_optimization(record.id).result
+    # convex mode ignores holdCount: every basket asset is held
+    assert {e.ticker for e in result.portfolio} == set(BASKET)

@@ -97,6 +97,9 @@ def run_optimization(
         w_max=params.w_max,
         w_min=params.w_min,
         asset_tickers=tickers,
+        cardinality_k=params.cardinality_k,  # None in convex mode
+        n_units_M=params.n_units_M,
+        u_min_units=params.u_min_units,
     )
 
     qpu_budget_status = (
@@ -210,6 +213,7 @@ def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
         solveTime=run.solve_time_s,
         raceTime=run.race_time_s,
         objective=run.objective,
+        bestObjective=run.best_objective,
         error=run.error,
     )
 
@@ -223,5 +227,6 @@ def _solver_run_summary(run: SolverRun) -> dict:
         "solveTime": run.solve_time_s,
         "raceTime": run.race_time_s,
         "objective": run.objective,
+        "bestObjective": run.best_objective,
         "error": run.error,
     }

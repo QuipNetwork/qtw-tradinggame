@@ -30,7 +30,10 @@ def select_solution(
         weights = decode_bitstring(bits, qubo.decode_meta, normalize=True)
         if fallback is None:
             fallback = (weights, bits)
-        if check_feasibility(weights, problem.w_max, problem.w_min).feasible:
+        feas = check_feasibility(
+            weights, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+        )
+        if feas.feasible:
             objective = problem.objective(weights)
             if best_objective is None or objective < best_objective:
                 best_objective = objective

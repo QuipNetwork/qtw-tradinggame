@@ -19,11 +19,14 @@ class SliderValues(BaseModel):
     risk_preference — risk-aversion term γ in the objective.
     max_position_size — per-asset weight cap, relative to the basket
         (equal weight 1/n → ~50% in a single asset).
+    hold_count — Method 3 only: how many of the basket the optimizer holds (K).
+        Absolute count, clamped to [2, basket size] at map time. None ⇒ hold all.
     """
 
     rebalance_frequency: float = Field(ge=0, le=100, alias="rebalanceFrequency")
     risk_preference: float = Field(ge=0, le=100, alias="riskPreference")
     max_position_size: float = Field(ge=0, le=100, alias="maxPositionSize")
+    hold_count: int | None = Field(default=None, ge=2, alias="holdCount")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -76,6 +79,9 @@ class SolverResult(BaseModel):
     solve_time: float | None = Field(default=None, alias="solveTime")
     race_time: float | None = Field(default=None, alias="raceTime")
     objective: float | None = None
+    # True for the feasible solver with the best (lowest) objective — the quality
+    # leader, which may differ from the speed winner (status="winner").
+    best_objective: bool = Field(default=False, alias="bestObjective")
     error: str | None = None
 
     model_config = ConfigDict(populate_by_name=True)

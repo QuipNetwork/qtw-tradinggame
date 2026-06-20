@@ -24,6 +24,9 @@ def decode_bitstring(
     if bits.shape != (meta.n_total_bits,):
         raise ValueError(f"bitstring length {bits.shape[0]} != expected {meta.n_total_bits}")
 
+    if meta.scheme == "method3":
+        return _decode_method3(bits, meta)
+
     b = meta.bits_per_asset
     place_values = meta.weight_coef * (2 ** np.arange(b))
     weights = meta.w_min + bits.reshape(meta.n_assets, b) @ place_values
@@ -33,6 +36,22 @@ def decode_bitstring(
         if total > 0 and abs(total - 1.0) <= config.QUBO_NORMALIZE_TOL:
             weights = weights / total
     return weights
+
+
+def _decode_method3(bits: np.ndarray, meta: DecodeMeta) -> np.ndarray:
+    """Integer-units decode: u_i = u_min + Σ 2^k x_{i,k} when held, else 0.
+
+    Weights are exact multiples of 1/M (no normalization). Increment bits on an
+    unselected asset are ignored, so y_i=0 ⇒ w_i=0 regardless of stray bits.
+    """
+    n, b, M, u_min = meta.n_assets, meta.increment_bits, meta.n_units_M, meta.u_min_units
+    place_values = 2 ** np.arange(b)
+    units = np.zeros(n)
+    for i in range(n):
+        if bits[meta.y(i)]:
+            inc = bits[[meta.x(i, k) for k in range(b)]] @ place_values
+            units[i] = u_min + inc
+    return units / M
 
 
 def weights_to_portfolio(

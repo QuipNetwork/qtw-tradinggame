@@ -83,13 +83,10 @@ REBALANCE_TIERS_HOURS: tuple[int, ...] = (24, 8, 4, 2, 1)
 # QUBO encoding hyperparameters
 # -----------------------------------------------------------------------------
 
-# Bits per asset across [w_min, w_max]. Large baskets drop to 2 bits: feasibility
-# on Advantage_system4 is governed by variable count, not bit depth, so halving
-# the variables is what claws back feasible reads. Hardware sweep (2026-06-19,
-# ~3.4s QPU): 18 assets b=3 (54 vars) → 17/500 feasible vs b=2 (36 vars) → 67/500
-# — b=3 is dominated, so skip straight from b=4 to b=2. Fewer bits = coarser grid
-# (4 levels; simplex normalization absorbs it). Baskets >~20 assets stay QPU-
-# infeasible regardless (28 assets b=2 = 56 vars → ~0/500) and lean on SA/Gurobi.
+# Bits per asset across [w_min, w_max]. Large baskets drop to 2 bits: QPU feasibility
+# is governed by variable count, not bit depth, so halving the variables claws back
+# feasible reads (b=3 is dominated by b=2 → skip it). Coarser grid (4 levels) is
+# absorbed by simplex normalization. Sweep numbers in CLAUDE.md.
 BIT_PRECISION: int = 4
 BIT_PRECISION_LARGE: int = 2
 QUBO_PREFERRED_MAX_VARS: int = 60  # use BIT_PRECISION while n·b stays within this
@@ -110,6 +107,29 @@ PENALTY_MULT_BUDGET: float = 12.0
 # stays as the backstop (a >10% rescale pushes weights past w_min/w_max + ε,
 # so genuinely bad reads still fail).
 QUBO_NORMALIZE_TOL: float = 0.10
+
+# -----------------------------------------------------------------------------
+# Optimization mode — which problem the race solves
+# -----------------------------------------------------------------------------
+
+# "method3" (default): cardinality-constrained, semi-continuous MIQP — the
+# optimizer sub-selects exactly K of the player's basket and weights them on an
+# integer-unit grid (genuinely non-convex; the QPU has structure to exploit).
+# "convex": the original mean-variance box-QP fallback (every basket asset held).
+OPTIMIZATION_MODE: str = os.environ.get("OPTIMIZATION_MODE", "method3").lower()
+
+# Method 3 integer-unit grid: weights live on M units, w_i = u_i/M, so the budget
+# Σu=M is exactly representable (no normalize crutch). The layout costs n·(1+b)
+# variables with b = log2(M)−1 (u_min=1, grid [1/M, 0.5]). M is NOT fixed — it's the
+# smallest power of two that fits K (M ≥ K units for K held), clamped to [MIN, MAX]:
+# small K → small M → fewer vars → QPU-feasible. See qubo_encoder.units_for_cardinality.
+METHOD3_MIN_UNITS: int = 8  # floor (b=2, 4 weight levels) — granularity vs feasibility
+METHOD3_MAX_UNITS: int = 32  # cap (b=4) — M ≥ K so this also caps K at 32 ≥ universe
+METHOD3_U_MIN: int = 1
+# Cardinality / linking penalty peak-coefficient ratios, normalized like
+# PENALTY_MULT_BUDGET (which the budget term reuses). See encode_method3.
+METHOD3_PENALTY_MULT_CARD: float = 12.0
+METHOD3_PENALTY_MULT_LINK: float = 12.0
 
 # -----------------------------------------------------------------------------
 # Feasibility tolerances (V0 quality bar)
@@ -134,21 +154,35 @@ GUROBI_IN_RACE: bool = os.environ.get("GUROBI_IN_RACE", "1").lower() not in ("0"
 # All knobs are env-overridable for tuning sweeps, e.g.
 #   DWAVE_CHAIN_STRENGTH_PREFACTOR=4 qtw verify-dwave
 DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # fallback / verify-dwave
+# Anneal time. Feasibility is flat across 20–500µs (2026-06-20 sweep), so this is a
+# tuning knob, not a feasibility lever.
 DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
 
-# num_reads scaled to QUBO size (logical vars = n_assets × bits). Small problems
-# are feasibility-rich, so fewer reads suffice and the lower QPU access time
-# (D-Wave's reported race time) helps it WIN; large problems are feasibility-poor,
-# so more reads raise the odds of catching a rare feasible sample (it won't win on
-# speed at that size regardless). Tiers: (max_vars_inclusive, num_reads), first
-# match wins. ~feasibility from the 2026-06-19 sweep: ≤30v rich, 31-48v moderate,
-# >48v poor. Reads ≈ 16ms + n×0.29ms QPU, so 150/350/600 ≈ 60/120/190 ms.
-DWAVE_READS_BY_VARS: tuple[tuple[int, int], ...] = ((30, 150), (48, 350), (90, 600))
+# num_reads scaled to QUBO size. Small problems are feasibility-rich → fewer reads keep
+# QPU access time (the reported race time) low so it WINS on speed; large problems → more
+# reads to catch a rare feasible sample (feasible-reads scale ~linearly). One job either
+# way, so wall-clock stays cheap. Tiers: (max_vars_inclusive, num_reads), first match.
+DWAVE_READS_BY_VARS: tuple[tuple[int, int], ...] = (
+    (30, 150),
+    (48, 350),
+    (72, 600),
+    (96, 1000),
+    (10**9, 1500),
+)
+# Spin-reversal transforms (gauge averaging, ~1.35× feasibility via ICE cancellation).
+# DISABLED in the race: the only API is the client-side composite, which runs each gauge
+# as a separate cloud job → blows the wall-clock deadline. Plumbing (srt_for_vars,
+# _get_srt_sampler) kept for offline use. Tiers: (max_vars, n_transforms).
+DWAVE_SRT_BY_VARS: tuple[tuple[int, int], ...] = ((10**9, 0),)
 # Chain strength = uniform torque compensation × this prefactor. Raise if
 # verify-dwave reports chain breaks above ~5% (long chains need stronger bonds).
 # ×3 from hardware sweeps: ×2 leaves ~17% chain breaks at 75+ vars; ×3 gives
 # 0.4% there with margin to spare at small baskets.
 DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 3.0))
+# Optional solver topology constraint ("pegasus" | "zephyr"); empty → Leap's default
+# (lets the more-connected Advantage2/Zephyr be selected as it matures). A knob for
+# experiments, not a hard pin.
+DWAVE_SOLVER_TOPOLOGY: str = os.environ.get("DWAVE_SOLVER_TOPOLOGY", "")
 
 # Per-agent QPU admission budget. This limits optimization attempts that would
 # include D-Wave in the race; CPU-only runs are unaffected.
@@ -163,10 +197,11 @@ SOLVER_DEADLINE_S: float = 2.0  # per-solver wall-clock budget
 RACE_OVERALL_DEADLINE_S: float = 3.0  # outer cap on the parallel race
 
 # -----------------------------------------------------------------------------
-# MTM tick cadence (seconds)
+# MTM tick cadence (seconds). Match assets-api's default SPOT_INTERVAL=10s so
+# the backend usually publishes after the spot cache can actually change.
 # -----------------------------------------------------------------------------
 
-MTM_TICK_S: float = 3.0
+MTM_TICK_S: float = float(os.environ.get("MTM_TICK_S", 10.0))
 REBALANCE_CHECK_TICK_S: float = 15.0
 REBALANCE_RETRY_BACKOFF_S: float = 60.0
 VALUATION_SNAPSHOT_INTERVAL_S: float = float(os.environ.get("VALUATION_SNAPSHOT_INTERVAL_S", 60.0))

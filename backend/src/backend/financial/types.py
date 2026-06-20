@@ -15,21 +15,28 @@ class SliderParams:
     w_max: float  # per-asset cap, relative to the basket (1/n → W_MAX_CEILING)
     w_min: float  # participation floor — every basket asset is held at least this
     rebalance_hours: int  # scheduled re-optimization cadence (24h → 1h cap)
+    # Method 3 only (None in convex mode): the optimizer sub-selects exactly
+    # cardinality_k of the basket and weights them on an M-unit integer grid.
+    cardinality_k: int | None = None
+    n_units_M: int | None = None
+    u_min_units: int | None = None
 
 
 @dataclass
 class PortfolioProblem:
-    """Mean-variance allocation over the player's basket — a box-constrained QP.
+    """Mean-variance allocation over the player's basket.
 
-    min  (γ/2) wᵀΣw  -  μᵀw
-    s.t. Σwᵢ = 1
-         w_min ≤ wᵢ ≤ w_max
+    min  (γ/2) wᵀΣw  -  μᵀw    s.t. Σwᵢ = 1, w_min ≤ wᵢ ≤ w_max
 
-    Every solve is a fresh allocation: a retune liquidates all holdings at spot
-    and reallocates the full value over the (possibly re-selected) basket, so
-    there is no turnover anchor and no cardinality constraint — the basket
-    decides which assets participate. Gurobi solves the QP natively; SA/D-Wave
-    solve the bit-discretized QUBO encoded from it.
+    Convex mode (cardinality_k is None): a box-constrained QP — every basket
+    asset is held; Gurobi solves it natively, SA/D-Wave solve the bit QUBO.
+
+    Method 3 mode (cardinality_k set): a cardinality-constrained, semi-continuous
+    MIQP — the optimizer holds exactly cardinality_k of the basket, each weight is
+    0 or in [w_min, w_max] on an integer-unit grid (M units, u_min floor). Gurobi
+    solves the true MIQP; SA/D-Wave solve the integer-units selection QUBO.
+
+    Every solve is a fresh allocation (no turnover anchor).
     """
 
     mu: np.ndarray  # shape (N,)
@@ -38,10 +45,18 @@ class PortfolioProblem:
     w_max: float
     asset_tickers: list[str]  # the player's basket (subset of the universe)
     w_min: float = 0.0
+    # Method 3 only (None → convex mode).
+    cardinality_k: int | None = None
+    n_units_M: int | None = None
+    u_min_units: int | None = None
 
     @property
     def N(self) -> int:
         return self.mu.shape[0]
+
+    @property
+    def is_method3(self) -> bool:
+        return self.cardinality_k is not None
 
     def objective(self, weights: np.ndarray) -> float:
         """Mean-variance objective value at the given weights."""
@@ -52,6 +67,10 @@ class PortfolioProblem:
         assert len(self.asset_tickers) == self.N, "asset_tickers length mismatch"
         assert 0 < self.w_max <= 1.0, "w_max must be in (0, 1]"
         assert 0.0 <= self.w_min <= self.w_max, "w_min must be in [0, w_max]"
-        # Budget must be reachable: N·w_min ≤ 1 ≤ N·w_max.
-        assert self.N * self.w_min <= 1.0 + 1e-9, "N·w_min must be ≤ 1"
-        assert self.N * self.w_max >= 1.0 - 1e-9, "N·w_max must be ≥ 1"
+        # Budget must be reachable across the held set: m·w_min ≤ 1 ≤ m·w_max,
+        # where m = N (convex, all held) or cardinality_k (Method 3, k held).
+        m = self.N if self.cardinality_k is None else self.cardinality_k
+        if self.cardinality_k is not None:
+            assert 0 < self.cardinality_k <= self.N, "cardinality_k must be in (0, N]"
+        assert m * self.w_min <= 1.0 + 1e-9, "held·w_min must be ≤ 1"
+        assert m * self.w_max >= 1.0 - 1e-9, "held·w_max must be ≥ 1"

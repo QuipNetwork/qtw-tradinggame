@@ -80,11 +80,38 @@ def test_best_feasible_read_beats_lowest_energy(synthetic_problem_3assets):
 
 
 def test_reads_scale_with_basket_size():
+    from backend import config
     from backend.solvers.providers.dwave import reads_for_vars
 
-    assert reads_for_vars(24) == 150  # small, feasibility-rich (e.g. 6 assets b4)
-    assert reads_for_vars(48) == 350  # mid (e.g. 12 assets b4)
-    assert reads_for_vars(56) == 600  # large, feasibility-poor (e.g. 28 assets b2)
+    # Test the lookup LOGIC, not the literal table (which re-tunes): boundary-inclusive
+    # first-match, and reads never decrease with size (small → few/fast to win on speed).
+    assert reads_for_vars(30) == config.DWAVE_READS_BY_VARS[0][1]  # tier boundary inclusive
+    assert reads_for_vars(31) > reads_for_vars(30)  # next tier up
+    reads = [reads_for_vars(n) for n in (12, 30, 31, 60, 84, 140)]
+    assert reads == sorted(reads)  # monotonic non-decreasing
+
+
+def test_srt_disabled_by_default():
+    # Deliberately off for every size (client-side composite = N cloud jobs → blows the
+    # wall-clock deadline). Plumbing kept for offline use; see DWAVE_SRT_BY_VARS.
+    from backend.solvers.providers.dwave import srt_for_vars
+
+    assert srt_for_vars(36) == 0 and srt_for_vars(140) == 0
+
+
+def test_srt_forwarded_to_sampler_when_enabled(monkeypatch, synthetic_problem_3assets):
+    # When SRT is config-enabled, solve_qubo must forward num_spin_reversal_transforms
+    # to the sampler — covers the otherwise-disabled gauge-averaging path.
+    from backend.solvers.providers import dwave as dwave_mod
+
+    monkeypatch.setattr(dwave_mod, "srt_for_vars", lambda n: 4)
+    qubo = encode_qubo(synthetic_problem_3assets)
+    bits = _bits_for_levels([8, 8, 5], qubo.n)
+    sampler = FakeSampler([_as_sample(bits)])
+    dwave_mod.DWaveProvider(sampler=sampler).solve_qubo(
+        qubo, synthetic_problem_3assets, deadline_s=2.0
+    )
+    assert sampler.last_kwargs["num_spin_reversal_transforms"] == 4
 
 
 def test_solve_qubo_uses_size_based_reads(synthetic_problem_3assets):
@@ -93,6 +120,40 @@ def test_solve_qubo_uses_size_based_reads(synthetic_problem_3assets):
     sampler = FakeSampler([_as_sample(bits)])
     DWaveProvider(sampler=sampler).solve_qubo(qubo, synthetic_problem_3assets, deadline_s=2.0)
     assert sampler.last_kwargs["num_reads"] == 150
+
+
+def _m3_sample(units: dict[int, int], meta) -> dict[int, int]:
+    sample = dict.fromkeys(range(meta.n_total_bits), 0)
+    for i, u in units.items():
+        sample[meta.y(i)] = 1
+        inc = u - meta.u_min_units
+        for k in range(meta.increment_bits):
+            sample[meta.x(i, k)] = (inc >> k) & 1
+    return sample
+
+
+def test_method3_decodes_units_and_respects_cardinality():
+    from backend.financial.qubo_encoder import encode_method3
+    from backend.financial.types import PortfolioProblem
+
+    prob = PortfolioProblem(
+        mu=np.array([0.03, 0.04, 0.01]),
+        Sigma=np.eye(3) * 0.04,
+        gamma=2.0,
+        w_max=0.6,
+        w_min=1 / 32,
+        asset_tickers=["A", "B", "C"],
+        cardinality_k=2,
+        n_units_M=32,
+        u_min_units=1,
+    )
+    qubo = encode_method3(prob)
+    sample = _m3_sample({0: 16, 1: 16}, qubo.decode_meta)  # 0.5 / 0.5, exactly 2 held
+    solution = DWaveProvider(sampler=FakeSampler([sample])).solve_qubo(qubo, prob, deadline_s=2.0)
+
+    assert solution.weights.sum() == pytest.approx(1.0)  # exact (integer units)
+    assert int((solution.weights > 1e-6).sum()) == 2
+    assert solution.weights == pytest.approx([0.5, 0.5, 0.0])
 
 
 def test_race_field_requires_a_leap_token(monkeypatch):

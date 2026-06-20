@@ -77,3 +77,31 @@ def test_race_winner_is_fastest_feasible_solve_time(monkeypatch, synthetic_probl
     by_provider = {run.provider: run for run in result.solver_runs}
     assert by_provider["fast"].status == "winner"
     assert by_provider["slow"].status == "feasible"
+
+
+def test_best_objective_marked_separately_from_speed_winner(
+    monkeypatch, synthetic_problem_3assets
+):
+    # Winner = fastest feasible; best_objective = lowest-objective feasible. They are
+    # independent flags (the quality leader may not be the speed winner).
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("fast", [1 / 3, 1 / 3, 1 / 3], solve_time_s=0.1),
+            FakeProvider("slow", [0.2, 0.4, 0.4], solve_time_s=0.5),
+        ],
+    )
+
+    result = router.race(synthetic_problem_3assets, deadline_s=2.0)
+    by_provider = {run.provider: run for run in result.solver_runs}
+
+    # winner is always the fastest feasible, independent of objective
+    assert result.winner.provider == "fast"
+    assert by_provider["fast"].status == "winner"
+
+    # exactly one best_objective flag, on the lowest-objective feasible solver
+    objs = {s.provider: s.objective for s in result.all_results if s.feasible}
+    best_provider = min(objs, key=objs.get)
+    assert by_provider[best_provider].best_objective is True
+    assert sum(1 for run in result.solver_runs if run.best_objective) == 1

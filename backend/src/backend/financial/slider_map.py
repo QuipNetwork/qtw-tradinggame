@@ -19,6 +19,7 @@ import math
 
 from .. import config
 from ..api.schemas import SliderValues
+from .qubo_encoder import units_for_cardinality
 from .types import SliderParams
 
 
@@ -57,25 +58,48 @@ def rebalance_every_hours(value: float) -> int:
 
 
 def map_sliders(sliders: SliderValues, basket_size: int) -> SliderParams:
-    """Map 0–100 slider values to physical optimization parameters.
+    """Map slider values to physical optimization parameters.
 
-    `basket_size` is the number of assets the player selected — w_max and
-    w_min are defined relative to it.
+    `basket_size` is the number of assets the player selected — w_max, w_min, and
+    the cardinality K are defined relative to it. The active route is
+    config.OPTIMIZATION_MODE ("method3" default, "convex" fallback).
     """
 
     # Risk Preference: high slider → aggressive → low γ (inverted, log-scaled)
     risk_t = 1.0 - sliders.risk_preference / 100.0
     gamma = _log_lerp(risk_t, *config.GAMMA_RANGE)
 
-    # Max Position Size: relative cap, equal-weight → W_MAX_CEILING
-    w_max = max_position_cap(basket_size, sliders.max_position_size)
-
-    # Minimum position: every selected asset is held (no dust, no cardinality).
-    w_min = config.MIN_POSITION_FRACTION / max(1, basket_size)
-
     # Rebalance Frequency: scheduled re-optimization cadence
     rebalance_hours = rebalance_every_hours(sliders.rebalance_frequency)
 
+    if config.OPTIMIZATION_MODE == "method3":
+        u_min = config.METHOD3_U_MIN
+        # K (count) from the dedicated slider, clamped to [2, n].
+        k = sliders.hold_count if sliders.hold_count is not None else basket_size
+        k = max(2, min(int(k), basket_size))
+        # Grid M is the smallest power of two that fits K (fewest QUBO vars → best
+        # QPU feasibility); k can't exceed the unit budget (M ≥ K units for K held).
+        m_units = units_for_cardinality(k)
+        k = min(k, m_units // u_min)
+        w_min = u_min / m_units  # integer-grid floor = the minimum buy-in if held
+        # K-dominant, grid-aware: the cap can't make the INTEGER budget unreachable.
+        # K held assets must place M units, so each may need up to ⌈M/K⌉ units;
+        # floor(w_max·M) ≥ ⌈M/K⌉ requires w_max ≥ ⌈M/K⌉/M (stricter than 1/K).
+        grid_min_cap = math.ceil(m_units / k) / m_units
+        w_max = max(max_position_cap(basket_size, sliders.max_position_size), grid_min_cap)
+        return SliderParams(
+            gamma=gamma,
+            w_max=w_max,
+            w_min=w_min,
+            rebalance_hours=rebalance_hours,
+            cardinality_k=k,
+            n_units_M=m_units,
+            u_min_units=u_min,
+        )
+
+    # Convex fallback: every selected asset is held (no cardinality).
+    w_max = max_position_cap(basket_size, sliders.max_position_size)
+    w_min = config.MIN_POSITION_FRACTION / max(1, basket_size)
     return SliderParams(
         gamma=gamma,
         w_max=w_max,

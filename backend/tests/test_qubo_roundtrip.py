@@ -60,3 +60,49 @@ def test_normalize_leaves_bad_sums_alone(meta):
 def test_wrong_length_bitstring_raises(meta):
     with pytest.raises(ValueError):
         decode_bitstring(np.zeros(meta.n_total_bits - 1, dtype=np.int8), meta)
+
+
+# --- Method 3 (integer-units selection) decode ---
+
+
+@pytest.fixture
+def m3meta() -> DecodeMeta:
+    # M=16, b=3, u_min=1 → held weights on {1/16 … 8/16}; layout [y_0..y_2, x bits].
+    return DecodeMeta(
+        n_assets=3,
+        bits_per_asset=3,
+        w_max=0.5,
+        w_min=1 / 16,
+        asset_tickers=["A", "B", "C"],
+        scheme="method3",
+        n_units_M=16,
+        u_min_units=1,
+        increment_bits=3,
+    )
+
+
+def _m3_bits(units: dict[int, int], meta: DecodeMeta) -> np.ndarray:
+    bits = np.zeros(meta.n_total_bits, dtype=np.int8)
+    for i, u in units.items():
+        if u > 0:
+            bits[meta.y(i)] = 1
+            inc = u - meta.u_min_units
+            for k in range(meta.increment_bits):
+                bits[meta.x(i, k)] = (inc >> k) & 1
+    return bits
+
+
+def test_method3_unselected_decodes_to_zero(m3meta):
+    # increment bits set, but the select bit is off → weight must be 0
+    bits = np.zeros(m3meta.n_total_bits, dtype=np.int8)
+    for k in range(m3meta.increment_bits):
+        bits[m3meta.x(0, k)] = 1
+    weights = decode_bitstring(bits, m3meta)
+    assert weights[0] == 0.0
+
+
+def test_method3_decode_is_exact_no_normalize(m3meta):
+    # 8 + 4 + 4 = 16 = M → Σw = 1 exactly, with normalize=False (no crutch)
+    weights = decode_bitstring(_m3_bits({0: 8, 1: 4, 2: 4}, m3meta), m3meta)
+    assert weights == pytest.approx([8 / 16, 4 / 16, 4 / 16])
+    assert weights.sum() == 1.0  # exact, not approx

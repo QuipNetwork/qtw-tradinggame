@@ -5,8 +5,29 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from backend.financial.qubo_encoder import encode_qubo, qubo_hash
+from backend import config
+from backend.financial.qubo_encoder import (
+    encode_method3,
+    encode_qubo,
+    qubo_hash,
+    units_for_cardinality,
+)
 from backend.financial.types import PortfolioProblem
+
+
+def _method3_problem(n: int, k: int, gamma: float = 3.0) -> PortfolioProblem:
+    m = units_for_cardinality(k)  # production grid: smallest power of two ≥ K
+    return PortfolioProblem(
+        mu=np.full(n, 0.05),
+        Sigma=np.eye(n),
+        gamma=gamma,
+        w_max=0.5,
+        w_min=config.METHOD3_U_MIN / m,
+        asset_tickers=[f"A{i}" for i in range(n)],
+        cardinality_k=k,
+        n_units_M=m,
+        u_min_units=config.METHOD3_U_MIN,
+    )
 
 
 def _zero_linear_problem(n: int, gamma: float, w_min: float, w_max: float) -> PortfolioProblem:
@@ -69,6 +90,51 @@ def test_budget_penalty_ratio_is_config_invariant():
 
     for ratio in ratios:
         assert ratio == pytest.approx(p_mult, rel=1e-9)
+
+
+def test_method3_shape_symmetry_and_scheme():
+    prob = _method3_problem(5, 3)
+    b = prob.n_units_M.bit_length() - 2  # b = log2(M) − 1
+    q = encode_method3(prob)
+    assert q.Q.shape == (5 * (1 + b), 5 * (1 + b))  # n select + n·b increment bits
+    assert np.allclose(q.Q, q.Q.T)
+    assert q.decode_meta.scheme == "method3"
+    assert q.decode_meta.n_total_bits == 5 * (1 + b)
+
+
+def test_method3_dispatch_via_encode_qubo():
+    # encode_qubo routes cardinality problems to the Method 3 encoder
+    q = encode_qubo(_method3_problem(5, 3))
+    assert q.decode_meta.scheme == "method3"
+
+
+def test_method3_hash_is_content_addressed():
+    a = encode_method3(_method3_problem(6, 4))
+    assert qubo_hash(a) == qubo_hash(encode_method3(_method3_problem(6, 4)))
+    assert qubo_hash(a) != qubo_hash(encode_method3(_method3_problem(6, 3)))  # k changes it
+
+
+def test_units_for_cardinality_minimizes_grid():
+    # smallest power of two ≥ K, floored at MIN_UNITS, capped at MAX_UNITS
+    assert units_for_cardinality(3) == 8  # floored
+    assert units_for_cardinality(8) == 8
+    assert units_for_cardinality(9) == 16
+    assert units_for_cardinality(16) == 16
+    assert units_for_cardinality(17) == 32
+    assert units_for_cardinality(28) == 32  # capped (and ≥ universe)
+    # invariant: M ≥ K (units must fit the held count) and M is a power of two
+    for k in range(2, 29):
+        m = units_for_cardinality(k)
+        assert m >= k and (m & (m - 1)) == 0
+
+
+def test_method3_grid_shrinks_vars_for_small_k():
+    # small K → small M → fewer variables (the QPU-feasibility lever)
+    small_k = encode_method3(_method3_problem(20, 4))  # K=4 → M=8 (b=2) → 3N
+    large_k = encode_method3(_method3_problem(20, 20))  # K=20 → M=32 (b=4) → 5N
+    assert small_k.n == 20 * 3
+    assert large_k.n == 20 * 5
+    assert small_k.n < large_k.n
 
 
 def test_large_baskets_drop_to_2_bits(synthetic_problem_3assets):

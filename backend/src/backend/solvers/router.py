@@ -35,6 +35,10 @@ class SolverRun:
     race_time_s: float | None
     objective: float | None
     error: str | None = None
+    # The winner is the FASTEST feasible solver (status="winner"); this separately
+    # flags the feasible solver with the BEST (lowest) objective — they may differ, so
+    # the UI can show "fastest" and "best portfolio" without conflating them.
+    best_objective: bool = False
 
 
 @dataclass
@@ -118,7 +122,12 @@ def race(
                         )
                     )
                     continue
-                feas = check_feasibility(solution.weights, problem.w_max, problem.w_min)
+                feas = check_feasibility(
+                    solution.weights,
+                    problem.w_max,
+                    problem.w_min,
+                    cardinality_k=problem.cardinality_k,
+                )
                 solution.feasible = feas.feasible
                 results.append(solution)
                 solver_runs.append(
@@ -136,12 +145,13 @@ def race(
             pass  # deadline hit; proceed with whatever finished
 
         finished = set(futures) - {f for f in futures if not f.done()}
-        timed_out_provider_names = {
-            futures[future] for future in futures if future not in finished
-        }
+        timed_out_provider_names = {futures[future] for future in futures if future not in finished}
         seen_provider_names = {run.provider for run in solver_runs}
         for provider in providers:
-            if provider.name in timed_out_provider_names and provider.name not in seen_provider_names:
+            if (
+                provider.name in timed_out_provider_names
+                and provider.name not in seen_provider_names
+            ):
                 solver_runs.append(
                     SolverRun(
                         provider=provider.name,
@@ -163,6 +173,19 @@ def race(
         if run.provider == winner.provider:
             run.status = "winner"
             break
+
+    # Mark the best-objective feasible solver (lowest objective). Winner stays the
+    # FASTEST feasible (above); this is the quality leader, surfaced separately.
+    best_obj = min(
+        (s for s in feasible_results if s.objective is not None),
+        key=lambda s: s.objective,
+        default=None,
+    )
+    if best_obj is not None:
+        for run in solver_runs:
+            if run.provider == best_obj.provider and run.feasible:
+                run.best_objective = True
+                break
 
     return RaceResult(
         winner=winner,

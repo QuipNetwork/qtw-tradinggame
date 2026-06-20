@@ -64,12 +64,27 @@ def bits_for_basket(n_assets: int) -> int:
     return config.BIT_PRECISION_LARGE
 
 
+def units_for_cardinality(k: int) -> int:
+    """Method 3 grid size M for cardinality k: the smallest power of two ≥ k (must
+    have M ≥ k units to place k held assets), floored/capped by config. Smaller M =
+    fewer increment bits = fewer QUBO variables, which is the QPU-feasibility lever
+    (see config METHOD3_MIN/MAX_UNITS and the encode_method3 b = log2(M)−1 layout)."""
+    floor = max(k, config.METHOD3_MIN_UNITS)
+    m = 1 << (floor - 1).bit_length()  # next power of two ≥ floor
+    return min(m, config.METHOD3_MAX_UNITS)
+
+
 def encode_qubo(
     problem: PortfolioProblem,
     bits_per_asset: int | None = None,
     penalty_mult_budget: float | None = None,
 ) -> QuboMatrix:
-    """Convert the box-constrained QP → QUBO. See module docstring."""
+    """Convert the box-constrained QP → QUBO. See module docstring.
+
+    Dispatches to ``encode_method3`` for cardinality/semi-continuous problems.
+    """
+    if problem.is_method3:
+        return encode_method3(problem)
 
     b = bits_per_asset if bits_per_asset is not None else bits_for_basket(problem.N)
     pmult_budget = (
@@ -126,6 +141,105 @@ def encode_qubo(
         w_max=problem.w_max,
         w_min=w_min,
         asset_tickers=list(problem.asset_tickers),
+    )
+    return QuboMatrix(Q=Q, decode_meta=decode_meta)
+
+
+def encode_method3(
+    problem: PortfolioProblem,
+    *,
+    increment_bits: int | None = None,
+    pmult_budget: float | None = None,
+    pmult_card: float | None = None,
+    pmult_link: float | None = None,
+) -> QuboMatrix:
+    """Cardinality + semi-continuous MIQP → integer-units selection QUBO.
+
+    Variables z = [y_0..y_{N-1}, x_{0,0}..x_{N-1,b-1}]:
+        y_i ∈ {0,1}      select asset i
+        x_{i,k} ∈ {0,1}  increment bits
+        units  u_i = u_min·y_i + Σ_k 2^k x_{i,k};   weight w_i = u_i / M
+
+    Objective (γ/2M²)uᵀΣu − (1/M)μᵀu plus three penalties — budget λ_bud(Σu−M)²,
+    cardinality λ_card(Σy−k)², linking λ_link Σ x_{i,k}(1−y_i) (no increment without
+    selection). Integer units make Σu=M exactly representable. Each penalty's peak
+    coefficient is normalized to pmult·obj_scale, so the pmults are config-invariant
+    ratios (same philosophy as the convex budget penalty). Reference + validation:
+    sketches/method3_integer_units_qubo.py.
+    """
+    assert problem.is_method3, "encode_method3 requires cardinality_k / n_units_M"
+    N = problem.N
+    M = problem.n_units_M
+    u_min = problem.u_min_units
+    k = problem.cardinality_k
+    # b = log2(M) − 1 (u_min=1, grid [1/M, 0.5]); the grid size M (from
+    # units_for_cardinality) is the single source of the bit depth.
+    b = increment_bits if increment_bits is not None else (M.bit_length() - 2)
+    pmult_budget = pmult_budget if pmult_budget is not None else config.PENALTY_MULT_BUDGET
+    pmult_card = pmult_card if pmult_card is not None else config.METHOD3_PENALTY_MULT_CARD
+    pmult_link = pmult_link if pmult_link is not None else config.METHOD3_PENALTY_MULT_LINK
+
+    nv = N * (1 + b)
+
+    def yidx(i: int) -> int:
+        return i
+
+    def xidx(i: int, kk: int) -> int:
+        return N + i * b + kk
+
+    # u = G z  (floor on the select bit, place-values on the increment bits).
+    G = np.zeros((N, nv))
+    for i in range(N):
+        G[i, yidx(i)] = u_min
+        for kk in range(b):
+            G[i, xidx(i, kk)] = 2**kk
+
+    # Objective: (γ/2M²) uᵀΣu − (1/M) μᵀu.
+    Qm = (problem.gamma / (2.0 * M * M)) * (G.T @ problem.Sigma @ G)
+    lin = -(1.0 / M) * (G.T @ problem.mu)
+    obj_scale = max(float(np.abs(Qm).max()), float(np.abs(lin).max()), 1e-12)
+
+    # Budget penalty λ_bud (vᵀz − M)², v = Gᵀ1 — peak normalized to pmult·obj_scale.
+    v = G.T @ np.ones(N)
+    v_max_sq = max(float((v**2).max()), 1e-12)
+    lam_bud = pmult_budget * obj_scale / v_max_sq
+    Qm += lam_bud * np.outer(v, v)
+    lin += lam_bud * (-2.0 * M) * v
+
+    # Cardinality penalty λ_card (sᵀz − k)², s = 1 on the select bits (peak |s⊗s|=1).
+    s = np.zeros(nv)
+    for i in range(N):
+        s[yidx(i)] = 1.0
+    lam_card = pmult_card * obj_scale
+    Qm += lam_card * np.outer(s, s)
+    lin += lam_card * (-2.0 * k) * s
+
+    # Linking penalty λ_link Σ x(1−y) = λ_link·x − λ_link·x·y.
+    lam_link = pmult_link * obj_scale
+    for i in range(N):
+        yv = yidx(i)
+        for kk in range(b):
+            xv = xidx(i, kk)
+            lin[xv] += lam_link
+            Qm[xv, yv] += -lam_link / 2.0
+            Qm[yv, xv] += -lam_link / 2.0
+
+    # Assemble symmetric Q; fold linear onto the diagonal (z²=z).
+    Q = Qm
+    for p in range(nv):
+        Q[p, p] += lin[p]
+    assert np.allclose(Q, Q.T), "QUBO matrix must be symmetric"
+
+    decode_meta = DecodeMeta(
+        n_assets=N,
+        bits_per_asset=b,
+        w_max=problem.w_max,
+        w_min=problem.w_min,
+        asset_tickers=list(problem.asset_tickers),
+        scheme="method3",
+        n_units_M=M,
+        u_min_units=u_min,
+        increment_bits=b,
     )
     return QuboMatrix(Q=Q, decode_meta=decode_meta)
 
