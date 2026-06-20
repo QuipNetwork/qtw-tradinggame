@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
+import { maxPositionCapPct, rebalanceTierIndex, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 
@@ -386,7 +386,7 @@ export default function KioskSignUp() {
                 <span className="v4m-cadence-label">Rebalance</span>
                 <div className="v4m-cad-row">
                   {REBALANCE_CHIP_LABELS.map((lbl, t) => {
-                    const active = Math.min(4, Math.floor(sliders[0] / 20)) === t;
+                    const active = rebalanceTierIndex(sliders[0]) === t;
                     return (
                       <button
                         type="button"

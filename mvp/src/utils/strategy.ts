@@ -26,9 +26,14 @@ export const REBALANCE_TIERS = [
   { label: 'Hourly',   hours: 1 },   // hard cap
 ] as const;
 
+// Tier index (0..len-1) for a 0–100 rebalance slider value. Single source of the
+// bucketing so the slider→hours mapping and the cadence chips can't drift apart.
+export function rebalanceTierIndex(value: number): number {
+  return Math.min(REBALANCE_TIERS.length - 1, Math.floor(value / 20));
+}
+
 export function rebalanceEveryHours(value: number): number {
-  const i = Math.min(REBALANCE_TIERS.length - 1, Math.floor(value / 20));
-  return REBALANCE_TIERS[i].hours;
+  return REBALANCE_TIERS[rebalanceTierIndex(value)].hours;
 }
 
 // Max position size is RELATIVE to the basket: an absolute cap below 1/n

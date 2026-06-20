@@ -13,7 +13,7 @@ import type {
 import { getAgent, getLeaderboard, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { glyphParams, labelFor, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
+import { glyphParams, labelFor, rebalanceTierIndex, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
@@ -218,7 +218,7 @@ export default function PhoneProfile() {
     }, {} as SliderValues);
     const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
     // Method 3 cardinality K, clamped to the (possibly edited) basket; default = all.
-    next.holdCount = Math.max(2, Math.min(holdCount ?? assets.length, assets.length));
+    next.holdCount = Math.max(3, Math.min(holdCount ?? assets.length, assets.length));
     try {
       const r = await requestOptimization(agentId, { sliders: next, assets });
       setAgent(prev => prev ? {
@@ -480,7 +480,7 @@ export default function PhoneProfile() {
               {(() => {
                 const n = basket.size;
                 const ready = n >= 2;
-                const k = ready ? Math.max(2, Math.min(holdCount ?? n, n)) : 2;
+                const k = ready ? Math.max(3, Math.min(holdCount ?? n, n)) : 3;
                 const pct = ready ? (n > 2 ? ((k - 2) / (n - 2)) * 100 : 100) : 0;
                 return (
                   <div className={`v4m-slider${ready ? '' : ' disabled'}`} key="holdCount">
@@ -497,7 +497,7 @@ export default function PhoneProfile() {
                       </div>
                       <input
                         type="range" className="range-overlay"
-                        min={2} max={Math.max(2, n)} step={1} value={k}
+                        min={3} max={Math.max(3, n)} step={1} value={k}
                         disabled={!ready}
                         onChange={e => setHoldCount(parseInt(e.target.value, 10))}
                       />
@@ -510,7 +510,7 @@ export default function PhoneProfile() {
                 <span className="v4m-cadence-label">Rebalance</span>
                 <div className="v4m-cad-row">
                   {REBALANCE_CHIP_LABELS.map((lbl, t) => {
-                    const active = Math.min(4, Math.floor(sliders[0] / 20)) === t;
+                    const active = rebalanceTierIndex(sliders[0]) === t;
                     return (
                       <button
                         type="button"
