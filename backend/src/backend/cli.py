@@ -35,6 +35,7 @@ def _sliders(args: argparse.Namespace) -> SliderValues:
         rebalanceFrequency=args.rebalance,
         riskPreference=args.risk,
         maxPositionSize=args.max_position,
+        holdCount=getattr(args, "hold_count", None),
     )
 
 
@@ -54,6 +55,9 @@ def _build_problem(tickers: list[str], args: argparse.Namespace) -> PortfolioPro
         w_max=params.w_max,
         w_min=params.w_min,
         asset_tickers=tickers,
+        cardinality_k=params.cardinality_k,
+        n_units_M=params.n_units_M,
+        u_min_units=params.u_min_units,
     )
 
 
@@ -128,7 +132,9 @@ def cmd_optimize(args: argparse.Namespace) -> None:
     print("\nsolver race (waited for all):")
     winner_solution = None
     for solution in outcome.solver_results:
-        feas = check_feasibility(solution.weights, params.w_max, params.w_min)
+        feas = check_feasibility(
+            solution.weights, params.w_max, params.w_min, cardinality_k=params.cardinality_k
+        )
         is_winner = solution.provider == outcome.winner_provider
         if is_winner:
             winner_solution = solution
@@ -173,7 +179,9 @@ def cmd_race(args: argparse.Namespace) -> None:
             except SolverFailed as exc:
                 print(f"  {provider.name:<8}{provider.role:<5} failed: {exc}", flush=True)
                 continue
-            feas = check_feasibility(solution.weights, problem.w_max, problem.w_min)
+            feas = check_feasibility(
+                solution.weights, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+            )
             solution.feasible = feas.feasible
             _print_solution(provider.name, provider.role, solution, feas, tickers)
             results.append(solution)
@@ -254,7 +262,9 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
             print(f"{key}: {timing[key]} µs")
 
     weights, _ = select_solution(response, qubo, problem)
-    feas = check_feasibility(weights, problem.w_max, problem.w_min)
+    feas = check_feasibility(
+        weights, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+    )
     print(
         f"\nbest read: Σw={weights.sum():.4f}  feasible={feas.feasible}"
         + ("" if feas.feasible else f"  ({feas.reason})")
@@ -269,7 +279,9 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
     for sample in response.samples():
         bits = np.array([sample[i] for i in range(qubo.n)], dtype=np.int8)
         w = decode_bitstring(bits, qubo.decode_meta, normalize=True)
-        if check_feasibility(w, problem.w_max, problem.w_min).feasible:
+        if check_feasibility(
+            w, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+        ).feasible:
             objectives.append(problem.objective(w))
     if objectives:
         print(
@@ -294,6 +306,9 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--rebalance", type=int, default=50, help="rebalance frequency 0–100")
     parser.add_argument("--risk", type=int, default=50, help="risk preference 0–100")
     parser.add_argument("--max-position", type=int, default=50, help="max position size 0–100")
+    parser.add_argument(
+        "--hold-count", type=int, default=None, help="Method 3: number of assets to hold (K)"
+    )
     parser.add_argument("--assets", default=None, help="comma-separated basket, e.g. BTC,ETH,IONQ")
 
 

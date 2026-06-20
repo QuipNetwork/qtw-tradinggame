@@ -137,6 +137,28 @@ def test_method3_grid_shrinks_vars_for_small_k():
     assert small_k.n < large_k.n
 
 
+def test_increment_place_values_caps_at_w_max():
+    from backend.financial.qubo_decoder import decode_bitstring
+    from backend.financial.qubo_encoder import increment_place_values
+
+    # Default w_max=0.5 → plain powers of two (no behavior change).
+    assert list(increment_place_values(0.5, 8, 1, 2)) == [1.0, 2.0]
+    assert list(increment_place_values(0.5, 32, 1, 4)) == [1.0, 2.0, 4.0, 8.0]
+    # Tight cap w_max=0.375, M=8 → u_cap=3, so the increment maxes at 2 (units 1..3).
+    assert sum(increment_place_values(0.375, 8, 1, 2)) == 2.0
+
+    # The bounded grid never decodes a weight above w_max, even with ALL bits set
+    # (the old plain-2^k encoding would have allowed 4/8 = 0.5 > 0.375 here).
+    M = 8
+    prob = PortfolioProblem(
+        mu=np.full(4, 0.05), Sigma=np.eye(4), gamma=3.0, w_max=0.375, w_min=1 / M,
+        asset_tickers=[f"A{i}" for i in range(4)], cardinality_k=3, n_units_M=M, u_min_units=1,
+    )
+    q = encode_method3(prob)
+    w = decode_bitstring(np.ones(q.n, dtype=np.int8), q.decode_meta)
+    assert w.max() <= prob.w_max + 1e-9
+
+
 def test_large_baskets_drop_to_2_bits(synthetic_problem_3assets):
     from backend.financial.qubo_encoder import bits_for_basket
 

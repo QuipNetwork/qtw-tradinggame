@@ -8,6 +8,7 @@ and the solver comparison display.
 
 from __future__ import annotations
 
+import math
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -175,10 +176,12 @@ def race(
             break
 
     # Mark the best-objective feasible solver (lowest objective). Winner stays the
-    # FASTEST feasible (above); this is the quality leader, surfaced separately.
+    # FASTEST feasible (above); this is the quality leader, surfaced separately. Skip
+    # non-finite objectives, and break ties toward the winner so the badge doesn't move
+    # to a slower solver that merely matched the winning portfolio's objective.
     best_obj = min(
-        (s for s in feasible_results if s.objective is not None),
-        key=lambda s: s.objective,
+        (s for s in feasible_results if s.objective is not None and math.isfinite(s.objective)),
+        key=lambda s: (s.objective, s is not winner),
         default=None,
     )
     if best_obj is not None:

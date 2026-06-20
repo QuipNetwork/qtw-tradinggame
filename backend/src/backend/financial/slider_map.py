@@ -74,13 +74,13 @@ def map_sliders(sliders: SliderValues, basket_size: int) -> SliderParams:
 
     if config.OPTIMIZATION_MODE == "method3":
         u_min = config.METHOD3_U_MIN
-        # K (count) from the dedicated slider, clamped to [2, n].
+        # K (count) from the dedicated slider. Floor 3 (K=2 on the integer grid forces a
+        # degenerate 50/50 split), capped to the basket and the grid's unit ceiling.
         k = sliders.hold_count if sliders.hold_count is not None else basket_size
-        k = max(2, min(int(k), basket_size))
-        # Grid M is the smallest power of two that fits K (fewest QUBO vars → best
-        # QPU feasibility); k can't exceed the unit budget (M ≥ K units for K held).
+        k = max(3, min(int(k), basket_size, config.METHOD3_MAX_UNITS))
+        # Grid M is the smallest power of two that fits K (fewest QUBO vars → best QPU
+        # feasibility); units_for_cardinality guarantees M ≥ K so the budget is placeable.
         m_units = units_for_cardinality(k)
-        k = min(k, m_units // u_min)
         w_min = u_min / m_units  # integer-grid floor = the minimum buy-in if held
         # K-dominant, grid-aware: the cap can't make the INTEGER budget unreachable.
         # K held assets must place M units, so each may need up to ⌈M/K⌉ units;

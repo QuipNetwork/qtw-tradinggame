@@ -81,9 +81,12 @@ def _get_sampler():
                 from dwave.system import DWaveCliqueSampler
             except ImportError as e:
                 raise SolverFailed("dwave-system not installed") from e
-            kw = {}
-            if config.DWAVE_SOLVER_TOPOLOGY:
-                kw["solver"] = {"topology__type": config.DWAVE_SOLVER_TOPOLOGY}
+            topology = config.DWAVE_SOLVER_TOPOLOGY
+            if topology and topology not in ("pegasus", "zephyr"):
+                raise SolverFailed(
+                    f"DWAVE_SOLVER_TOPOLOGY must be '', 'pegasus', or 'zephyr', got {topology!r}"
+                )
+            kw = {"solver": {"topology__type": topology}} if topology else {}
             try:
                 _sampler = DWaveCliqueSampler(**kw)
             except Exception as e:

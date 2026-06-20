@@ -20,13 +20,14 @@ class SliderValues(BaseModel):
     max_position_size — per-asset weight cap, relative to the basket
         (equal weight 1/n → ~50% in a single asset).
     hold_count — Method 3 only: how many of the basket the optimizer holds (K).
-        Absolute count, clamped to [2, basket size] at map time. None ⇒ hold all.
+        Absolute count, clamped to [3, basket size] at map time. None ⇒ hold all.
+        Floored at 3: K=2 on the integer grid forces a degenerate 50/50 split.
     """
 
     rebalance_frequency: float = Field(ge=0, le=100, alias="rebalanceFrequency")
     risk_preference: float = Field(ge=0, le=100, alias="riskPreference")
     max_position_size: float = Field(ge=0, le=100, alias="maxPositionSize")
-    hold_count: int | None = Field(default=None, ge=2, alias="holdCount")
+    hold_count: int | None = Field(default=None, ge=3, alias="holdCount")
 
     model_config = ConfigDict(populate_by_name=True)
 

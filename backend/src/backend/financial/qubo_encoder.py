@@ -74,6 +74,27 @@ def units_for_cardinality(k: int) -> int:
     return min(m, config.METHOD3_MAX_UNITS)
 
 
+def increment_place_values(w_max: float, n_units_M: int, u_min: int, b: int) -> np.ndarray:
+    """Place values for one held asset's b increment bits (Method 3).
+
+    Caps a held asset at u_cap = ⌊w_max·M⌋ units so the integer grid never exceeds the
+    per-asset box (w_i ≤ w_max) — a bounded-coefficient encoding [1, 2, …, remainder].
+    With the default w_max = 0.5 the remainder vanishes and this is plain 2^k. Encoder
+    and decoder both call this, so the layout (and the cap) cannot drift between them."""
+    c_max = max(0, int(np.floor(w_max * n_units_M)) - u_min)  # max increment above u_min
+    coeffs = np.zeros(b)
+    acc = 0
+    for k in range(b):
+        step = 1 << k
+        if acc + step <= c_max:
+            coeffs[k] = step
+            acc += step
+        else:
+            coeffs[k] = c_max - acc  # remainder bit; subsequent coeffs stay 0
+            break
+    return coeffs
+
+
 def encode_qubo(
     problem: PortfolioProblem,
     bits_per_asset: int | None = None,
@@ -187,12 +208,14 @@ def encode_method3(
     def xidx(i: int, kk: int) -> int:
         return N + i * b + kk
 
-    # u = G z  (floor on the select bit, place-values on the increment bits).
+    # u = G z  (floor on the select bit, w_max-bounded place values on the increment
+    # bits, so a held asset can never exceed ⌊w_max·M⌋ units — see increment_place_values).
+    inc_coeffs = increment_place_values(problem.w_max, M, u_min, b)
     G = np.zeros((N, nv))
     for i in range(N):
         G[i, yidx(i)] = u_min
         for kk in range(b):
-            G[i, xidx(i, kk)] = 2**kk
+            G[i, xidx(i, kk)] = inc_coeffs[kk]
 
     # Objective: (γ/2M²) uᵀΣu − (1/M) μᵀu.
     Qm = (problem.gamma / (2.0 * M * M)) * (G.T @ problem.Sigma @ G)

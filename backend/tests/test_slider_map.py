@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from backend import config
 from backend.api.schemas import SliderValues
@@ -83,9 +84,15 @@ def test_method3_sets_grid_and_cardinality(monkeypatch):
 
 def test_method3_cardinality_clamps_to_basket(monkeypatch):
     monkeypatch.setattr(config, "OPTIMIZATION_MODE", "method3")
-    assert map_sliders(_sliders(holdCount=99), basket_size=8).cardinality_k == 8
-    assert map_sliders(_sliders(holdCount=2), basket_size=8).cardinality_k == 2
+    assert map_sliders(_sliders(holdCount=99), basket_size=8).cardinality_k == 8  # → basket
+    assert map_sliders(_sliders(holdCount=3), basket_size=8).cardinality_k == 3  # floor value
     assert map_sliders(_sliders(), basket_size=8).cardinality_k == 8  # None → hold all
+
+
+def test_hold_count_below_three_is_rejected():
+    # K=2 on the integer grid forces a degenerate 50/50; the contract floors at 3.
+    with pytest.raises(ValidationError):
+        SliderValues(rebalanceFrequency=50, riskPreference=50, maxPositionSize=50, holdCount=2)
 
 
 def test_method3_w_max_is_k_dominant_grid_aware(monkeypatch):
