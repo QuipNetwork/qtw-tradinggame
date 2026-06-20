@@ -4643,9 +4643,17 @@
     color: #a1a1aa;
     margin-top: 10px;
   }
+  /* Single flex row: the launch hint sits inline to the LEFT of the button so it
+     never adds a row below the CTA (which pushed the watchlist into a scroll). */
   .kiosk-v4 .v4m-cta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
     padding: 0 22px 14px;
   }
+  .kiosk-v4 .v4m-cta-bar .v4m-cta { width: auto; flex: 0 0 auto; min-width: 300px; }
+  .kiosk-v4 .v4m-cta-bar .v4m-cta-sub { order: -1; flex: 1; margin: 0; text-align: left; }
   .kiosk-v4 .v4m-cta {
     display: block;
     width: 100%;
@@ -4673,6 +4681,8 @@
     color: #71717b;
     margin-top: 8px;
   }
+  /* All requirements met — positive cyan state instead of a muted blocking hint. */
+  .kiosk-v4 .v4m-cta-sub.ok { color: #0891B2; }
   .kiosk-v4 .v4m-basket {
     border-top: 1px solid #dbdbde;
     padding: 12px 22px;
@@ -4793,7 +4803,7 @@
   .kiosk-v4.app-fit .v4m-preview-mystery-caption { display: none; }
   .kiosk-v4.app-fit .v4m-cta-bar { padding: 0 18px 10px; }
   .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
-  .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
+  .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 0; }
 
   /* Email-frequency segmented toggle — revealed under the "Email me my portfolio
      results" opt-in. Aligned under the checkbox label; cyan = selected. */
@@ -4803,6 +4813,33 @@
   .kiosk-v4 .v4m-freq-opt.on { background: #0891B2; border-color: #0891B2; color: white; }
   .kiosk-v4.app-fit .v4m-freq { margin-top: 5px; }
   .kiosk-v4.app-fit .v4m-freq-opt { padding: 4px 12px; font-size: 0.74rem; }
+
+  /* "Number to hold" (K) is the third strategy slider; before a basket exists it
+     renders disabled so the 3-slider layout never jumps. */
+  .qs-v4-mock .v4m-slider.disabled { opacity: 0.45; }
+  .qs-v4-mock .v4m-slider.disabled input[type=range] { cursor: default; }
+
+  /* Rebalance cadence — 5 discrete tiers as a COMPACT INLINE row (label + chips on
+     one line) below the three sliders, so the card stays short and the watchlist
+     above doesn't scroll. Shared by kiosk + phone (both use .qs-v4-mock). */
+  .qs-v4-mock .v4m-cadence {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0 2px; border-top: 1px solid #ececef;
+  }
+  .qs-v4-mock .v4m-cadence-label {
+    flex: 0 0 auto;
+    font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+    font-size: 1rem; letter-spacing: -0.01em; color: #18181b;
+  }
+  .qs-v4-mock .v4m-cad-row { flex: 1; display: flex; gap: 5px; }
+  .qs-v4-mock .v4m-cad-chip {
+    flex: 1; min-width: 0; padding: 6px 2px; text-align: center;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 0.66rem; font-weight: 600;
+    color: #52525b; background: white; border: 1px solid #d4d4d8; cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .qs-v4-mock .v4m-cad-chip:hover { border-color: #a1a1aa; }
+  .qs-v4-mock .v4m-cad-chip.on { background: #0891B2; border-color: #0891B2; color: white; }
 
   /* ─── App mode for the strategy-return screen — compact chrome so a
      full 28-holding portfolio + QR fit the 1024×768 stage. ─── */

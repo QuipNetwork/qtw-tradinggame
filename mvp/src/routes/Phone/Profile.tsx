@@ -13,7 +13,7 @@ import type {
 import { getAgent, getLeaderboard, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
+import { glyphParams, labelFor, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
@@ -115,6 +115,7 @@ export default function PhoneProfile() {
   const { agentId } = useParams();
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [sliders, setSliders] = useState<number[] | null>(null);
+  const [holdCount, setHoldCount] = useState<number | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
   const [live, setLive] = useState<AgentUpdate | null>(null);
   const [busy, setBusy] = useState(false);
@@ -135,6 +136,7 @@ export default function PhoneProfile() {
       if (!a) return;
       setAgent(a);
       setSliders(slidersToArray(a.sliders));
+      setHoldCount(a.sliders.holdCount ?? null);
       setBasket(new Set(a.assets ?? []));
       const targetMs = qpuCooldownTargetMs(a.qpuBudget);
       if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
@@ -215,6 +217,8 @@ export default function PhoneProfile() {
       return acc;
     }, {} as SliderValues);
     const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
+    // Method 3 cardinality K, clamped to the (possibly edited) basket; default = all.
+    next.holdCount = Math.max(2, Math.min(holdCount ?? assets.length, assets.length));
     try {
       const r = await requestOptimization(agentId, { sliders: next, assets });
       setAgent(prev => prev ? {
@@ -443,33 +447,91 @@ export default function PhoneProfile() {
 
             <div>
               <div className="v4m-section-eyebrow" style={{ marginBottom: 8 }}>Strategy · Drag to Retune</div>
-              {SLIDER_DEFS.map((def, i) => (
-                <div className="v4m-slider" key={def.key}>
-                  <div className="v4m-slider-top">
-                    <span className="v4m-slider-label">{def.label}</span>
-                    <span className="v4m-slider-val">{labelFor(i, sliders[i])}</span>
-                  </div>
-                  <div className="v4m-slider-shell">
-                    <div className="v4m-slider-track">
-                      <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
-                      <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+              {SLIDER_DEFS.map((def, i) =>
+                def.key === 'rebalanceFrequency' ? null : (
+                  <div className="v4m-slider" key={def.key}>
+                    <div className="v4m-slider-top">
+                      <span className="v4m-slider-label">{def.label}</span>
+                      <span className="v4m-slider-val">{labelFor(i, sliders[i])}</span>
                     </div>
-                    <input
-                      type="range" className="range-overlay"
-                      min={0} max={100} value={sliders[i]}
-                      onChange={e => {
-                        const v = parseInt(e.target.value, 10);
-                        setSliders(prev => {
-                          if (!prev) return prev;
-                          const next = [...prev];
-                          next[i] = v;
-                          return next;
-                        });
-                      }}
-                    />
+                    <div className="v4m-slider-shell">
+                      <div className="v4m-slider-track">
+                        <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
+                        <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+                      </div>
+                      <input
+                        type="range" className="range-overlay"
+                        min={0} max={100} value={sliders[i]}
+                        onChange={e => {
+                          const v = parseInt(e.target.value, 10);
+                          setSliders(prev => {
+                            if (!prev) return prev;
+                            const nx = [...prev];
+                            nx[i] = v;
+                            return nx;
+                          });
+                        }}
+                      />
+                    </div>
                   </div>
+                )
+              )}
+              {/* Number to hold (K) — the third slider; a count tied to the basket. */}
+              {(() => {
+                const n = basket.size;
+                const ready = n >= 2;
+                const k = ready ? Math.max(2, Math.min(holdCount ?? n, n)) : 2;
+                const pct = ready ? (n > 2 ? ((k - 2) / (n - 2)) * 100 : 100) : 0;
+                return (
+                  <div className={`v4m-slider${ready ? '' : ' disabled'}`} key="holdCount">
+                    <div className="v4m-slider-top">
+                      <span className="v4m-slider-label">Number to hold</span>
+                      <span className="v4m-slider-val">
+                        {ready ? `${k} of ${n}${k === n ? ' · all' : ''}` : 'edit basket'}
+                      </span>
+                    </div>
+                    <div className="v4m-slider-shell">
+                      <div className="v4m-slider-track">
+                        <div className="v4m-slider-fill" style={{ width: `${pct}%` }}></div>
+                        <div className="v4m-slider-knob" style={{ left: `${pct}%` }}></div>
+                      </div>
+                      <input
+                        type="range" className="range-overlay"
+                        min={2} max={Math.max(2, n)} step={1} value={k}
+                        disabled={!ready}
+                        onChange={e => setHoldCount(parseInt(e.target.value, 10))}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+              {/* Rebalance cadence — compact inline row (label + chips on one line). */}
+              <div className="v4m-cadence">
+                <span className="v4m-cadence-label">Rebalance</span>
+                <div className="v4m-cad-row">
+                  {REBALANCE_CHIP_LABELS.map((lbl, t) => {
+                    const active = Math.min(4, Math.floor(sliders[0] / 20)) === t;
+                    return (
+                      <button
+                        type="button"
+                        key={lbl}
+                        className={`v4m-cad-chip${active ? ' on' : ''}`}
+                        aria-pressed={active}
+                        onClick={() =>
+                          setSliders(prev => {
+                            if (!prev) return prev;
+                            const nx = [...prev];
+                            nx[0] = t * 25;
+                            return nx;
+                          })
+                        }
+                      >
+                        {lbl}
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
             </div>
 
             <button className={`v4m-cta${busy ? ' busy' : ''}${qpuCoolingDown ? ' cooldown' : ''}`} onClick={retune} disabled={retuneDisabled}>

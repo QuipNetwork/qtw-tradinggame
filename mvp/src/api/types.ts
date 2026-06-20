@@ -1,16 +1,19 @@
 // API contract for the Quip Network QTW 2026 trading-competition MVP.
 // Engineers wire a real backend by implementing these signatures (see api/index.ts).
 
-// Three strategy sliders, all native to the portfolio-allocation problem the
-// solver actually runs (the optimizer allocates — it doesn't execute trades):
-// rebalanceFrequency = how often the agent dispatches a re-optimization job;
+// Strategy controls for the portfolio-allocation problem the solver runs (the
+// optimizer allocates — it doesn't execute trades):
+// rebalanceFrequency = how often the agent dispatches a re-optimization job
+//                      (discrete tiers: Daily / 8h / 4h / 2h / Hourly);
 // riskPreference     = risk-aversion term in the objective;
-// maxPositionSize    = per-asset weight cap.
-// (Holding style and diversification were dropped — the basket expresses those.)
+// maxPositionSize    = per-asset weight cap;
+// holdCount          = Method 3: how many of the basket the optimizer holds (K).
+//                      Absolute count in [2, basket size]; omitted ⇒ hold all.
 export type SliderValues = {
-  rebalanceFrequency: number;  // 0–100
+  rebalanceFrequency: number;  // 0–100 (snaps to 5 cadence tiers)
   riskPreference: number;      // 0–100
   maxPositionSize: number;     // 0–100
+  holdCount?: number;          // 2..basketSize; the cardinality K (Method 3)
 };
 
 export type AgentConfig = {
@@ -94,6 +97,7 @@ export type SolverResult = {
   solveTime: number | null;
   raceTime: number | null;      // audit/debug only; UI ranks by solveTime
   objective?: number | null;
+  bestObjective?: boolean;      // quality leader (lowest objective); may differ from winner
   error?: string | null;
 };
 

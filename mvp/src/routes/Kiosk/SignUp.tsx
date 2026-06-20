@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct } from '../../utils/strategy';
+import { maxPositionCapPct, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 
@@ -20,8 +20,9 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: numb
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// A basket needs at least this many assets to optimize a meaningful portfolio.
-const MIN_ASSETS = 3;
+// The watchlist needs at least this many assets so the optimizer can meaningfully
+// sub-select (hold at least 3 of them — see the "Number to hold" K slider).
+const MIN_ASSETS = 5;
 
 // "Would you like someone from our team to reach out to you?" — verbatim from
 // the Luma event registration so kiosk leads and event sign-ups share one
@@ -76,6 +77,9 @@ export default function KioskSignUp() {
     });
   }
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
+  // Method 3 cardinality: how many of the basket the optimizer holds (K).
+  // null ⇒ hold all; clamped to [2, basket size] at launch.
+  const [holdCount, setHoldCount] = useState<number | null>(null);
   // Start with an empty basket — the player actively picks their assets.
   const [selected, setSelected] = useState<Set<AssetTicker>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -120,6 +124,7 @@ export default function KioskSignUp() {
     setUpdatesOptIn(false);
     setUpdateFrequency('daily');
     setSliders(SLIDER_DEFS.map(s => s.initial));
+    setHoldCount(null);
     setSelected(new Set());
     setError(null);
   }
@@ -142,6 +147,8 @@ export default function KioskSignUp() {
       acc[def.key] = sliders[i];
       return acc;
     }, {} as SliderValues);
+    // K (Method 3): hold the best K of the watchlist; default = hold all.
+    sliderValues.holdCount = Math.max(3, Math.min(holdCount ?? selected.size, selected.size));
     try {
       const { agentId, qrUrl } = await submitAgent({
         name: previewName,
@@ -282,7 +289,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your basket <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
+                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
                 <span className={`v4m-selector-count${selected.size > 0 && selected.size < MIN_ASSETS ? ' under' : ''}`}>{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
@@ -305,34 +312,94 @@ export default function KioskSignUp() {
                 <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
               </div>
               <div className="v4m-sliders-row">
-                {SLIDER_DEFS.map((def, i) => (
-                  <div className="v4m-slider" key={def.key}>
-                    <div className="v4m-slider-top">
-                      <span className="v4m-slider-label">{def.label}</span>
-                    </div>
-                    <div className="v4m-slider-shell">
-                      <div className="v4m-slider-track">
-                        <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
-                        <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+                {SLIDER_DEFS.map((def, i) =>
+                  def.key === 'rebalanceFrequency' ? null : (
+                    <div className="v4m-slider" key={def.key}>
+                      <div className="v4m-slider-top">
+                        <span className="v4m-slider-label">{def.label}</span>
                       </div>
-                      <input
-                        type="range"
-                        className="range-overlay"
-                        min={0}
-                        max={100}
-                        value={sliders[i]}
-                        onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
-                      />
+                      <div className="v4m-slider-shell">
+                        <div className="v4m-slider-track">
+                          <div className="v4m-slider-fill" style={{ width: `${sliders[i]}%` }}></div>
+                          <div className="v4m-slider-knob" style={{ left: `${sliders[i]}%` }}></div>
+                        </div>
+                        <input
+                          type="range"
+                          className="range-overlay"
+                          min={0}
+                          max={100}
+                          value={sliders[i]}
+                          onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
+                        />
+                      </div>
+                      <div className="v4m-slider-bottom">
+                        <span className="v4m-slider-val">
+                          {labelFor(sliders[i], def.labels)}
+                          {/* the position cap is relative to the basket — show the live number */}
+                          {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                        </span>
+                      </div>
                     </div>
-                    <div className="v4m-slider-bottom">
-                      <span className="v4m-slider-val">
-                        {labelFor(sliders[i], def.labels)}
-                        {/* the position cap is relative to the basket — show the live number */}
-                        {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
-                      </span>
+                  )
+                )}
+                {/* Number to hold (K) — the third slider; a count tied to the basket
+                    (the optimizer sub-selects the best K). Disabled until ≥2 picked. */}
+                {(() => {
+                  const n = selected.size;
+                  const ready = n >= 3;
+                  const k = ready ? Math.max(3, Math.min(holdCount ?? n, n)) : 3;
+                  const pct = ready ? (n > 3 ? ((k - 3) / (n - 3)) * 100 : 100) : 0;
+                  return (
+                    <div className={`v4m-slider${ready ? '' : ' disabled'}`} key="holdCount">
+                      <div className="v4m-slider-top">
+                        <span className="v4m-slider-label">Number to hold</span>
+                      </div>
+                      <div className="v4m-slider-shell">
+                        <div className="v4m-slider-track">
+                          <div className="v4m-slider-fill" style={{ width: `${pct}%` }}></div>
+                          <div className="v4m-slider-knob" style={{ left: `${pct}%` }}></div>
+                        </div>
+                        <input
+                          type="range"
+                          className="range-overlay"
+                          min={3}
+                          max={Math.max(3, n)}
+                          step={1}
+                          value={k}
+                          disabled={!ready}
+                          onChange={e => setHoldCount(parseInt(e.target.value, 10))}
+                        />
+                      </div>
+                      <div className="v4m-slider-bottom">
+                        <span className="v4m-slider-val">
+                          {ready ? `${k} of ${n}${k === n ? ' · all' : ''}` : 'pick a watchlist first'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })()}
+              </div>
+              {/* Rebalance cadence — discrete tiers as a COMPACT inline row (label +
+                  chips on one line) so the card stays short and the watchlist
+                  above doesn't scroll. */}
+              <div className="v4m-cadence">
+                <span className="v4m-cadence-label">Rebalance</span>
+                <div className="v4m-cad-row">
+                  {REBALANCE_CHIP_LABELS.map((lbl, t) => {
+                    const active = Math.min(4, Math.floor(sliders[0] / 20)) === t;
+                    return (
+                      <button
+                        type="button"
+                        key={lbl}
+                        className={`v4m-cad-chip${active ? ' on' : ''}`}
+                        aria-pressed={active}
+                        onClick={() => updateSlider(0, t * 25)}
+                      >
+                        {lbl}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -350,19 +417,24 @@ export default function KioskSignUp() {
           <span className="v4m-cta-label"><span className="v4m-step-chip cta">4</span>{busy ? 'Routing through Quip…' : 'Create your agent'}</span>
           <span className="v4m-cta-arrow">→</span>
         </button>
-        {(error || selected.size < MIN_ASSETS || !nameValid || !emailValid || reachOut.size === 0) && (
-          <div className="v4m-cta-sub">
-            {error
-              ? error
-              : selected.size < MIN_ASSETS
+        {(() => {
+          const blocked = error
+            ? error
+            : selected.size < MIN_ASSETS
               ? `Select at least ${MIN_ASSETS} assets to launch`
               : !nameValid
                 ? 'Enter a player name to launch'
                 : !emailValid
                   ? 'Enter your email to launch'
-                  : 'Choose a reach-out preference (or “No thanks”) to launch'}
-          </div>
-        )}
+                  : reachOut.size === 0
+                    ? 'Choose a reach-out preference (or “No thanks”) to launch'
+                    : null;
+          return (
+            <div className={`v4m-cta-sub${blocked ? '' : ' ok'}`}>
+              {blocked ?? 'All set — ready to launch'}
+            </div>
+          );
+        })()}
       </div>
 
     </div>

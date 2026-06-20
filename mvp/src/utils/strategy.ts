@@ -10,6 +10,10 @@ export const SLIDER_LABELS: ReadonlyArray<ReadonlyArray<string>> = [
   ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'],
 ];
 
+// Short cadence labels for the compact inline rebalance chip row (one line, so the
+// strategy card stays short and the watchlist above doesn't scroll).
+export const REBALANCE_CHIP_LABELS = ['Daily', '8h', '4h', '2h', 'Hourly'] as const;
+
 // Rebalance cadence tiers (PLACEHOLDER, owned by the backend): quantum jobs
 // cost real money, so the most aggressive setting is capped at one scheduled
 // job per hour. Over the 2-day activation (~10 booth hours/day) that is at
