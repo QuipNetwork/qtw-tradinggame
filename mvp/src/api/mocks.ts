@@ -13,10 +13,14 @@ import type {
   RoutingStats,
   SolverResult,
   SubmitAgentResponse,
+  SubscribeOptions,
   ValuationHistoryPoint,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
 import { rebalanceEveryHours } from '../utils/strategy';
+import { deriveUnits, driftSpot, markToMarket, SIM_BASE_SPOT, type Spot } from '../utils/mtm';
+
+const BANKROLL = 10000;
 
 const STORAGE_PREFIX = 'quip:agents:';
 
@@ -249,17 +253,84 @@ export async function getValuationHistory(
   return delay(points, 120);
 }
 
-export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) => void): () => void {
-  const baseTotal = (TOP_10.find(a => a.agentId === agentId)?.total) ?? 10000;
-  let total = baseTotal;
-  const interval = setInterval(() => {
-    const drift = (Math.random() - 0.45) * 8;       // slight upward bias
-    total = Math.max(9000, Math.min(15000, total + drift));
-    const plUSD = Math.round((total - 10000));
-    const plPct = Math.round((plUSD / 10000) * 10000) / 100;
-    callback({ plUSD, plPct, total: Math.round(total) });
-  }, 3000);
-  return () => clearInterval(interval);
+// Seeded per-agent/ticker offset so each demo agent opens with a distinct,
+// stable starting P&L (units are derived at the flat base; the live spot then
+// opens already nudged). Deterministic — the same agent renders the same open.
+function seededOffset(agentId: string, ticker: string): number {
+  let h = 2166136261;
+  const s = `${agentId}:${ticker}`;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const unit = ((h >>> 0) % 1000) / 1000;   // [0, 1)
+  return (unit * 2 - 1) * 0.03;             // ±3% opening drift
+}
+
+// Mock live feed — mirrors the backend mark-to-market loop. Builds the agent's
+// portfolio (the same allocation the optimize call returns), fixes token units,
+// then drifts each spot by a small vol-scaled random walk every tick and emits
+// the full holdings array so the allocation bar, per-holding rows, total, and
+// sparkline all move offline exactly as they would against the live backend.
+export function subscribeAgent(
+  agentId: string,
+  callback: (update: AgentUpdate) => void,
+  options: SubscribeOptions = {},
+): () => void {
+  options.onStatus?.('connecting');
+  let cancelled = false;
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  (async () => {
+    const agent = await getAgent(agentId);
+    if (cancelled) return;
+    const portfolio = portfolioFor(
+      agentId,
+      agent?.assets,
+      agent?.sliders.maxPositionSize ?? 50,
+      agent?.sliders.riskPreference ?? 50,
+    );
+    const baseSpot: Spot = {};
+    for (const entry of portfolio) baseSpot[entry.ticker] = SIM_BASE_SPOT;
+    const units = deriveUnits(
+      portfolio.map(entry => ({ ticker: entry.ticker, usd: entry.usd })),
+      baseSpot,
+    );
+    const spot: Spot = {};
+    const vol: Record<string, number> = {};
+    for (const entry of portfolio) {
+      spot[entry.ticker] = SIM_BASE_SPOT * (1 + seededOffset(agentId, entry.ticker));
+      vol[entry.ticker] = ASSET_BY_TICKER[entry.ticker]?.vol ?? 0.3;
+    }
+
+    const emit = () => {
+      const m = markToMarket(units, spot, BANKROLL);
+      callback({
+        plUSD: m.plUSD,
+        plPct: m.plPct,
+        total: m.total,
+        asOf: new Date().toISOString(),
+        stale: false,
+        holdings: m.holdings,
+      });
+    };
+
+    options.onStatus?.('live');
+    emit();
+    timer = setInterval(() => {
+      if (cancelled) return;
+      for (const ticker of Object.keys(spot)) {
+        spot[ticker] = driftSpot(spot[ticker], vol[ticker], Math.random);
+      }
+      emit();
+    }, 1500);
+  })();
+
+  return () => {
+    cancelled = true;
+    if (timer) clearInterval(timer);
+    options.onStatus?.('closed');
+  };
 }
 
 // Builds the optimizer's "answer" from the agent's selected basket. EVERY

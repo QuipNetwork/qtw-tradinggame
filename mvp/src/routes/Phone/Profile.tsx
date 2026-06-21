@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type {
   AgentConfig,
-  AgentUpdate,
   RoutingResult,
   LeaderboardEntry,
   SliderValues,
@@ -10,10 +9,12 @@ import type {
   AssetInfo,
   QpuBudgetStatus,
 } from '../../api';
-import { getAgent, getLeaderboard, requestOptimization, subscribeAgent, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, rebalanceTierIndex, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
+import { useAgentLive } from '../../hooks/useAgentLive';
+import { useTween } from '../../utils/anim';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
@@ -99,16 +100,18 @@ function rankInfoFor(agentId: string, leaderboard: LeaderboardEntry[]): RankInfo
   };
 }
 
-function sparkPoints(values: number[]): string {
+// Sparkline coordinates over the rolling total buffer, in the 80×36 viewBox.
+// Returns points (for the polyline) so the caller can also place an eased head
+// dot at the latest one. A 2px side margin keeps the dot clear of the edges.
+function sparkCoords(values: number[]): Array<{ x: number; y: number }> {
   const series = values.length >= 2 ? values : [10000, 10000];
   const min = Math.min(...series);
   const max = Math.max(...series);
   const range = Math.max(1, max - min);
-  return series.map((value, i) => {
-    const x = (i / Math.max(1, series.length - 1)) * 76;
-    const y = 32 - ((value - min) / range) * 25;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  return series.map((value, i) => ({
+    x: (i / Math.max(1, series.length - 1)) * 76 + 2,
+    y: 32 - ((value - min) / range) * 25,
+  }));
 }
 
 export default function PhoneProfile() {
@@ -117,7 +120,7 @@ export default function PhoneProfile() {
   const [sliders, setSliders] = useState<number[] | null>(null);
   const [holdCount, setHoldCount] = useState<number | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const [live, setLive] = useState<AgentUpdate | null>(null);
+  const { update: live } = useAgentLive(agentId);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'profile' | 'basket'>('profile');
   const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
@@ -173,15 +176,15 @@ export default function PhoneProfile() {
     };
   }, [agentId]);
 
+  // React to each live tick: extend the sparkline buffer and honor any QPU
+  // cooldown the backend reports on the stream. The subscription itself is owned
+  // by useAgentLive.
   useEffect(() => {
-    if (!agentId) return;
-    return subscribeAgent(agentId, update => {
-      setLive(update);
-      setTotalHistory(prev => [...prev, update.total].slice(-24));
-      const targetMs = qpuCooldownTargetMs(update.qpuBudget);
-      if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
-    });
-  }, [agentId]);
+    if (!live) return;
+    setTotalHistory(prev => [...prev, live.total].slice(-32));
+    const targetMs = qpuCooldownTargetMs(live.qpuBudget);
+    if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
+  }, [live]);
 
   useEffect(() => {
     if (!agent || !glyphRef.current) return;
@@ -204,6 +207,15 @@ export default function PhoneProfile() {
     setQpuCooldownUntilMs(null);
     setError(prev => (prev === 'QPU solve limit reached' ? null : prev));
   }, [nowMs, qpuCooldownUntilMs]);
+
+  // Live values, tweened so the numbers count smoothly toward each tick. These
+  // are hooks, so they must run before the early returns below.
+  const liveTotal = live?.total ?? 10142;
+  const livePlUSD = live?.plUSD ?? 142;
+  const livePlPct = live?.plPct ?? 1.42;
+  const tweenTotal = useTween(liveTotal);
+  const tweenPlUSD = useTween(livePlUSD);
+  const tweenPlPct = useTween(livePlPct);
 
   if (!agentId) return <div style={{ padding: 40 }}>Missing agent.</div>;
   if (!agent || !sliders) return null;
@@ -296,12 +308,14 @@ export default function PhoneProfile() {
     );
   };
 
-  const total = live?.total ?? 10142;
-  const plUSD = live?.plUSD ?? 142;
-  const plPct = live?.plPct ?? 1.42;
-  const pnl = roundedPnL(plUSD, plPct);
+  const pnl = roundedPnL(livePlUSD, livePlPct);
   const lineColor = pnl.tone === 'down' ? '#ff6467' : pnl.tone === 'up' ? '#0A832E' : '#71717b';
-  const spark = sparkPoints(totalHistory);
+  const totalText = WHOLE_USD.format(Math.max(0, Math.round(tweenTotal)));
+  const usdText = WHOLE_USD.format(Math.abs(Math.round(tweenPlUSD)));
+  const pctText = Math.abs(tweenPlPct).toFixed(2);
+  const sparkXY = sparkCoords(totalHistory);
+  const sparkStr = sparkXY.map(p => `${p.x},${p.y}`).join(' ');
+  const sparkHead = sparkXY[sparkXY.length - 1];
 
   const solveTime = result?.solveTime ?? 0.42;
   const providerName = result?.provider ?? 'D-Wave Advantage';
@@ -385,17 +399,20 @@ export default function PhoneProfile() {
 
             <div className="v4m-pl">
               <div>
-                <div className="v4m-section-eyebrow">Total · {live?.stale ? 'Last close' : 'Live'}</div>
-                <div className="v4m-pl-num">${WHOLE_USD.format(total)}</div>
+                <div className="v4m-section-eyebrow">Total{live?.stale ? ' · Last close' : ''}</div>
+                <div className="v4m-pl-num">${totalText}</div>
                 <div className={`v4m-pl-change ${pnl.tone}`}>
-                  {pnl.sign}${WHOLE_USD.format(pnl.usd)} · {pnl.sign}{pnl.pct}%
+                  {pnl.sign}${usdText} · {pnl.sign}{pctText}%
                 </div>
               </div>
               <svg className="v4m-spark" viewBox="0 0 80 36" preserveAspectRatio="none" aria-hidden="true" style={{ color: lineColor }}>
                 <polyline
-                  points={spark}
+                  points={sparkStr}
                   fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 />
+                {sparkHead && (
+                  <circle className="v4m-spark-dot" cx={sparkHead.x} cy={sparkHead.y} r="2.6" fill="currentColor" />
+                )}
               </svg>
             </div>
 

@@ -173,3 +173,12 @@ export type AgentUpdate = {
   rebalanceIntervalHours?: number | null;
   qpuBudget?: QpuBudgetStatus | null;
 };
+
+// Live-subscription connection lifecycle, surfaced so the UI can show a
+// Live / Reconnecting / Last-close status. Driven by ReconnectingSocket (real)
+// or set directly by the mock simulator.
+export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'closed';
+
+export type SubscribeOptions = {
+  onStatus?: (status: ConnectionStatus) => void;
+};

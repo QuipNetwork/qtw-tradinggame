@@ -10,8 +10,10 @@ import type {
   RoutingResult,
   RoutingStats,
   SubmitAgentResponse,
+  SubscribeOptions,
   ValuationHistoryPoint,
 } from './types';
+import { ReconnectingSocket } from './socket';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
 
@@ -102,7 +104,7 @@ export async function getAgent(agentId: string): Promise<AgentConfig | null> {
   try {
     return await request<AgentConfig>(`/agents/${encodeURIComponent(agentId)}`);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('(404)')) {
+    if (error instanceof BackendApiError && error.status === 404) {
       return null;
     }
     throw error;
@@ -148,10 +150,14 @@ export async function getValuationHistory(
   );
 }
 
-export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) => void): () => void {
-  const socket = new WebSocket(websocketUrl(`/agents/${encodeURIComponent(agentId)}`));
-  socket.addEventListener('message', event => {
-    callback(JSON.parse(event.data) as AgentUpdate);
-  });
+export function subscribeAgent(
+  agentId: string,
+  callback: (update: AgentUpdate) => void,
+  options: SubscribeOptions = {},
+): () => void {
+  const socket = new ReconnectingSocket<AgentUpdate>(
+    websocketUrl(`/agents/${encodeURIComponent(agentId)}`),
+    { onMessage: callback, onStatus: options.onStatus },
+  );
   return () => socket.close();
 }

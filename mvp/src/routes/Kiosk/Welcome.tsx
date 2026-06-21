@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
-import type { AgentConfig, AgentUpdate, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, subscribeAgent, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import type { AgentConfig, RoutingResult } from '../../api';
+import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams } from '../../utils/strategy';
+import { useAgentLive } from '../../hooks/useAgentLive';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 
@@ -19,7 +20,7 @@ export default function KioskWelcome() {
   const agentId = params.get('agent');
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const [live, setLive] = useState<AgentUpdate | null>(null);
+  const { update: live } = useAgentLive(agentId ?? undefined);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const glyphRef = useRef<HTMLCanvasElement>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
@@ -38,11 +39,6 @@ export default function KioskWelcome() {
       const r = await requestOptimization(agentId);
       setResult(r);
     })();
-  }, [agentId]);
-
-  useEffect(() => {
-    if (!agentId) return;
-    return subscribeAgent(agentId, setLive);
   }, [agentId]);
 
   useEffect(() => {
@@ -83,12 +79,14 @@ export default function KioskWelcome() {
   const cryptoHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'crypto');
   const stockHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'stock');
   const dense = portfolio.length > 12;
+  // Re-keying the dollar value on change replays its flash, so each holding
+  // visibly ticks as its price moves.
   const allocRow = (entry: PortfolioEntry) => (
     <div className="v4m-alloc-row" key={entry.ticker}>
       <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
       <span className="v4m-alloc-name">{entry.ticker}</span>
       <span className="v4m-alloc-pct">{Math.round(entry.pct)}%</span>
-      <span className="v4m-alloc-usd">${WHOLE_USD.format(entry.usd)}</span>
+      <span className="v4m-alloc-usd v4m-flash" key={Math.round(entry.usd)}>${WHOLE_USD.format(entry.usd)}</span>
     </div>
   );
   const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');
@@ -179,10 +177,10 @@ export default function KioskWelcome() {
 
           {/* Portfolio — full width; holdings flow into two columns */}
           <div className="v4m-portfolio-block">
-            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'} · {live?.stale ? 'Last close' : 'Live'}</span>
+            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}{live?.stale ? ' · Last close' : ''}</span>
             <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
               {portfolio.map(entry => (
-                <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
+                <span key={entry.ticker} className="v4m-alloc-seg" style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
               ))}
             </div>
             <div className="v4m-holdings-scroll">

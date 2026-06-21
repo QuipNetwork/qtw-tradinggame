@@ -6467,3 +6467,54 @@
       transform: scale(calc(100cqw / 1100px));
     }
   }
+
+  /* ════════════════════════════════════════════════════════════════════
+     APPENDED 2026-06-20 — production frontend wiring + dynamic live data.
+     Additive only; no edits to rules above. (1) the landing surfaces list
+     (reuses the design-doc theme already defined above: .doc-nav / .hero /
+     .hero-facts / .grad / .kicker / section / .grid-*), and (2) the
+     live/dynamic layer shared by the phone profile + kiosk welcome.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* ── (1) Landing surfaces (routes/Index.tsx) — design-doc light theme ── */
+  .surf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .surf-head h2 { margin-bottom: 0; }
+  .surf-form {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--zinc-500);
+  }
+  .surf-blurb { color: var(--zinc-600); max-width: 64ch; margin: 8px 0 22px; }
+  .surf-links { display: grid; gap: 10px; }
+  .surf-link {
+    display: grid; gap: 2px; padding: 14px 16px;
+    border: 1px solid var(--zinc-200); border-radius: var(--r-md);
+    background: white; text-decoration: none; color: var(--zinc-950);
+    transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  }
+  .surf-link:hover { border-color: var(--coral); background: var(--coral-soft); transform: translateX(2px); color: var(--zinc-950); }
+  .surf-link-label { font-size: 0.98rem; font-weight: 500; }
+  .surf-link-to { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.76rem; color: var(--zinc-500); }
+  .surf-link-note { font-size: 0.84rem; color: var(--zinc-600); margin-top: 2px; }
+  .surf-foot {
+    display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between;
+    padding: 28px 0 64px; font-size: 0.8rem; color: var(--zinc-500);
+  }
+  .surf-foot a { color: var(--zinc-600); }
+
+  /* ── (2) Live / dynamic layer — phone profile + kiosk welcome ──
+     The global prefers-reduced-motion block above already neutralizes every
+     animation/transition here, so no per-rule guard is needed. */
+
+  /* Sparkline head dot eases to the newest point (cx/cy are animatable geometry). */
+  .qs-v4-mock .v4m-spark-dot { transition: cx 0.6s ease, cy 0.6s ease; }
+
+  /* Allocation bar segments glide as weights drift with price. */
+  .qs-v4-mock .v4m-alloc-seg { transition: width 0.6s ease; }
+
+  /* Per-holding value tick — a brief signal-tint flash, replayed by re-keying
+     the element when its dollar value changes. Reads on dark + light surfaces. */
+  .qs-v4-mock .v4m-flash { animation: v4m-value-tick 0.9s ease; border-radius: 3px; }
+  @keyframes v4m-value-tick {
+    0% { background: rgba(75, 224, 255, 0.30); }
+    100% { background: transparent; }
+  }
