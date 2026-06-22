@@ -13,7 +13,7 @@ const BoothTV = lazy(() => import('./routes/TV/BoothTV'));
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Suspense fallback={<div className="route-fallback" aria-busy="true" />}>
           <Routes>
             <Route path="/" element={<Index />} />
