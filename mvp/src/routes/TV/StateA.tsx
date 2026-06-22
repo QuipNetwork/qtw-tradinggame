@@ -1,6 +1,7 @@
 import type { LeaderboardEntry, RoutingStats } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
+import { fmtUsd } from '../../utils/format';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -48,7 +49,7 @@ export default function StateA({
                     {row.rank <= 3 && <span className="medal">{MEDALS[row.rank - 1]}</span>}
                   </span>
                   <span className="name">{row.name}</span>
-                  <span className="pnl tv-tick" key={`p${Math.round(row.total)}`}>${Math.round(row.total).toLocaleString()}</span>
+                  <span className="pnl tv-tick" key={`p${Math.round(row.total)}`}>{fmtUsd(row.total)}</span>
                   <span className={changeClass}>{row.plPct >= 0 ? '+' : '−'}{Math.abs(row.plPct).toFixed(2)}%</span>
                 </div>
               );

@@ -4,6 +4,7 @@ import type { LeaderboardEntry, RoutingStats, ValuationHistoryPoint } from '../.
 import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
 import { useTween } from '../../utils/anim';
+import { fmtUsd } from '../../utils/format';
 
 export default function StateB({
   leaderboard,
@@ -76,7 +77,7 @@ export default function StateB({
             <div className="spot-stats">
               <div className="ss-cell">
                 <div className="ss-lbl">Total P&amp;L</div>
-                <div className="ss-val ss-pl">${Math.round(tweenTotal).toLocaleString()}</div>
+                <div className="ss-val ss-pl">{fmtUsd(tweenTotal)}</div>
               </div>
               <div className="ss-cell">
                 <div className="ss-lbl">Change</div>
@@ -132,7 +133,7 @@ export default function StateB({
                       <div className={`qs-row${top}${isSpotlit ? ' spotlit' : ''}`} key={row.agentId}>
                         <span className="rank">{String(row.rank).padStart(2, '0')}</span>
                         <span className="name">{row.name}</span>
-                        <span className="pnl tv-tick" key={`p${Math.round(row.total)}`}>${Math.round(row.total).toLocaleString()}</span>
+                        <span className="pnl tv-tick" key={`p${Math.round(row.total)}`}>{fmtUsd(row.total)}</span>
                       </div>
                     );
                   })}
