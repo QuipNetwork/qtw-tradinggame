@@ -211,7 +211,13 @@ class DbAgentStore(AgentStore):
                 return record
             except IntegrityError:
                 with self._lock:
+                    self._agents.pop(record.id, None)  # id collision — retry with a fresh id
+            except Exception:  # noqa: BLE001 — keep the hot path consistent on any DB failure
+                # Any other DB failure (e.g. the database is down) must not leave the record in the
+                # in-memory hot path unpersisted — write-through has to stay consistent. Surface it.
+                with self._lock:
                     self._agents.pop(record.id, None)
+                raise
         raise RuntimeError("could not allocate a unique agent id")
 
     def update_sliders(self, agent_id: str, sliders: SliderValues) -> None:

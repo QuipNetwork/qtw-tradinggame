@@ -101,6 +101,22 @@ def test_in_memory_valuation_history_includes_sampled_and_current_points():
     assert history[-1].as_of == "2026-06-17T12:01:00Z"
 
 
+def test_db_create_removes_in_memory_orphan_when_db_write_fails(tmp_path):
+    # A non-IntegrityError DB failure (e.g. the database is down) during create must NOT leave an
+    # unpersisted record in the in-memory hot path — the write-through invariant stays consistent.
+    url = f"sqlite:///{tmp_path / 'fail.db'}"
+    store = DbAgentStore(url, environment="local", allow_reset=True)
+
+    class _BoomEngine:
+        def begin(self):
+            raise RuntimeError("database is down")
+
+    store._engine = _BoomEngine()
+    with pytest.raises(RuntimeError, match="database is down"):
+        store.create(_config("Orphan"), bankroll=10_000.0)
+    assert store._agents == {}  # no orphan left behind
+
+
 def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     url = f"sqlite:///{tmp_path / 'agents.db'}"
     store = DbAgentStore(url, environment="local", allow_reset=True)
