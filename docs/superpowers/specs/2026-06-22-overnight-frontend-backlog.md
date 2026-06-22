@@ -17,7 +17,7 @@
 ### Real / production feel
 - [x] **R1 · Loading skeletons.** Done `672f9c5` — StatusScreen busy state now renders a subtle 3-bar shimmer (currentColor, ≤0.14 opacity; reduced-motion → static). Follow-up: per-surface skeleton shapes if desired.
 - [ ] **R2 · Motion language consistency.** Audit entrance transitions across surfaces; unify on the existing fade-up/fade-in vocabulary; ensure every animation is reduced-motion-safe. No new libraries.
-- [ ] **R3 · Number-formatting consistency.** Route every $/% through the shared `utils/format.ts`; consistent rounding/tabular-nums on P&L, totals, allocation. Add `format` helpers if needed.
+- [x] **R3 · Number-formatting consistency.** Done `4fa6079` — added `fmtUsd` to `utils/format.ts` and routed the TV's inline `Math.round().toLocaleString()` money (StateA leaderboard, StateB spotlight + mini-lb) through it. Phone/kiosk already used the shared `WHOLE_USD`, so money is now single-source. (Identical output — gate green.)
 - [x] **R4 · SignUp double-submit guard.** Done `6fc09b2` — persist agentId + navigate right after `submitAgent` succeeds; the first solve is now best-effort (welcome re-solves), so a failed optimize can't strand the attendee or let a re-press create a duplicate.
 
 ### Phone
@@ -61,3 +61,4 @@
 - 2026-06-22 · A2 reach-out role=group label → `fc9299c` (gate green; radio-split deferred as it would misrepresent the multi-select).
 - 2026-06-22 · A4 phone tap targets (basket-back 40px, slider drag zone) → `187b281` (phone-scoped; kiosk untouched).
 - 2026-06-22 · H1 Welcome QR render fix (loading-guard regression) → `e833379` (browser-confirmed scannable QR).
+- 2026-06-22 · R3 TV money → shared fmtUsd → `4fa6079` (gate green; single-source formatting).
