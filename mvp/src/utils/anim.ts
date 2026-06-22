@@ -65,3 +65,40 @@ export function useTween(target: number, opts: TweenOpts = {}): number {
 
   return display;
 }
+
+// Like useTween but eases several values together in ONE rAF loop committing a
+// single state update per frame — so a surface with multiple live numbers (the
+// phone P&L: total + $ + %) re-renders once per frame, not three times.
+export function useTweens(targets: number[], opts: TweenOpts = {}): number[] {
+  const { durationMs = 700, easing = easeOutCubic } = opts;
+  const reduced = useReducedMotion();
+  const [display, setDisplay] = useState(targets);
+  const displayRef = useRef(targets);
+  const rafRef = useRef(0);
+  displayRef.current = display;
+  const key = targets.join(',');
+
+  useEffect(() => {
+    if (reduced || durationMs <= 0) {
+      setDisplay(targets);
+      return;
+    }
+    const from = displayRef.current.length === targets.length ? displayRef.current : targets;
+    let start = 0;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const t = Math.min(1, (ts - start) / durationMs);
+      setDisplay(targets.map((target, i) => {
+        const f = from[i] ?? target;
+        return Number.isFinite(target) ? f + (target - f) * easing(t) : target;
+      }));
+      if (t < 1) rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+    // Re-aim only when the target set / motion / duration changes (see useTween).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, reduced, durationMs]);
+
+  return display;
+}

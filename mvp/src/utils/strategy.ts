@@ -54,23 +54,6 @@ export function labelFor(idx: number, val: number): string {
   return labels[i];
 }
 
-// Returns [w1, w2, w3, w4, reserve]. The first four sum to (1 - reserve).
-// p* are 0..1 (i.e. slider/100): p1 = rebalance frequency, p2 = risk,
-// p3 = max position size. Risk concentrates the top holdings, the position
-// cap bounds them, and cautious low-frequency agents hold more cash.
-export function computeWeights(p1: number, p2: number, p3: number): number[] {
-  const cap = 0.12 + p3 * 0.38;              // per-asset cap: 12%–50%
-  const concentration = p2 * 0.6;
-  const top    = Math.min(0.30 + concentration * 0.40, cap);
-  const second = top * 0.72;
-  const third  = top * 0.50;
-  const fourth = top * 0.30;
-  const sum = top + second + third + fourth;
-  const reserve = Math.max(0.05, Math.min(0.25, 0.12 - p1 * 0.06 + (1 - p2) * 0.10));
-  const scale = (1 - reserve) / sum;
-  return [top * scale, second * scale, third * scale, fourth * scale, reserve];
-}
-
 export function slidersToArray(s: SliderValues): [number, number, number] {
   return [s.rebalanceFrequency, s.riskPreference, s.maxPositionSize];
 }

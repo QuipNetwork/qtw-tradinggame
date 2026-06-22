@@ -6518,3 +6518,85 @@
     0% { background: rgba(75, 224, 255, 0.30); }
     100% { background: transparent; }
   }
+
+  /* ── (3) Crash / loading / status surfaces (ErrorBoundary, StatusScreen) ── */
+  .app-crash {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--ink); color: var(--zinc-200); padding: 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .app-crash-card { max-width: 420px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .app-crash-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.66rem;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--signal);
+  }
+  .app-crash-card h1 { font-family: Georgia, serif; font-size: 1.6rem; color: #fff; margin: 0; }
+  .app-crash-card p { color: var(--zinc-400); margin: 0; }
+  .app-crash-card button {
+    margin-top: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.8rem;
+    padding: 9px 18px; border-radius: var(--r-md); border: 1px solid var(--signal);
+    background: transparent; color: var(--signal); cursor: pointer;
+  }
+  .app-crash-card button:hover { background: rgba(75, 224, 255, 0.12); }
+
+  .route-fallback { min-height: 100vh; }
+
+  /* Per-surface loading / not-found / error panel (StatusScreen). Inherits color
+     from `.dark`/`.light` so it reads inside both the phone frame and kiosk stage. */
+  .surface-status {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; height: 100%; min-height: 240px; text-align: center; padding: 40px 28px;
+  }
+  .surface-status.dark { color: var(--zinc-200); }
+  .surface-status.light { color: var(--zinc-900); }
+  .surface-status-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.64rem;
+    letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55;
+  }
+  .surface-status-title { font-family: Georgia, 'Times New Roman', serif; font-size: 1.35rem; letter-spacing: -0.01em; }
+  .surface-status-msg { font-size: 0.9rem; opacity: 0.6; max-width: 34ch; margin: 0; line-height: 1.5; }
+  .surface-status-action {
+    margin-top: 8px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.78rem;
+    padding: 9px 16px; border: 1px solid currentColor; border-radius: var(--r-md);
+    background: transparent; color: inherit; cursor: pointer; text-decoration: none; opacity: 0.85;
+  }
+  .surface-status-action:hover { opacity: 1; }
+
+  /* ── (4) Accessibility — visible keyboard focus, SR utility, safe contrast ── */
+  /* #0891B2 clears 3:1 on both white and the dark surfaces, so one ring works
+     everywhere. :focus-visible keeps mouse clicks ring-free. */
+  :focus-visible { outline: 2px solid #0891B2; outline-offset: 2px; border-radius: 2px; }
+  .qs-v4-mock .v4m-input:focus-visible,
+  .qs-v4-mock select.v4m-select:focus-visible,
+  .qs-v4-mock .range-overlay:focus-visible { outline: 2px solid #0891B2; outline-offset: 1px; }
+
+  /* Visually-hidden text for screen-reader-only live announcements. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+
+  /* The faint zinc-400 hint text fails AA (2.56:1) on white — bump to zinc-500.
+     (The brand cyan/coral accents are left to a dedicated design pass.) */
+  .qs-v4-mock .v4m-field-hint { color: var(--zinc-500); }
+
+  /* Skip-to-content link — hidden until keyboard-focused (landing). */
+  .skip-link {
+    position: absolute; left: 8px; top: -44px; z-index: 100;
+    background: var(--zinc-950); color: #fff; padding: 8px 14px;
+    border-radius: var(--r-md); text-decoration: none; font-size: 0.85rem;
+    transition: top 120ms ease;
+  }
+  .skip-link:focus { top: 8px; }
+
+  /* ── (5) TV — live cross-fade between rotation states + value tick-flash ── */
+  .tv-stage-fade { height: 100%; animation: tv-fade-in 0.5s ease; }
+  @keyframes tv-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  /* A leaderboard total briefly highlights when it changes (re-keyed on change),
+     so the board reads as live. Subtle — only the total cell, not the %. */
+  .bigscreen .tv-tick { animation: tv-cell-tick 0.8s ease; border-radius: 3px; }
+  @keyframes tv-cell-tick {
+    0%, 100% { background: transparent; }
+    30% { background: rgba(75, 224, 255, 0.16); }
+  }

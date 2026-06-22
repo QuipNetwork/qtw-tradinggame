@@ -8,11 +8,12 @@ import { renderQR } from '../../utils/qr';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
+import StatusScreen from '../../components/StatusScreen';
+import { WHOLE_USD } from '../../utils/format';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 
 const BANKROLL = 10000;
-const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
@@ -22,24 +23,41 @@ export default function KioskWelcome() {
   const [result, setResult] = useState<RoutingResult | null>(null);
   const { update: live } = useAgentLive(agentId ?? undefined);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'error'>('loading');
+  const [retryNonce, setRetryNonce] = useState(0);
   const glyphRef = useRef<HTMLCanvasElement>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-      if (!agentId) return;
+    if (!agentId) return;
+    let cancelled = false;
+    setLoadState('loading');
     (async () => {
-      const a = await getAgent(agentId);
-      setAgent(a);
-      setQrUrl(sessionStorage.getItem('quip:qrUrl:' + agentId));
+      try {
+        const a = await getAgent(agentId);
+        if (cancelled) return;
+        if (!a) { setLoadState('notfound'); return; }
+        setAgent(a);
+        setQrUrl(sessionStorage.getItem('quip:qrUrl:' + agentId));
 
-      const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
-      if (cachedRaw) {
-        try { setResult(JSON.parse(cachedRaw)); return; } catch { /* fall through */ }
+        const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
+        if (cachedRaw) {
+          try {
+            setResult(JSON.parse(cachedRaw) as RoutingResult);
+            setLoadState('ready');
+            return;
+          } catch { /* fall through to a fresh solve */ }
+        }
+        const r = await requestOptimization(agentId);
+        if (cancelled) return;
+        setResult(r);
+        setLoadState('ready');
+      } catch {
+        if (!cancelled) setLoadState('error');
       }
-      const r = await requestOptimization(agentId);
-      setResult(r);
     })();
-  }, [agentId]);
+    return () => { cancelled = true; };
+  }, [agentId, retryNonce]);
 
   useEffect(() => {
     if (!agent || !glyphRef.current) return;
@@ -69,11 +87,45 @@ export default function KioskWelcome() {
   }, []);
 
   if (!agentId) return <Navigate to="/kiosk" replace />;
-  if (!agent) return null;
+  if (loadState === 'notfound') {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" title="We couldn't find that agent"
+            message="The link may be stale or the agent was reset. Start a new entry to play."
+            action={{ label: 'New entry →', href: '/kiosk' }} />
+        </div>
+      </KioskStage>
+    );
+  }
+  if (loadState === 'error') {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" title="Couldn't reach Quip Network"
+            message="We couldn't load this agent. Check the backend connection and try again."
+            action={{ label: 'Retry', onClick: () => setRetryNonce(n => n + 1) }} />
+        </div>
+      </KioskStage>
+    );
+  }
+  if (!agent) {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" busy title="Routing through Quip…"
+            message="Solving your first portfolio across the quantum and classical providers." />
+        </div>
+      </KioskStage>
+    );
+  }
 
-  const portfolio: PortfolioEntry[] = live?.holdings?.length
+  const portfolio: PortfolioEntry[] = (live?.holdings?.length
     ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd }))
-    : result?.portfolio ?? [];
+    : result?.portfolio ?? [])
+    // Drop any ticker the frontend doesn't know so the icon/color/class lookups
+    // below can't throw on a basket that's drifted from the backend universe.
+    .filter(e => ASSET_BY_TICKER[e.ticker]);
   // Holdings stay weight-sorted, but split into crypto / stocks so each class
   // reads as its own group (the combined allocation bar above keeps the whole).
   const cryptoHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'crypto');
@@ -101,7 +153,7 @@ export default function KioskWelcome() {
 
       <div className="v4m-nav">
         <div className="v4m-mark">
-          <svg className="quip-wm"><use href="#quip-wm" /></svg>
+          <svg className="quip-wm" role="img" aria-label="Quip Network"><use href="#quip-wm" /></svg>
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
@@ -206,7 +258,7 @@ export default function KioskWelcome() {
           </div>
 
           <div className="v4m-agent-qr-row">
-            <canvas ref={qrRef} className="v4m-agent-qr" width={160} height={160}></canvas>
+            <canvas ref={qrRef} className="v4m-agent-qr" width={160} height={160} aria-hidden="true"></canvas>
             <div className="v4m-agent-qr-text">
               <div className="v4m-agent-qr-cap">Scan to open your profile.</div>
               <div className="v4m-agent-qr-sub">Live P&amp;L · Retune anytime</div>

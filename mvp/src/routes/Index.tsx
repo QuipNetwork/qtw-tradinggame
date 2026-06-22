@@ -83,6 +83,7 @@ export default function Index() {
 
   return (
     <>
+      <a className="skip-link" href="#main">Skip to content</a>
       <nav className="doc-nav" aria-label="Surfaces">
         <div className="doc-nav-inner">
           <a href="#top" className="doc-nav-brand"><span className="grad">QTW Trading Competition</span></a>
@@ -115,6 +116,7 @@ export default function Index() {
           </div>
         </header>
 
+        <main id="main">
         {surfaces.map(s => (
           <section id={s.id} key={s.id}>
             <div className="kicker">{s.num} · {s.title}</div>
@@ -126,6 +128,7 @@ export default function Index() {
             <div className="surf-links">{s.links.map(renderLink)}</div>
           </section>
         ))}
+        </main>
 
         <footer className="surf-foot">
           <span>Source · <a href="https://gitlab.com/quip.network/qtw-tradinggame">gitlab.com/quip.network/qtw-tradinggame</a></span>

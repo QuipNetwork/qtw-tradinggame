@@ -1,8 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
+
+function nowClock(): string {
+  return new Date().toLocaleTimeString('en-GB', { hour12: false });
+}
 
 export default function StateD({ name = 'Lattice Theory' }: { name?: string }) {
   const glyphRef = useRef<HTMLCanvasElement>(null);
+  const [clock, setClock] = useState(nowClock);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setClock(nowClock()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!glyphRef.current) return;
@@ -21,7 +31,7 @@ export default function StateD({ name = 'Lattice Theory' }: { name?: string }) {
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Welcome · 14:22:08</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">Welcome · {clock}</span><span className="bar"></span></div>
       </div>
 
       <div className="qs-body-v4">

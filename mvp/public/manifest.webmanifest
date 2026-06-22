@@ -1,0 +1,10 @@
+{
+  "name": "Quip Network \u00b7 QTW 2026 Trading Competition",
+  "short_name": "Quip QTW",
+  "description": "Race a portfolio on a real quantum computer.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "icons": [{ "src": "/quip-mark.svg", "type": "image/svg+xml", "sizes": "any" }]
+}

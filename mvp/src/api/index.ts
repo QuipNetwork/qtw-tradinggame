@@ -18,3 +18,4 @@ export const getLeaderboard = api.getLeaderboard;
 export const getRoutingStats = api.getRoutingStats;
 export const getValuationHistory = api.getValuationHistory;
 export const subscribeAgent = api.subscribeAgent;
+export const subscribeTvEvents = api.subscribeTvEvents;
