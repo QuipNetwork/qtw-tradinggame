@@ -19,7 +19,7 @@
 
 ### Real / production feel
 - [x] **R1 · Loading skeletons.** Done `672f9c5` — StatusScreen busy state now renders a subtle 3-bar shimmer (currentColor, ≤0.14 opacity; reduced-motion → static). Follow-up: per-surface skeleton shapes if desired.
-- [ ] **R2 · Motion language consistency.** Audit entrance transitions across surfaces; unify on the existing fade-up/fade-in vocabulary; ensure every animation is reduced-motion-safe. No new libraries.
+- [x] **R2 · Motion language consistency.** Done `fa04370` — audited: reduced-motion is fully covered (global block + `useReducedMotion` for tweens), vocabulary already consistent (fade-up/fade-in/tick reused). The one gap was the landing having no entrance while the TV cross-fades, so added a subtle reduced-motion-safe `fade-up` on the landing (scoped class; design-doc untouched; browser-verified it settles visible).
 - [x] **R3 · Number-formatting consistency.** Done `4fa6079` — added `fmtUsd` to `utils/format.ts` and routed the TV's inline `Math.round().toLocaleString()` money (StateA leaderboard, StateB spotlight + mini-lb) through it. Phone/kiosk already used the shared `WHOLE_USD`, so money is now single-source. (Identical output — gate green.)
 - [x] **R4 · SignUp double-submit guard.** Done `6fc09b2` — persist agentId + navigate right after `submitAgent` succeeds; the first solve is now best-effort (welcome re-solves), so a failed optimize can't strand the attendee or let a re-press create a duplicate.
 
@@ -66,3 +66,4 @@
 - 2026-06-22 · H1 Welcome QR render fix (loading-guard regression) → `e833379` (browser-confirmed scannable QR).
 - 2026-06-22 · R3 TV money → shared fmtUsd → `4fa6079` (gate green; single-source formatting).
 - 2026-06-22 · U1 directional value ticks (green up / red down) → `f004f8f` (user request; browser-confirmed red on down-tick).
+- 2026-06-22 · R2 landing fade-up entrance (motion consistency; reduced-motion audited) → `fa04370` (browser-verified).
