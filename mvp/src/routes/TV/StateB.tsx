@@ -63,7 +63,7 @@ export default function StateB({
         <div className="qs-hero-left">
           <div className="left">
             <h1>Rank {rankPadded} · <span className="it">{agent.name}.</span></h1>
-            <div className="spot-handle">02h 14m on the board</div>
+            <div className="spot-handle">{agent.handle ?? `Rank ${rankPadded} on the leaderboard`}</div>
           </div>
           <div className="right">
             <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Spotlight</div>
@@ -109,7 +109,6 @@ export default function StateB({
               <div className={`v4-pr ${agent.primaryProvider === 'QPU' ? 'q' : 'c'}`}>
                 <span className="type">{agent.primaryProvider}</span>
                 <span className="nm">Solved by {agent.primaryProvider === 'QPU' ? 'D-Wave Advantage' : 'Helios-12'}</span>
-                <span className="pct" style={{ fontFamily: "'JetBrains Mono',monospace", color: '#71717b' }}>4s ago</span>
               </div>
             </div>
           </div>
