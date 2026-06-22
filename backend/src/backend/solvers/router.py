@@ -108,7 +108,11 @@ def race(
             for future in as_completed(futures, timeout=overall_deadline):
                 try:
                     solution, race_time_s = future.result()
-                except SolverFailed as exc:
+                except Exception as exc:  # noqa: BLE001 — fault-isolate the race
+                    # ANY single-provider failure (SolverFailed, or an unexpected error like a
+                    # network drop / LinAlgError) is recorded and skipped so the rest of the race
+                    # still produces a winner. If every provider fails, feasible_results is empty
+                    # and pick_winner→None below raises SolverFailed (→ 503).
                     provider = next(p for p in providers if p.name == futures[future])
                     solver_runs.append(
                         SolverRun(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from backend import config
 from backend.solvers import router
@@ -16,14 +17,18 @@ class FakeProvider:
         weights: list[float] | None,
         *,
         fail: bool = False,
+        crash: Exception | None = None,
         solve_time_s: float = 0.12,
     ) -> None:
         self.name = name
         self._weights = weights
         self._fail = fail
+        self._crash = crash
         self._solve_time_s = solve_time_s
 
     def solve_qubo(self, qubo, problem, deadline_s):
+        if self._crash is not None:
+            raise self._crash
         if self._fail:
             raise SolverFailed("planned failure")
         weights = np.array(self._weights, dtype=float)
@@ -60,6 +65,40 @@ def test_race_keeps_winner_infeasible_and_failed_solver_rows(
     assert by_provider["bad"].feasible is False
     assert by_provider["failed"].status == "failed"
     assert by_provider["failed"].error == "planned failure"
+
+
+def test_race_survives_unexpected_solver_exception(monkeypatch, synthetic_problem_3assets):
+    # A provider raising a NON-SolverFailed error (network drop, LinAlgError, a bug) must be
+    # recorded as failed and skipped — not sink the whole race. The healthy solver still wins.
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("winner", [1 / 3, 1 / 3, 1 / 3]),
+            FakeProvider("crasher", None, crash=RuntimeError("boom")),
+        ],
+    )
+
+    result = router.race(synthetic_problem_3assets, deadline_s=2.0)
+
+    assert result.winner.provider == "winner"
+    by_provider = {run.provider: run for run in result.solver_runs}
+    assert by_provider["crasher"].status == "failed"
+    assert "boom" in by_provider["crasher"].error
+
+
+def test_race_raises_when_every_provider_crashes(monkeypatch, synthetic_problem_3assets):
+    # All providers fail → no feasible result → SolverFailed (maps to 503 at the API).
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("a", None, crash=RuntimeError("boom")),
+            FakeProvider("b", None, fail=True),
+        ],
+    )
+    with pytest.raises(SolverFailed):
+        router.race(synthetic_problem_3assets, deadline_s=2.0)
 
 
 def test_race_winner_is_fastest_feasible_solve_time(monkeypatch, synthetic_problem_3assets):
