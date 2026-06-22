@@ -110,6 +110,19 @@ def increment_place_values(w_max: float, n_units_M: int, u_min: int, b: int) -> 
     return coeffs
 
 
+def _add_frustration_coupling(Q: np.ndarray, rho: np.ndarray, beta: float, n: int) -> None:
+    """Add the diversification reward β·Σ_{i<j} ρ_ij x_i x_j to symmetric matrix Q, in place.
+
+    Splits 0.5·β·ρ_ij across the (i,j) and (j,i) halves so QuboMatrix.to_dict() recombines them
+    into β·ρ_ij per pair. Couples the first n variables (asset i's select bit is index i in both
+    the select and method3 layouts), diagonal untouched. Shared by encode_select and encode_method3
+    so the β convention can never drift between them.
+    """
+    coupling = 0.5 * beta * rho[:n, :n].copy()
+    np.fill_diagonal(coupling, 0.0)
+    Q[:n, :n] += coupling
+
+
 def encode_qubo(
     problem: PortfolioProblem,
     bits_per_asset: int | None = None,
@@ -205,15 +218,9 @@ def encode_select(problem: PortfolioProblem) -> QuboMatrix:
     for i in range(N):
         Q[i, i] = -problem.mu[i] / k + coef * problem.Sigma[i, i]
 
-    # Diversification / frustration reward β·Σ_{i<j} ρ_ij x_i x_j (split across the symmetric pair).
+    # Diversification / frustration reward β·Σ_{i<j} ρ_ij x_i x_j.
     if problem.frustration_beta:
-        rho = correlation_matrix(problem.Sigma)
-        beta = problem.frustration_beta
-        for i in range(N):
-            for j in range(i + 1, N):
-                c = 0.5 * beta * rho[i, j]
-                Q[i, j] += c
-                Q[j, i] += c
+        _add_frustration_coupling(Q, correlation_matrix(problem.Sigma), problem.frustration_beta, N)
 
     assert np.allclose(Q, Q.T), "QUBO matrix must be symmetric"
     decode_meta = DecodeMeta(
@@ -310,17 +317,13 @@ def encode_method3(
     Qm = (problem.gamma / (2.0 * M * M)) * (G.T @ problem.Sigma @ G)
     lin = -(1.0 / M) * (G.T @ problem.mu)
 
-    # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j on the SELECT bits
-    # (economic units, same as objective()). Added BEFORE obj_scale so the constraint
-    # penalties below still dominate it and feasibility is preserved.
+    # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j on the SELECT bits (indices
+    # 0..N-1, yidx = identity). Added BEFORE obj_scale so the constraint penalties below still
+    # dominate it and feasibility is preserved.
     if problem.frustration_beta:
-        rho = correlation_matrix(problem.Sigma)
-        beta = problem.frustration_beta
-        for i in range(N):
-            for j in range(i + 1, N):
-                c = 0.5 * beta * rho[i, j]  # split across the symmetric pair
-                Qm[yidx(i), yidx(j)] += c
-                Qm[yidx(j), yidx(i)] += c
+        _add_frustration_coupling(
+            Qm, correlation_matrix(problem.Sigma), problem.frustration_beta, N
+        )
 
     obj_scale = max(float(np.abs(Qm).max()), float(np.abs(lin).max()), 1e-12)
 
