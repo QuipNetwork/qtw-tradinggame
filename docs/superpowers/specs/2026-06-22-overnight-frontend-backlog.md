@@ -15,7 +15,7 @@
 ## IMPLEMENT — ordered by impact (do the top undone one each wake)
 
 ### Real / production feel
-- [ ] **R1 · Loading skeletons.** Replace the plain StatusScreen "busy" panels (Profile/Welcome) with subtle skeleton shimmer matching each surface, so first paint reads as loading, not broken.
+- [x] **R1 · Loading skeletons.** Done `672f9c5` — StatusScreen busy state now renders a subtle 3-bar shimmer (currentColor, ≤0.14 opacity; reduced-motion → static). Follow-up: per-surface skeleton shapes if desired.
 - [ ] **R2 · Motion language consistency.** Audit entrance transitions across surfaces; unify on the existing fade-up/fade-in vocabulary; ensure every animation is reduced-motion-safe. No new libraries.
 - [ ] **R3 · Number-formatting consistency.** Route every $/% through the shared `utils/format.ts`; consistent rounding/tabular-nums on P&L, totals, allocation. Add `format` helpers if needed.
 - [ ] **R4 · SignUp double-submit guard.** If `submitAgent` succeeds but `requestOptimization` throws, don't strand the user or allow a duplicate agent on re-press; navigate to welcome (it re-solves) or disable re-submit.
@@ -46,4 +46,4 @@
 - **`v4-mocks.css` hashing/purge** — 226 KB shared with design-doc.html; risk of breaking `url()`/the doc. Draft a safe plan (Vite import + per-route purge) rather than applying blind.
 
 ## Progress log (loop appends here)
-- (none yet)
+- 2026-06-22 · R1 loading skeletons → `672f9c5` (tsc/lint/build green).
