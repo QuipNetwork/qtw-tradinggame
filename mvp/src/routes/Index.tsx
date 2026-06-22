@@ -63,7 +63,9 @@ export default function Index() {
   useEffect(() => {
     if (!glyphRef.current) return;
     const seed = strHash('Quip Network · QTW 2026 Trading Competition');
-    renderGlyph(glyphRef.current, Object.assign({ seed, cell: 5 }, pickStyle(seed)));
+    // 'mixed' palette (coral + yellow + cyan + purple) matches the design-doc
+    // hero — more alive than the seed's monochrome coral, all brand colors.
+    renderGlyph(glyphRef.current, Object.assign({ seed, cell: 5 }, pickStyle(seed), { palette: 'mixed' }));
   }, []);
 
   const renderLink = (link: SurfaceLink) => {
