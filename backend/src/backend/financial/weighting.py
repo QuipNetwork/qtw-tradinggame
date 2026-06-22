@@ -48,4 +48,16 @@ def optimal_weights(
         constraints=[{"type": "eq", "fun": lambda w: w.sum() - 1.0, "jac": lambda w: np.ones(k)}],
         options={"maxiter": 200, "ftol": 1e-12},
     )
-    return res.x
+    w = np.asarray(res.x, dtype=float)
+    # SLSQP can report success=False (ftol not reached) yet still return a usable point, so we
+    # gate on actual feasibility, not the flag. If the result violates the budget/box (rare — e.g.
+    # an ill-conditioned Σ), fall back to equal weight 1/k, which is guaranteed feasible because
+    # the box is feasible (K·w_min ≤ 1 ≤ K·w_max). This keeps an infeasible solve from silently
+    # dropping a solver at the router's feasibility gate.
+    if (
+        abs(w.sum() - 1.0) > 1e-6
+        or bool((w < w_min - 1e-6).any())
+        or bool((w > w_max + 1e-6).any())
+    ):
+        w = np.full(k, 1.0 / k)
+    return w
