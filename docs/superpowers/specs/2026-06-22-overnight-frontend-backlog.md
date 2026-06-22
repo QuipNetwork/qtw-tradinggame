@@ -1,11 +1,11 @@
 # Overnight frontend-polish backlog
 
-- **Branch:** `overnight-frontend-2026-06-22` (base commit `dd540b3` = hardening + TV, pending review)
+- **Branch:** `frontend-polishing` (base commit `dd540b3` = hardening + TV, pending review)
 - **Mode:** self-paced `/loop`, one item per wake, implement-on-branch, never merge.
 - **Reviewed by the user in the morning.**
 
 ## Guardrails (re-read every wake — do not violate)
-1. **Branch only.** Commit to `overnight-frontend-2026-06-22`. Never checkout/commit `main` or `deployment-dev`. Never merge.
+1. **Branch only.** Commit to `frontend-polishing`. Never checkout/commit `main` or `deployment-dev`. Never merge.
 2. **Frontend only.** Edit only under `mvp/` and `shared-design/` (+ this backlog). NEVER edit `backend/`. Anything needing a backend/DB change → write it under "Propose only", don't implement.
 3. **Keep the identity.** The landing uses the design-doc theme and the user likes it — refine, don't redesign. Keep the v4 system (Quip mark, mono eyebrows, cyan `--signal`, coral, Georgia serif). Respect `prefers-reduced-motion` (global block already neutralizes animations).
 4. **Verify before commit:** `cd mvp && npx tsc -b && npm run -s lint && npm run -s build` must all pass. If a change breaks them, fix or revert — never commit broken code.
