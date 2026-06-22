@@ -103,12 +103,18 @@ async def update_agent(agent_id: str, body: AgentPatch) -> AgentConfig:
     return config_out
 
 
+# Process-wide cap on concurrent solves so a burst of retunes can't exhaust the
+# worker-thread pool or hammer assets-api / the QPU. Single-worker deploy → one gate.
+_solve_semaphore = asyncio.Semaphore(config.SOLVE_CONCURRENCY)
+
+
 @router.post("/agents/{agent_id}/optimize", response_model=RoutingResult)
 async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> RoutingResult:
     sliders = body.sliders if body is not None else None
     assets = body.assets if body is not None else None
     try:
-        outcome = await asyncio.to_thread(run_optimization, agent_id, sliders, assets)
+        async with _solve_semaphore:
+            outcome = await asyncio.to_thread(run_optimization, agent_id, sliders, assets)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="agent not found") from exc
     except ValueError as exc:

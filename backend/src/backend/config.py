@@ -258,6 +258,13 @@ DATABASE_URL: str | None = os.environ.get("DATABASE_URL")
 # Marks rows created by local/dev/booth runs so a single Supabase project can be
 # cleaned up safely after local testing.
 APP_ENV: str = os.environ.get("APP_ENV", "local")
+# Non-local APP_ENV requires DATABASE_URL — the app refuses to start in-memory in
+# production/booth (data would vanish on restart). See api/app.py:_check_required_config.
+MEMORY_OK_ENVS: frozenset[str] = frozenset({"local", "dev", "development", "test"})
+
+# Cap on concurrent optimization solves (one process-wide gate; single-worker
+# deploy). Bounds worker threads + assets-api / QPU pressure under a retune burst.
+SOLVE_CONCURRENCY: int = int(os.environ.get("SOLVE_CONCURRENCY", 4))
 
 # -----------------------------------------------------------------------------
 # Market data source

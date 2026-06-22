@@ -48,8 +48,20 @@ def _check_market_source() -> None:
             )
 
 
+def _check_required_config() -> None:
+    """Refuse to boot in-memory in a non-local environment — restart would wipe
+    every agent/job/valuation. Local/dev/test keep the in-memory default."""
+    if config.APP_ENV not in config.MEMORY_OK_ENVS and not config.DATABASE_URL:
+        raise RuntimeError(
+            f"APP_ENV={config.APP_ENV!r} requires DATABASE_URL "
+            "(refusing in-memory persistence outside local/dev/test — data would be "
+            "lost on restart). Set DATABASE_URL, or use APP_ENV=local for in-memory."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    _check_required_config()
     _check_market_source()
     stop = asyncio.Event()
     bus = get_bus()

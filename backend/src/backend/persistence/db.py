@@ -146,7 +146,22 @@ qpu_budget_events_table = Table(
 
 
 def create_db_engine(database_url: str) -> Engine:
-    return create_engine(_normalize_database_url(database_url), future=True)
+    url = _normalize_database_url(database_url)
+    # Hosted Postgres (Supabase): pre-ping + recycle so a connection the pooler
+    # closed while idle never surfaces as a 500; a bounded pool to stay under the
+    # project's connection limit (one per store); TLS required. SQLite (tests)
+    # keeps the plain engine — these QueuePool kwargs don't apply to it.
+    if url.startswith("postgresql"):
+        return create_engine(
+            url,
+            future=True,
+            pool_pre_ping=True,
+            pool_recycle=1800,
+            pool_size=3,
+            max_overflow=2,
+            connect_args={"sslmode": "require"},
+        )
+    return create_engine(url, future=True)
 
 
 def _normalize_database_url(database_url: str) -> str:

@@ -7,7 +7,8 @@ import importlib.util
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.api.app import create_app
+from backend import config
+from backend.api.app import _check_required_config, create_app
 from backend.api.schemas import AgentUpdate, QpuBudgetStatus
 from backend.persistence.agents import get_agent_store
 from backend.persistence.jobs import get_job_store
@@ -270,3 +271,17 @@ def test_optimize_accepts_a_new_basket():
 
         too_small = client.post(f"/agents/{agent_id}/optimize", json={"assets": ["BTC"]})
         assert too_small.status_code == 422
+
+
+def test_required_config_rejects_memory_persistence_outside_local(monkeypatch):
+    """Prod/booth must carry a DATABASE_URL — refuse to boot in-memory there."""
+    monkeypatch.setattr(config, "APP_ENV", "production")
+    monkeypatch.setattr(config, "DATABASE_URL", None)
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        _check_required_config()
+
+
+def test_required_config_allows_local_memory(monkeypatch):
+    monkeypatch.setattr(config, "APP_ENV", "local")
+    monkeypatch.setattr(config, "DATABASE_URL", None)
+    _check_required_config()  # no raise — in-memory is fine locally
