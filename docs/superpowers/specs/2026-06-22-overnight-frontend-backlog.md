@@ -14,6 +14,9 @@
 
 ## IMPLEMENT — ordered by impact (do the top undone one each wake)
 
+### User requests
+- [x] **U1 · Directional value ticks.** Done `f004f8f` — new `TickValue` component flashes a value GREEN when it ticks up, RED when it ticks down (live-board feel), replacing the neutral cyan flash. Applied to the TV leaderboard (StateA) + spotlight mini-board (StateB) and the phone/welcome holdings. Reduced-motion-safe; browser-confirmed (holdings flashed red on a down-tick).
+
 ### Real / production feel
 - [x] **R1 · Loading skeletons.** Done `672f9c5` — StatusScreen busy state now renders a subtle 3-bar shimmer (currentColor, ≤0.14 opacity; reduced-motion → static). Follow-up: per-surface skeleton shapes if desired.
 - [ ] **R2 · Motion language consistency.** Audit entrance transitions across surfaces; unify on the existing fade-up/fade-in vocabulary; ensure every animation is reduced-motion-safe. No new libraries.
@@ -62,3 +65,4 @@
 - 2026-06-22 · A4 phone tap targets (basket-back 40px, slider drag zone) → `187b281` (phone-scoped; kiosk untouched).
 - 2026-06-22 · H1 Welcome QR render fix (loading-guard regression) → `e833379` (browser-confirmed scannable QR).
 - 2026-06-22 · R3 TV money → shared fmtUsd → `4fa6079` (gate green; single-source formatting).
+- 2026-06-22 · U1 directional value ticks (green up / red down) → `f004f8f` (user request; browser-confirmed red on down-tick).
