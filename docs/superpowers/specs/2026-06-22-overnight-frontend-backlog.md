@@ -34,7 +34,7 @@
 - [x] **A5 · Heading promotion.** Done `da0c0be` — the three kiosk step eyebrows are now `role="heading" aria-level={2}` (avoids the big global serif h2; zero visual change) with the decorative step numbers `aria-hidden`. Gives the multi-step form real SR structure under the hero `<h1>`.
 - [x] **A2 · Reach-out group semantics.** Done `fc9299c` — wrapped the options in a labeled `role="group"` (it's a multi-select with one opt-out, not a radio group, so the `aria-pressed` toggles stay valid). Nuance left: "No thanks"'s clear-the-rest behavior is conveyed by interaction, not announced — a `role="radio"` split would misrepresent the multi-select, so deferred unless you want a dedicated opt-out control.
 - [x] **A3 · RR v7 future flags.** Done `9851ab3` — `future={{ v7_startTransition, v7_relativeSplatPath }}` on BrowserRouter; browser-confirmed console is now clean (warnings gone) and lazy/Suspense routing still works.
-- [ ] **A4 · Tap targets (phone side only).** Raise phone-side hit areas (basket-back, slider knob) toward 44px WITHOUT touching the fixed 1024×768 kiosk layout. Per-surface; verify the kiosk doesn't regress.
+- [x] **A4 · Tap targets (phone side only).** Done `187b281` — `.phone-v4 .v4m-basket-back` 28→40px; phone slider drag zone padding 10→14px (margin cancels → layout/visuals unchanged, ~track+28px touch area). Scoped to `.phone-v4`, so the fixed kiosk is untouched.
 
 ### Polish / hygiene
 - [ ] **H1 · Welcome QR.** Investigate the blank QR canvas for seeded agents (now that qrcode is lazy); ensure it renders.
@@ -59,3 +59,4 @@
 - 2026-06-22 · A1 kiosk <main> (landmarks complete across surfaces) → `a6e2ba3`; split heading-promotion into A5.
 - 2026-06-22 · A5 kiosk step eyebrows → headings (role=heading) → `da0c0be` (gate green, zero visual change).
 - 2026-06-22 · A2 reach-out role=group label → `fc9299c` (gate green; radio-split deferred as it would misrepresent the multi-select).
+- 2026-06-22 · A4 phone tap targets (basket-back 40px, slider drag zone) → `187b281` (phone-scoped; kiosk untouched).
