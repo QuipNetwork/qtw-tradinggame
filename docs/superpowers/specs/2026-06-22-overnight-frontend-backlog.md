@@ -31,7 +31,7 @@
 
 ### Accessibility / production
 - [x] **A1 · Landmarks everywhere.** Done `a6e2ba3` — `<main>` now on every surface (landing earlier, phone P2, TV T3, kiosk sign-up + welcome here; no global `main{}` rule so layout is unchanged). Follow-up A5 below covers heading promotion.
-- [ ] **A5 · Heading promotion.** Promote the kiosk step eyebrows ("Pick your watchlist" / "Tune your strategy" / "Your details") to real headings (or `role="heading"` to avoid the big global `h2`/`h3` styles) for SR navigation. Low-risk, additive.
+- [x] **A5 · Heading promotion.** Done `da0c0be` — the three kiosk step eyebrows are now `role="heading" aria-level={2}` (avoids the big global serif h2; zero visual change) with the decorative step numbers `aria-hidden`. Gives the multi-step form real SR structure under the hero `<h1>`.
 - [ ] **A2 · Reach-out "No thanks" semantics.** It's mutually exclusive — give it radio semantics (or a separate control) so SR users understand selecting it clears the rest.
 - [x] **A3 · RR v7 future flags.** Done `9851ab3` — `future={{ v7_startTransition, v7_relativeSplatPath }}` on BrowserRouter; browser-confirmed console is now clean (warnings gone) and lazy/Suspense routing still works.
 - [ ] **A4 · Tap targets (phone side only).** Raise phone-side hit areas (basket-back, slider knob) toward 44px WITHOUT touching the fixed 1024×768 kiosk layout. Per-surface; verify the kiosk doesn't regress.
@@ -57,3 +57,4 @@
 - 2026-06-22 · T3 TV rotation-timer bug fix (was frozen) + <main> → `4bb998e` (browser-confirmed A→B rotates).
 - 2026-06-22 · A3 RR v7 future flags → `9851ab3` (console clean, browser-verified).
 - 2026-06-22 · A1 kiosk <main> (landmarks complete across surfaces) → `a6e2ba3`; split heading-promotion into A5.
+- 2026-06-22 · A5 kiosk step eyebrows → headings (role=heading) → `da0c0be` (gate green, zero visual change).
