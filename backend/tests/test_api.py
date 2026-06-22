@@ -302,6 +302,17 @@ def test_basket_below_minimum_is_rejected():
         assert "at least" in response.json()["detail"]
 
 
+def test_signup_rate_limited_per_ip(monkeypatch):
+    monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 3)
+    with TestClient(create_app()) as client:
+        body = {"name": "Spam", "email": "spam@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        for _ in range(3):
+            assert client.post("/agents", json=body).status_code == 200
+        blocked = client.post("/agents", json=body)
+        assert blocked.status_code == 429
+        assert int(blocked.headers["retry-after"]) > 0
+
+
 @requires_gurobi
 def test_optimize_accepts_a_new_basket():
     with TestClient(create_app()) as client:

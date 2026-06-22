@@ -149,6 +149,14 @@ CARDINALITY_FRUSTRATION_BETA: float = float(os.environ.get("CARDINALITY_FRUSTRAT
 # full CARDINALITY_FRUSTRATION_BETA at/above N_FULL. At the 28-asset universe this lands ≈0.23.
 CARDINALITY_BETA_N_MIN: int = int(os.environ.get("CARDINALITY_BETA_N_MIN", 12))
 CARDINALITY_BETA_N_FULL: int = int(os.environ.get("CARDINALITY_BETA_N_FULL", 40))
+# α — convex blend of the SELECT objective toward μ-free max-diversification (MaxDiv):
+#   selection minimizes  (1−α)·[mean-variance surrogate]  +  (α·scale + β)·Σ_{i<j} ρ_ij
+#   α = 0 → today's mean-variance (+ additive β);  α = 1 → pure MaxDiv (μ dropped entirely).
+# DISTINCT from β: β adds decorrelation on TOP of full μ-driven MV (keeps the estimation-error-prone
+# μ term); α DOWN-WEIGHTS μ as it adds decorrelation, so α=1 is μ-free. Theory (DeMiguel 2009): μ
+# estimation error is what sinks MV out-of-sample, so down-weighting μ (α) should beat merely adding
+# β. Both make the landscape rugged (ρ-dominated); the comparison is OOS quality. 0 = off (no change).
+SELECT_OBJECTIVE_ALPHA: float = float(os.environ.get("SELECT_OBJECTIVE_ALPHA", 0.0))
 
 # cardinality QUBO encoding:
 #   "select" (C2, DEFAULT): penalty-free SELECTION-ONLY QUBO (one bit/asset, objective + β only).
@@ -231,6 +239,13 @@ DWAVE_SOLVER_TOPOLOGY: str = os.environ.get("DWAVE_SOLVER_TOPOLOGY", "")
 # budget gate. Set to 8 / 10 min (a retune ≈ every 75 s) now that the cost is known.
 QPU_BUDGET_MAX_ATTEMPTS: int = int(os.environ.get("QPU_BUDGET_MAX_ATTEMPTS", 8))
 QPU_BUDGET_WINDOW_S: int = int(os.environ.get("QPU_BUDGET_WINDOW_S", 600))
+
+# Anti-abuse rate limit on agent creation (POST /agents). In-memory, keyed by client
+# IP (X-Forwarded-For) + a booth-wide hourly ceiling — bounds a scripted flood of
+# fresh agents (each grants a new QPU budget). Single-worker deploy → process-local.
+SIGNUP_RATE_PER_IP: int = int(os.environ.get("SIGNUP_RATE_PER_IP", 10))
+SIGNUP_RATE_WINDOW_S: int = int(os.environ.get("SIGNUP_RATE_WINDOW_S", 600))
+SIGNUP_RATE_GLOBAL_PER_HOUR: int = int(os.environ.get("SIGNUP_RATE_GLOBAL_PER_HOUR", 300))
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)

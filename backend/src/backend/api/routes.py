@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from .. import config
 from ..events.bus import get_bus
@@ -57,7 +57,14 @@ async def healthz() -> HealthResponse:
 
 
 @router.post("/agents", response_model=SubmitAgentResponse)
-async def create_agent(config_in: AgentConfig) -> SubmitAgentResponse:
+async def create_agent(config_in: AgentConfig, request: Request) -> SubmitAgentResponse:
+    retry_after = request.app.state.signup_limiter.check(_client_ip(request))
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=429,
+            detail="too many sign-ups from this device; try again shortly",
+            headers={"Retry-After": str(retry_after)},
+        )
     try:
         validate_basket(config_in.assets)
     except ValueError as exc:
@@ -236,6 +243,14 @@ async def valuation_history(
     if store.get(agent_id) is None:
         raise HTTPException(status_code=404, detail="agent not found")
     return store.valuation_history(agent_id, limit=limit)
+
+
+def _client_ip(request: Request) -> str:
+    """Best-effort client IP: first X-Forwarded-For hop (set by Caddy), else the peer."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def _pct(count: int, total: int) -> float:

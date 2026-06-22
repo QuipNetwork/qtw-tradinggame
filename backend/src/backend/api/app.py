@@ -24,6 +24,7 @@ from .. import config
 from ..events.bus import get_bus
 from ..orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
 from . import routes, ws
+from .ratelimit import SignupRateLimiter
 
 log = logging.getLogger(__name__)
 
@@ -85,6 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="QTW 2026 Trading Game", lifespan=lifespan)
+    app.state.signup_limiter = SignupRateLimiter()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(config.CORS_ORIGINS),
