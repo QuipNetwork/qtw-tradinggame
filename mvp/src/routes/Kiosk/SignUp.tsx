@@ -198,7 +198,7 @@ export default function KioskSignUp() {
   const detailsCard = (
     <div className="v4m-mega">
       <div className="v4m-mega-section">
-        <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
+        <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">3</span>Your details</span>
         <div className="v4m-field">
           <label htmlFor="kiosk-name">Player name (required)</label>
           <input
@@ -294,7 +294,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
+                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
                 <span className={`v4m-selector-count${selected.size > 0 && selected.size < MIN_ASSETS ? ' under' : ''}`}>{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
@@ -314,7 +314,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
             <div className="v4m-mega-section">
               <div className="v4m-sliders-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
+                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">2</span>Tune your strategy</span>
               </div>
               <div className="v4m-sliders-row">
                 {SLIDER_DEFS.map((def, i) =>
