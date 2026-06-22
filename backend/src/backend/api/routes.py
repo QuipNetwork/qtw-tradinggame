@@ -8,6 +8,7 @@ resulting events are published on the loop afterwards.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -246,10 +247,26 @@ async def valuation_history(
 
 
 def _client_ip(request: Request) -> str:
-    """Best-effort client IP: first X-Forwarded-For hop (set by Caddy), else the peer."""
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    """Trusted client IP for rate-limit keying.
+
+    The app is reachable only via Caddy (binds 127.0.0.1), which OVERWRITES
+    X-Real-IP with the real peer — prefer that. Fall back to the LAST (Caddy-
+    appended, non-spoofable) X-Forwarded-For hop. The leftmost XFF entries are
+    client-supplied and must never be trusted (they'd let a client mint a fresh
+    rate-limit bucket per request). Validate the result parses as an IP before
+    using it as a bucket key.
+    """
+    candidate = request.headers.get("x-real-ip")
+    if not candidate:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            candidate = forwarded.rsplit(",", 1)[-1].strip()
+    if candidate:
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            pass
     return request.client.host if request.client else "unknown"
 
 

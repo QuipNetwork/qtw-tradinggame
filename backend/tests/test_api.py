@@ -313,6 +313,19 @@ def test_signup_rate_limited_per_ip(monkeypatch):
         assert int(blocked.headers["retry-after"]) > 0
 
 
+def test_rate_limit_keys_on_real_ip_not_spoofable_forwarded_for(monkeypatch):
+    monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 2)
+    with TestClient(create_app()) as client:
+        body = {"name": "Spoof", "email": "spoof@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        real = {"X-Real-IP": "5.5.5.5"}  # what Caddy sets (trusted, overwritten)
+        # Varying the client-supplied X-Forwarded-For must NOT escape the bucket.
+        for i in range(2):
+            r = client.post("/agents", json=body, headers={**real, "X-Forwarded-For": f"1.2.3.{i}"})
+            assert r.status_code == 200
+        blocked = client.post("/agents", json=body, headers={**real, "X-Forwarded-For": "9.9.9.9"})
+        assert blocked.status_code == 429  # same X-Real-IP → same bucket
+
+
 @requires_gurobi
 def test_optimize_accepts_a_new_basket():
     with TestClient(create_app()) as client:

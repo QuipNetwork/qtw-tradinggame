@@ -20,5 +20,9 @@ api.qtw.quip.network {
 		-Server
 	}
 
-	reverse_proxy 127.0.0.1:8000
+	# Overwrite X-Real-IP with the real peer so the backend's rate limiter can't be
+	# fooled by a client-supplied X-Forwarded-For. The app reads X-Real-IP first.
+	reverse_proxy 127.0.0.1:8000 {
+		header_up X-Real-IP {http.request.remote.host}
+	}
 }
