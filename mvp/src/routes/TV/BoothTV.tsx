@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getLeaderboard, getRoutingStats, subscribeTvEvents } from '../../api';
 import type { LeaderboardEntry, RoutingStats } from '../../api';
@@ -36,6 +36,12 @@ export default function BoothTV() {
   const [state, setState] = useState<StateName>('A');
   const [spotIndex, setSpotIndex] = useState(0);
   const [interruptName, setInterruptName] = useState<string | null>(null);
+
+  // Track the leaderboard length without re-running the rotation timer on each
+  // ~4s data refresh — depending on `leaderboard` would reset the 12–20s timer
+  // before it ever fires, freezing the rotation.
+  const leaderboardLenRef = useRef(0);
+  leaderboardLenRef.current = leaderboard?.length ?? 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +92,7 @@ export default function BoothTV() {
         if (prev === 'B') return 'C';
         if (prev === 'C') {
           setSpotIndex(i => {
-            const n = leaderboard?.length ?? 0;
+            const n = leaderboardLenRef.current;
             return n ? (i + 1) % n : 0;
           });
           return 'A';
@@ -95,7 +101,7 @@ export default function BoothTV() {
       });
     }, TIMINGS[state]);
     return () => clearTimeout(t);
-  }, [state, forced, interruptName, leaderboard]);
+  }, [state, forced, interruptName]);
 
   useEffect(() => {
     if (!leaderboard || !spotlightAgentId) return;
@@ -128,12 +134,12 @@ export default function BoothTV() {
         width: 'min(100vw, calc(100vh * 16 / 9))',
         height: 'min(100vh, calc(100vw * 9 / 16))',
       }}>
-        <div className="tv-stage-fade" key={fadeKey} style={{ height: '100%' }}>
+        <main className="tv-stage-fade" key={fadeKey} style={{ height: '100%' }}>
           {active === 'A' && <StateA leaderboard={leaderboard} routingStats={routingStats} phaseSeconds={TIMINGS.A / 1000} />}
           {active === 'B' && <StateB leaderboard={leaderboard} rankIndex={spotIndex} routingStats={routingStats} phaseSeconds={TIMINGS.B / 1000} />}
           {active === 'C' && <StateC />}
           {active === 'D' && <StateD name={interruptName ?? undefined} />}
-        </div>
+        </main>
       </div>
     </div>
   );
