@@ -157,10 +157,18 @@ export default function KioskSignUp() {
         sliders: sliderValues,
         assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
       });
-      const result = await requestOptimization(agentId);
-      sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
-      sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      // The agent now exists — persist it and move on, so a failed first solve
+      // can't strand the attendee here or let a re-press create a duplicate
+      // agent. The first solve is best-effort caching; the welcome screen
+      // re-solves on its own if it's missing.
       localStorage.setItem('quip:lastAgentId', agentId);
+      sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      try {
+        const result = await requestOptimization(agentId);
+        sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
+      } catch {
+        // Leave it to the welcome screen to solve and surface any error.
+      }
       navigate(`/kiosk/welcome?agent=${agentId}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your agent. Check the backend connection.');
