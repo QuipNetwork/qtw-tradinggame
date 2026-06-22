@@ -27,7 +27,7 @@
 ### TV
 - [x] **T1 · StateC live asset changes.** Done `f87388b` — per-asset 24h change seeded then drifts every 2s (clamped −6…+7%) while on screen; interval cleaned up on unmount.
 - [x] **T2 · Spotlight derived labels.** Done `866be9c` — "02h 14m on the board" → the agent's real `handle` (fallback to rank); dropped the fabricated "4s ago" (no per-agent solve timestamp exists). Honest data only.
-- [ ] **T3 · TV landmarks + transition polish.** `<main>` on the TV; confirm the cross-fade reads well; ensure the rotation timer can't double-fire on a refresh (stale-closure check in BoothTV).
+- [x] **T3 · TV landmarks + transition polish.** Done `4bb998e` — found+fixed a real bug: the rotation `setTimeout` depended on `leaderboard`, so the 4s poll reset the 12–20s timer before it fired → rotation was FROZEN on one state. Length now via ref, dep dropped; browser-confirmed A→B rotates. Added `<main>` on the stage; cross-fade reads well.
 
 ### Accessibility / production
 - [ ] **A1 · Landmarks + headings everywhere.** `<main>` on kiosk/phone/TV; promote section eyebrows to real headings (or visually-hidden ones) for screen-reader structure.
@@ -53,3 +53,4 @@
 - 2026-06-22 · P1 phone live holdings strip → `a256e6b` (browser-verified; values move, bar glides).
 - 2026-06-22 · P2 phone h1 + main → `dab6a9c` (browser-verified — name unchanged).
 - 2026-06-22 · T2 spotlight real handle + drop fake solve-age → `866be9c` (gate green).
+- 2026-06-22 · T3 TV rotation-timer bug fix (was frozen) + <main> → `4bb998e` (browser-confirmed A→B rotates).
