@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import config
 from ..events.bus import get_bus
@@ -22,6 +22,7 @@ from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
 from ..solvers.types import SolverFailed
+from .auth import new_agent_token, require_agent_token
 from .schemas import (
     AgentConfig,
     AgentPatch,
@@ -61,15 +62,22 @@ async def create_agent(config_in: AgentConfig) -> SubmitAgentResponse:
         validate_basket(config_in.assets)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    record = get_agent_store().create(config_in, bankroll=config.BANKROLL_USD)
+    token, token_hash = new_agent_token()
+    record = get_agent_store().create(
+        config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
+    )
     return SubmitAgentResponse(
         agent_id=record.id,
-        qr_url=f"{config.QR_BASE_URL}/p/{record.id}",
+        # Token in the URL fragment — never sent to the server, so it stays out of logs.
+        qr_url=f"{config.QR_BASE_URL}/p/{record.id}#t={token}",
         bankroll=record.bankroll,
+        token=token,
     )
 
 
-@router.get("/agents/{agent_id}", response_model=AgentConfig)
+@router.get(
+    "/agents/{agent_id}", response_model=AgentConfig, dependencies=[Depends(require_agent_token)]
+)
 async def get_agent(agent_id: str) -> AgentConfig:
     record = get_agent_store().get(agent_id)
     if record is None:
@@ -79,7 +87,9 @@ async def get_agent(agent_id: str) -> AgentConfig:
     return config_out
 
 
-@router.patch("/agents/{agent_id}", response_model=AgentConfig)
+@router.patch(
+    "/agents/{agent_id}", response_model=AgentConfig, dependencies=[Depends(require_agent_token)]
+)
 async def update_agent(agent_id: str, body: AgentPatch) -> AgentConfig:
     store = get_agent_store()
     if store.get(agent_id) is None:
@@ -108,7 +118,11 @@ async def update_agent(agent_id: str, body: AgentPatch) -> AgentConfig:
 _solve_semaphore = asyncio.Semaphore(config.SOLVE_CONCURRENCY)
 
 
-@router.post("/agents/{agent_id}/optimize", response_model=RoutingResult)
+@router.post(
+    "/agents/{agent_id}/optimize",
+    response_model=RoutingResult,
+    dependencies=[Depends(require_agent_token)],
+)
 async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> RoutingResult:
     sliders = body.sliders if body is not None else None
     assets = body.assets if body is not None else None
@@ -209,7 +223,11 @@ async def routing_stats() -> RoutingStats:
     )
 
 
-@router.get("/agents/{agent_id}/valuation-history", response_model=list[ValuationHistoryPoint])
+@router.get(
+    "/agents/{agent_id}/valuation-history",
+    response_model=list[ValuationHistoryPoint],
+    dependencies=[Depends(require_agent_token)],
+)
 async def valuation_history(
     agent_id: str,
     limit: int = Query(default=60, ge=1, le=240),

@@ -57,6 +57,7 @@ class AgentRecord:
     valuation_as_of: str | None = None
     valuation_stale: bool = False
     update_frequency: str | None = None  # 'daily' | 'hourly' email cadence (opt-in)
+    token_hash: str | None = None  # sha256 of the agent's capability token (owner auth)
 
     def to_config(self) -> AgentConfig:
         return AgentConfig(
@@ -80,7 +81,9 @@ class AgentStore:
         self._valuation_history: dict[str, list[ValuationHistoryPoint]] = {}
         self._lock = RLock()
 
-    def create(self, config: AgentConfig, bankroll: float) -> AgentRecord:
+    def create(
+        self, config: AgentConfig, bankroll: float, *, token_hash: str | None = None
+    ) -> AgentRecord:
         with self._lock:
             agent_id = uuid4().hex[:8]
             record = AgentRecord(
@@ -96,6 +99,7 @@ class AgentStore:
                 bankroll=bankroll,
                 total=bankroll,
                 created_at=_now_iso(),
+                token_hash=token_hash,
             )
             self._agents[agent_id] = record
             return record

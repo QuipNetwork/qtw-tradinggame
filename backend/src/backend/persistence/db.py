@@ -62,6 +62,7 @@ agents_table = Table(
     Column("reach_out", JSON, nullable=True),
     Column("updates_opt_in", Boolean, nullable=True),
     Column("update_frequency", String(16), nullable=True),
+    Column("token_hash", String(64), nullable=True),
     Column("sliders", JSON, nullable=False),
     Column("assets", JSON, nullable=True),
     Column("bankroll", Float, nullable=False),
@@ -235,6 +236,7 @@ class DbAgentStore(AgentStore):
                 "next_rebalance_at": "VARCHAR",
                 "rebalance_interval_hours": "FLOAT",
                 "update_frequency": "VARCHAR",
+                "token_hash": "VARCHAR(64)",
             },
         )
         _ensure_rebalance_interval_type(self._engine)
@@ -244,9 +246,11 @@ class DbAgentStore(AgentStore):
     def engine(self) -> Engine:
         return self._engine
 
-    def create(self, config: AgentConfig, bankroll: float) -> AgentRecord:
+    def create(
+        self, config: AgentConfig, bankroll: float, *, token_hash: str | None = None
+    ) -> AgentRecord:
         for _ in range(3):
-            record = super().create(config, bankroll)
+            record = super().create(config, bankroll, token_hash=token_hash)
             try:
                 with self._engine.begin() as conn:
                     conn.execute(insert(agents_table), self._agent_values(record))
@@ -444,6 +448,7 @@ class DbAgentStore(AgentStore):
                         reach_out=list(row["reach_out"]) if row["reach_out"] else None,
                         updates_opt_in=row["updates_opt_in"],
                         update_frequency=row["update_frequency"],
+                        token_hash=row["token_hash"],
                         sliders=SliderValues(**row["sliders"]),
                         assets=list(row["assets"]) if row["assets"] else None,
                         bankroll=row["bankroll"],
@@ -480,6 +485,7 @@ class DbAgentStore(AgentStore):
             "reach_out": record.reach_out,
             "updates_opt_in": record.updates_opt_in,
             "update_frequency": record.update_frequency,
+            "token_hash": record.token_hash,
             "sliders": record.sliders.model_dump(by_alias=True),
             "assets": record.assets,
             "bankroll": record.bankroll,

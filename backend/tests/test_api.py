@@ -36,7 +36,10 @@ def _create(client: TestClient, name: str = "Neo") -> str:
     assert response.status_code == 200
     body = response.json()
     assert body["bankroll"] == 10_000.0
-    assert body["qrUrl"] == f"https://qtw.quip.network/p/{body['agentId']}"
+    token = body["token"]
+    assert body["qrUrl"] == f"https://qtw.quip.network/p/{body['agentId']}#t={token}"
+    # Authorize subsequent per-agent calls on this client as the agent's owner.
+    client.headers["Authorization"] = f"Bearer {token}"
     return body["agentId"]
 
 
@@ -90,6 +93,34 @@ def test_unknown_agent_is_404():
     with TestClient(create_app()) as client:
         assert client.get("/agents/nope").status_code == 404
         assert client.post("/agents/nope/optimize", json={}).status_code == 404
+
+
+def test_per_agent_routes_require_owner_token():
+    with TestClient(create_app()) as client:
+        # Create directly (public) so this client carries no Authorization header.
+        body = client.post(
+            "/agents",
+            json={"name": "Auth", "email": "auth@example.com", "sliders": _SLIDERS, "assets": _BASKET},
+        ).json()
+        agent_id, token = body["agentId"], body["token"]
+        good = {"Authorization": f"Bearer {token}"}
+
+        # No token → 401 on every per-agent route.
+        assert client.get(f"/agents/{agent_id}").status_code == 401
+        assert client.post(f"/agents/{agent_id}/optimize", json={}).status_code == 401
+        assert client.patch(f"/agents/{agent_id}", json={"assets": _BASKET}).status_code == 401
+        assert client.get(f"/agents/{agent_id}/valuation-history").status_code == 401
+        # Wrong token → 403.
+        assert client.get(f"/agents/{agent_id}", headers={"Authorization": "Bearer wrong"}).status_code == 403
+        # Correct token → 200; email is returned only to the authorized owner.
+        ok = client.get(f"/agents/{agent_id}", headers=good)
+        assert ok.status_code == 200
+        assert ok.json()["email"] == "auth@example.com"
+        # Missing agent → 404 even with a valid-looking token.
+        assert client.get("/agents/nope", headers=good).status_code == 404
+        # The public leaderboard never exposes the email.
+        board = client.get("/leaderboard").json()
+        assert all("email" not in entry for entry in board)
 
 
 def test_optimize_qpu_budget_exhaustion_is_429(monkeypatch):

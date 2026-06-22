@@ -204,6 +204,7 @@ class SubmitAgentResponse(BaseModel):
     agent_id: str = Field(alias="agentId")
     qr_url: str = Field(alias="qrUrl")
     bankroll: float  # surfaced server-side per Q8
+    token: str  # capability token — returned once; client stores it, sends as Bearer
 
     model_config = ConfigDict(populate_by_name=True)
 
