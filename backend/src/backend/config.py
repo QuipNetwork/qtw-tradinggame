@@ -140,9 +140,15 @@ METHOD3_PENALTY_MULT_LINK: float = 12.0
 # penalizes co-selecting correlated assets, making the SELECTION landscape rugged (competing
 # pairwise pulls → many local minima) so D-Wave can out-search SA on portfolio quality. For the
 # SELECT encoding this value is a FRACTION of the per-problem objective scale (resolve_frustration_beta
-# scales it per basket, so the validated 0.25–0.5 band is basket-invariant); it applies only to the
-# select encoding. 0 = off. Default 0.4 = on, mid-band where D-Wave wins. See qpu-c2-beta-findings.md.
+# scales it per basket, so the relative pressure is basket-invariant); it applies only to the select
+# encoding. 0 = off. This is the PEAK fraction, reached at LARGE baskets — β is RAMPED by basket size
+# (below): OOS backtests show its benefit grows with N and it hurts tiny baskets
+# (qpu-experiment-synthesis-2026-06-22.md §7/§9). See also qpu-c2-beta-findings.md.
 METHOD3_FRUSTRATION_BETA: float = float(os.environ.get("METHOD3_FRUSTRATION_BETA", 0.4))
+# N-aware β ramp: 0 below N_MIN (small baskets — β over-penalizes, hurts OOS), rising linearly to the
+# full METHOD3_FRUSTRATION_BETA at/above N_FULL. At the 28-asset universe this lands ≈0.23.
+METHOD3_BETA_N_MIN: int = int(os.environ.get("METHOD3_BETA_N_MIN", 12))
+METHOD3_BETA_N_FULL: int = int(os.environ.get("METHOD3_BETA_N_FULL", 40))
 
 # Method 3 QUBO encoding:
 #   "select" (C2, DEFAULT): penalty-free SELECTION-ONLY QUBO (one bit/asset, objective + β only).

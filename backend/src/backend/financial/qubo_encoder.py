@@ -251,14 +251,19 @@ def select_objective_scale(problem: PortfolioProblem) -> float:
 
 
 def resolve_frustration_beta(problem: PortfolioProblem) -> float:
-    """Effective absolute β for ``problem`` from config.METHOD3_FRUSTRATION_BETA. β is a SELECT-only
-    diversification knob: for the select encoding the config value is a FRACTION of the objective
-    scale (multiplied by select_objective_scale so the validated 0.25–0.5 band is consistent across
-    baskets); for convex / legacy-penalized it is off (0.0)."""
-    beta = config.METHOD3_FRUSTRATION_BETA
-    if beta and problem.is_method3 and config.METHOD3_ENCODING == "select":
-        return beta * select_objective_scale(problem)
-    return 0.0
+    """Effective absolute β for ``problem`` (select encoding only; 0 for convex/penalized).
+
+    METHOD3_FRUSTRATION_BETA is the PEAK fraction of the objective scale; it is (a) multiplied by
+    select_objective_scale so the relative diversification pressure is basket-invariant, and (b)
+    RAMPED by basket size N — 0 below METHOD3_BETA_N_MIN, full at/above METHOD3_BETA_N_FULL, linear
+    between — because OOS backtests show β helps at scale but hurts tiny baskets
+    (qpu-experiment-synthesis-2026-06-22.md §7/§9)."""
+    beta_max = config.METHOD3_FRUSTRATION_BETA
+    if not (beta_max and problem.is_method3 and config.METHOD3_ENCODING == "select"):
+        return 0.0
+    lo, hi = config.METHOD3_BETA_N_MIN, config.METHOD3_BETA_N_FULL
+    ramp = min(1.0, max(0.0, (problem.N - lo) / max(1, hi - lo)))
+    return beta_max * ramp * select_objective_scale(problem)
 
 
 def encode_method3(

@@ -227,3 +227,37 @@ def test_large_baskets_drop_to_2_bits(synthetic_problem_3assets):
     assert bits_for_basket(25) == 2
     # small fixture still encodes at full precision
     assert encode_qubo(synthetic_problem_3assets).n == 12
+
+
+def test_resolve_frustration_beta_ramps_with_basket_size(monkeypatch):
+    # β is N-aware: 0 for tiny baskets (β hurts OOS there), ramping to the full peak fraction at
+    # large baskets (qpu-experiment-synthesis §7/§9). Verifies the resolve_frustration_beta ramp.
+    from backend.financial.qubo_encoder import resolve_frustration_beta, select_objective_scale
+    from backend.financial.types import PortfolioProblem
+
+    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
+    monkeypatch.setattr(config, "METHOD3_FRUSTRATION_BETA", 0.4)
+    monkeypatch.setattr(config, "METHOD3_BETA_N_MIN", 12)
+    monkeypatch.setattr(config, "METHOD3_BETA_N_FULL", 40)
+
+    def prob(n):
+        rng = np.random.default_rng(n)
+        A = rng.normal(size=(n, n))
+        return PortfolioProblem(
+            mu=rng.uniform(-0.01, 0.03, n),
+            Sigma=A @ A.T / n + np.eye(n) * 0.02,
+            gamma=2.0,
+            w_max=0.5,
+            w_min=1 / 32,
+            asset_tickers=[str(i) for i in range(n)],
+            cardinality_k=max(3, n // 3),
+            n_units_M=32,
+            u_min_units=1,
+        )
+
+    assert resolve_frustration_beta(prob(10)) == 0.0  # below N_MIN → off
+    p40 = prob(40)
+    assert resolve_frustration_beta(p40) == pytest.approx(0.4 * select_objective_scale(p40))  # full
+    p28 = prob(28)  # mid → linearly ramped
+    ramp = (28 - 12) / (40 - 12)
+    assert resolve_frustration_beta(p28) == pytest.approx(0.4 * ramp * select_objective_scale(p28))
