@@ -85,7 +85,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="QTW 2026 Trading Game", lifespan=lifespan)
+    # No public API explorer on a real deploy (production/booth); keep it locally.
+    docs_on = config.APP_ENV.strip().lower() not in config.DB_REQUIRED_ENVS
+    app = FastAPI(
+        title="QTW 2026 Trading Game",
+        lifespan=lifespan,
+        docs_url="/docs" if docs_on else None,
+        redoc_url="/redoc" if docs_on else None,
+        openapi_url="/openapi.json" if docs_on else None,
+    )
     app.state.signup_limiter = SignupRateLimiter()
     app.add_middleware(
         CORSMiddleware,

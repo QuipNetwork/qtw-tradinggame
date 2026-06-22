@@ -347,3 +347,10 @@ def test_required_config_allows_local_memory(monkeypatch, env):
     monkeypatch.setattr(config, "APP_ENV", env)
     monkeypatch.setattr(config, "DATABASE_URL", None)
     _check_required_config()  # no raise
+
+
+def test_api_explorer_disabled_for_real_deploys(monkeypatch):
+    monkeypatch.setattr(config, "APP_ENV", "booth")
+    assert create_app().openapi_url is None  # no /openapi.json, /docs, /redoc in prod
+    monkeypatch.setattr(config, "APP_ENV", "local")
+    assert create_app().openapi_url == "/openapi.json"  # kept locally
