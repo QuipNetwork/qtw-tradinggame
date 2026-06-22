@@ -49,13 +49,14 @@ def _check_market_source() -> None:
 
 
 def _check_required_config() -> None:
-    """Refuse to boot in-memory in a non-local environment — restart would wipe
-    every agent/job/valuation. Local/dev/test keep the in-memory default."""
-    if config.APP_ENV not in config.MEMORY_OK_ENVS and not config.DATABASE_URL:
+    """Refuse to boot in-memory for a real deploy (APP_ENV=production/booth) —
+    a restart would wipe every agent/job/valuation. All local/dev runs (local,
+    local-dev, local-smoke-*, …) keep the in-memory default."""
+    if config.APP_ENV.strip().lower() in config.DB_REQUIRED_ENVS and not config.DATABASE_URL:
         raise RuntimeError(
             f"APP_ENV={config.APP_ENV!r} requires DATABASE_URL "
-            "(refusing in-memory persistence outside local/dev/test — data would be "
-            "lost on restart). Set DATABASE_URL, or use APP_ENV=local for in-memory."
+            "(refusing in-memory persistence for a real deploy — data would be lost "
+            "on restart). Set DATABASE_URL, or use a local APP_ENV for in-memory."
         )
 
 

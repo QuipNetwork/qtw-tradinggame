@@ -273,15 +273,20 @@ def test_optimize_accepts_a_new_basket():
         assert too_small.status_code == 422
 
 
-def test_required_config_rejects_memory_persistence_outside_local(monkeypatch):
-    """Prod/booth must carry a DATABASE_URL — refuse to boot in-memory there."""
-    monkeypatch.setattr(config, "APP_ENV", "production")
+@pytest.mark.parametrize("env", ["production", "booth", "Production", " booth "])
+def test_required_config_rejects_memory_for_real_deploys(monkeypatch, env):
+    """production/booth must carry a DATABASE_URL — refuse to boot in-memory there."""
+    monkeypatch.setattr(config, "APP_ENV", env)
     monkeypatch.setattr(config, "DATABASE_URL", None)
     with pytest.raises(RuntimeError, match="DATABASE_URL"):
         _check_required_config()
 
 
-def test_required_config_allows_local_memory(monkeypatch):
-    monkeypatch.setattr(config, "APP_ENV", "local")
+@pytest.mark.parametrize(
+    "env", ["local", "local-dev", "local-container", "local-smoke-azain", "dev", "test"]
+)
+def test_required_config_allows_local_memory(monkeypatch, env):
+    """Any local/dev run may use in-memory persistence (no DATABASE_URL required)."""
+    monkeypatch.setattr(config, "APP_ENV", env)
     monkeypatch.setattr(config, "DATABASE_URL", None)
-    _check_required_config()  # no raise — in-memory is fine locally
+    _check_required_config()  # no raise
