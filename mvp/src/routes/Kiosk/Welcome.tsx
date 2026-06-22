@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK } from '../../api';
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
@@ -161,7 +161,7 @@ export default function KioskWelcome() {
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up</span>
+        <span className="v4m-pill">{IS_MOCK ? 'Demo' : 'Live'} · Sign-up</span>
       </div>
 
       <div className="v4m-hero">

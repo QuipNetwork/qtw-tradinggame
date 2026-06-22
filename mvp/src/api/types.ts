@@ -35,6 +35,7 @@ export type SubmitAgentResponse = {
   agentId: string;
   qrUrl: string;
   bankroll?: number;
+  token: string;  // capability token — returned once; client stores it, sends as Bearer
 };
 
 export type OptimizePatch = {

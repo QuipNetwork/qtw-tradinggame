@@ -114,7 +114,6 @@ export default function Index() {
             <div><span>Format</span><strong>Booth kiosk + phone profile</strong></div>
             <div><span>Dates</span><strong>Jun 25–26, 2026 · continuous</strong></div>
             <div><span>Prize tier</span><strong>Top 10 win</strong></div>
-            <div><span>Modeled after</span><strong>Base @ Consensys Miami</strong></div>
           </div>
         </header>
 

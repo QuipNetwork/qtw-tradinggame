@@ -68,7 +68,7 @@ export default function StateB({
             <div className="spot-handle">{agent.handle ?? `Rank ${rankPadded} on the leaderboard`}</div>
           </div>
           <div className="right">
-            <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Spotlight</div>
+            <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Up next</div>
             <div className="countdown" style={{ fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: '3.4cqh', color: '#18181b', fontVariantNumeric: 'tabular-nums' }}><Countdown seconds={phaseSeconds} /></div>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function StateB({
             <div className="spot-lastsolve">
               <div className={`v4-pr ${agent.primaryProvider === 'QPU' ? 'q' : 'c'}`}>
                 <span className="type">{agent.primaryProvider}</span>
-                <span className="nm">Solved by {agent.primaryProvider === 'QPU' ? 'D-Wave Advantage' : 'Helios-12'}</span>
+                <span className="nm">Solved by {agent.primaryProvider === 'QPU' ? 'D-Wave Advantage' : 'Simulated Annealing'}</span>
               </div>
             </div>
           </div>

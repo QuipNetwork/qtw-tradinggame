@@ -79,9 +79,10 @@ function delay<T>(value: T, ms = 250 + Math.random() * 350): Promise<T> {
 
 export async function submitAgent(config: AgentConfig): Promise<SubmitAgentResponse> {
   const agentId = uuid();
-  const qrUrl = `${window.location.origin}/p/${agentId}`;
+  const token = `mock-${agentId}`;  // mock has no real auth; mirror the real QR shape
+  const qrUrl = `${window.location.origin}/p/${agentId}#t=${token}`;
   localStorage.setItem(STORAGE_PREFIX + agentId, JSON.stringify({ ...config, agentId, createdAt: Date.now() }));
-  return delay({ agentId, qrUrl });
+  return delay({ agentId, qrUrl, token });
 }
 
 export async function getAgent(agentId: string): Promise<AgentConfig | null> {

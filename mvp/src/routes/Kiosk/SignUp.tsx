@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, IS_MOCK } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
 import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
 import KioskStage from './Stage';
@@ -280,7 +280,7 @@ export default function KioskSignUp() {
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up</span>
+        <span className="v4m-pill">{IS_MOCK ? 'Demo' : 'Live'} · Sign-up</span>
       </div>
 
       <div className="v4m-hero">

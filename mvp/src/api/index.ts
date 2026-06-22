@@ -1,5 +1,6 @@
 export * from './types';
 export * from './assets';
+export { storeAgentToken } from './token';
 
 import * as mocks from './mocks';
 import * as real from './real';

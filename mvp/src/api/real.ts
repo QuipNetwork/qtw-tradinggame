@@ -15,6 +15,7 @@ import type {
   ValuationHistoryPoint,
 } from './types';
 import { ReconnectingSocket } from './socket';
+import { getAgentToken, storeAgentToken } from './token';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
 
@@ -94,16 +95,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// Owner-token header for agent-scoped calls. Empty until the token is known —
+// stored from the create response (this session) or the QR fragment (see token.ts).
+function authHeaders(agentId: string): Record<string, string> {
+  const token = getAgentToken(agentId);
+  return token ? { authorization: `Bearer ${token}` } : {};
+}
+
 export async function submitAgent(config: AgentConfig): Promise<SubmitAgentResponse> {
-  return request<SubmitAgentResponse>('/agents', {
+  const response = await request<SubmitAgentResponse>('/agents', {
     method: 'POST',
     body: JSON.stringify(config),
   });
+  storeAgentToken(response.agentId, response.token);  // authorize this session's calls
+  return response;
 }
 
 export async function getAgent(agentId: string): Promise<AgentConfig | null> {
   try {
-    return await request<AgentConfig>(`/agents/${encodeURIComponent(agentId)}`);
+    return await request<AgentConfig>(`/agents/${encodeURIComponent(agentId)}`, {
+      headers: authHeaders(agentId),
+    });
   } catch (error) {
     if (error instanceof BackendApiError && error.status === 404) {
       return null;
@@ -116,11 +128,11 @@ export async function updateAgent(
   agentId: string,
   patch: Partial<AgentConfig>,
 ): Promise<AgentConfig> {
-  const current = await getAgent(agentId);
-  if (!current) {
-    throw new Error(`Agent not found: ${agentId}`);
-  }
-  return { ...current, ...patch };
+  return request<AgentConfig>(`/agents/${encodeURIComponent(agentId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+    headers: authHeaders(agentId),
+  });
 }
 
 export async function requestOptimization(
@@ -130,6 +142,7 @@ export async function requestOptimization(
   return request<RoutingResult>(`/agents/${encodeURIComponent(agentId)}/optimize`, {
     method: 'POST',
     body: JSON.stringify(patch),
+    headers: authHeaders(agentId),
   });
 }
 
@@ -148,6 +161,7 @@ export async function getValuationHistory(
   const params = new URLSearchParams({ limit: String(limit) });
   return request<ValuationHistoryPoint[]>(
     `/agents/${encodeURIComponent(agentId)}/valuation-history?${params.toString()}`,
+    { headers: authHeaders(agentId) },
   );
 }
 
@@ -156,8 +170,10 @@ export function subscribeAgent(
   callback: (update: AgentUpdate) => void,
   options: SubscribeOptions = {},
 ): () => void {
+  const token = getAgentToken(agentId);
+  const base = websocketUrl(`/agents/${encodeURIComponent(agentId)}`);
   const socket = new ReconnectingSocket<AgentUpdate>(
-    websocketUrl(`/agents/${encodeURIComponent(agentId)}`),
+    token ? `${base}?t=${encodeURIComponent(token)}` : base,
     { onMessage: callback, onStatus: options.onStatus },
   );
   return () => socket.close();

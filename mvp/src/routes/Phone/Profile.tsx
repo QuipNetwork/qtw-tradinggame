@@ -9,7 +9,7 @@ import type {
   AssetInfo,
   QpuBudgetStatus,
 } from '../../api';
-import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import { getAgent, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
@@ -119,6 +119,17 @@ function sparkCoords(values: number[]): Array<{ x: number; y: number }> {
 
 export default function PhoneProfile() {
   const { agentId } = useParams();
+  // Capture the capability token from the QR link fragment (#t=) and store it before
+  // anything subscribes/fetches — this effect is registered before useAgentLive's, so
+  // it runs first — then strip it from the visible URL so it isn't shared by accident.
+  useEffect(() => {
+    if (!agentId) return;
+    const match = /[#&]t=([^&]+)/.exec(window.location.hash);
+    if (match) {
+      storeAgentToken(agentId, decodeURIComponent(match[1]));
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, [agentId]);
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [sliders, setSliders] = useState<number[] | null>(null);
   const [holdCount, setHoldCount] = useState<number | null>(null);
@@ -477,7 +488,7 @@ export default function PhoneProfile() {
 
             <div className="v4m-phone-mega">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span className="v4m-section-eyebrow cyan-dot cyan">Solved via Quip · 4m ago</span>
+                <span className="v4m-section-eyebrow cyan-dot cyan">Solved via Quip Network</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
                 <div>

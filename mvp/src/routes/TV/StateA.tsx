@@ -1,4 +1,5 @@
 import type { LeaderboardEntry, RoutingStats } from '../../api';
+import { IS_MOCK } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
 import { fmtUsd } from '../../utils/format';
@@ -23,7 +24,7 @@ export default function StateA({
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Live · Top Ten</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">{IS_MOCK ? 'Demo' : 'Live'} · Top Ten</span><span className="bar"></span></div>
       </div>
 
       <div className="qs-body-v4">
@@ -32,7 +33,7 @@ export default function StateA({
             <h1>Top ten <span className="it">quantum</span> trading agents.</h1>
           </div>
           <div className="right">
-            <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Next view in</div>
+            <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Up next</div>
             <div className="countdown" style={{ fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: '3.4cqh', color: '#18181b', fontVariantNumeric: 'tabular-nums' }}><Countdown seconds={phaseSeconds} /></div>
           </div>
         </div>

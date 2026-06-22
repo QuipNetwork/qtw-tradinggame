@@ -65,7 +65,7 @@ export default function StateC() {
           <div className="nav-divider"></div>
           <span className="nav-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
-        <div className="h-eyebrow"><span className="lbl">Welcome · Sign-up</span><span className="bar"></span></div>
+        <div className="h-eyebrow"><span className="lbl">How it works</span><span className="bar"></span></div>
       </div>
 
       <div className="state-d-body">
@@ -84,7 +84,7 @@ export default function StateC() {
         </div>
 
         <div className="state-d-form">
-          <div className="state-d-eyebrow">Create your agent</div>
+          <div className="state-d-eyebrow">At the kiosk</div>
           <h2 className="state-d-form-title">Create your <span className="it">trading agent.</span></h2>
 
           <div className="sdf-field">
