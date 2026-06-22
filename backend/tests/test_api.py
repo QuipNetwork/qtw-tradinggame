@@ -269,12 +269,27 @@ def test_optimize_returns_routing_result():
 def test_websocket_streams_agent_update():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
+        token = client.headers["Authorization"].split(" ", 1)[1]
         client.post(f"/agents/{agent_id}/optimize", json={})
-        with client.websocket_connect(f"/agents/{agent_id}") as socket:
+        with client.websocket_connect(f"/agents/{agent_id}?t={token}") as socket:
             client.post(f"/agents/{agent_id}/optimize", json={})  # retune → push
             update = socket.receive_json()
             assert {"plUSD", "plPct", "total", "holdings", "asOf", "stale"} <= set(update)
             assert {h["ticker"] for h in update["holdings"]} == set(_BASKET)
+
+
+def test_agent_websocket_rejects_without_token():
+    from starlette.websockets import WebSocketDisconnect
+
+    with TestClient(create_app()) as client:
+        body = client.post(
+            "/agents",
+            json={"name": "WS", "email": "ws@example.com", "sliders": _SLIDERS, "assets": _BASKET},
+        ).json()
+        agent_id = body["agentId"]
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(f"/agents/{agent_id}"):  # no ?t= → 1008
+                pass
 
 
 def test_basket_below_minimum_is_rejected():
