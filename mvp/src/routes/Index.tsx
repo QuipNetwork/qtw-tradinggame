@@ -95,7 +95,7 @@ export default function Index() {
         </div>
       </nav>
 
-      <div className="page" id="top">
+      <div className="page landing-enter" id="top">
         <header className="hero">
           <div className="kicker">Quantum.Tech World 2026 · Trading Competition</div>
           <div className="hero-title-row">

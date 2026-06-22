@@ -6654,3 +6654,7 @@
   .qs-v4-mock .tickv.down, .bigscreen .tickv.down { animation: tickv-down 0.9s ease; }
   @keyframes tickv-up { 0%, 100% { background: transparent; } 28% { background: rgba(16, 185, 129, 0.26); } }
   @keyframes tickv-down { 0%, 100% { background: transparent; } 28% { background: rgba(239, 68, 68, 0.24); } }
+
+  /* ── (10) Landing entrance — subtle fade-up on load (reuses fade-up; scoped so
+     design-doc.html's .page is untouched). Reduced-motion neutralizes it. ── */
+  .landing-enter { animation: fade-up 0.45s ease both; }
