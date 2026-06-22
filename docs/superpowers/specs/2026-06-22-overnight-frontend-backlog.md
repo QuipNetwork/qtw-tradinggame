@@ -22,7 +22,7 @@
 
 ### Phone
 - [x] **P1 · Live holdings on the phone profile.** Done `a256e6b` — gliding allocation bar + top-6 holdings rows (ticker/pct/$, value-flash on change) + "+N more held", under the P&L block; browser-verified (28-holding a06, values move, scrolls cleanly, no overflow).
-- [ ] **P2 · Phone heading + landmark.** Add an `<h1>` (agent name) and `<main>` so the profile has real document structure.
+- [x] **P2 · Phone heading + landmark.** Done `dab6a9c` — agent name is now an `<h1>` (class out-specifies global h1 → no visual change, browser-verified) and the profile view is `<main>`.
 
 ### TV
 - [x] **T1 · StateC live asset changes.** Done `f87388b` — per-asset 24h change seeded then drifts every 2s (clamped −6…+7%) while on screen; interval cleaned up on unmount.
@@ -51,3 +51,4 @@
 - 2026-06-22 · Loop paused mid-T1: concurrent backend loop held the shared working tree (branch `backend-hardening`). Backend since merged to deployment-dev; resumed on the main tree.
 - 2026-06-22 · T1 StateC live asset drift → `f87388b` (tsc/lint/build green). When the backlog's implementable items are exhausted, merge this branch into deployment-dev (user-authorized; disjoint from backend).
 - 2026-06-22 · P1 phone live holdings strip → `a256e6b` (browser-verified; values move, bar glides).
+- 2026-06-22 · P2 phone h1 + main → `dab6a9c` (browser-verified — name unchanged).
