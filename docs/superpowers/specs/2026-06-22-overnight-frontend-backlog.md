@@ -25,7 +25,7 @@
 - [ ] **P2 · Phone heading + landmark.** Add an `<h1>` (agent name) and `<main>` so the profile has real document structure.
 
 ### TV
-- [ ] **T1 · StateC live asset changes.** Replace the deterministic `fakeChange` with a gently drifting per-asset 24h change (module state, vol-scaled) so the explainer's asset list feels alive. Frontend-only.
+- [x] **T1 · StateC live asset changes.** Done `f87388b` — per-asset 24h change seeded then drifts every 2s (clamped −6…+7%) while on screen; interval cleaned up on unmount.
 - [ ] **T2 · Spotlight derived labels.** Replace StateB's hardcoded "02h 14m on the board" / "4s ago" with values derived from data (a ticking relative clock; omit if no timestamp available) rather than frozen strings.
 - [ ] **T3 · TV landmarks + transition polish.** `<main>` on the TV; confirm the cross-fade reads well; ensure the rotation timer can't double-fire on a refresh (stale-closure check in BoothTV).
 
@@ -48,3 +48,5 @@
 ## Progress log (loop appends here)
 - 2026-06-22 · R1 loading skeletons → `672f9c5` (tsc/lint/build green).
 - 2026-06-22 · R4 kiosk create/solve decoupling → `6fc09b2` (tsc/lint/build green). Picked over R2/R3 (broader audits) as the concrete high-value win.
+- 2026-06-22 · Loop paused mid-T1: concurrent backend loop held the shared working tree (branch `backend-hardening`). Backend since merged to deployment-dev; resumed on the main tree.
+- 2026-06-22 · T1 StateC live asset drift → `f87388b` (tsc/lint/build green). When the backlog's implementable items are exhausted, merge this branch into deployment-dev (user-authorized; disjoint from backend).
