@@ -250,7 +250,7 @@ export default function KioskSignUp() {
         )}
         <div className="v4m-field v4m-field-checklist">
           <label>Would you like someone from our team to reach out?<span className="lead">Yes, I'm interested in…<span className="req" aria-hidden="true">*</span></span></label>
-          <div className="v4m-checklist">
+          <div className="v4m-checklist" role="group" aria-label="Would you like someone from our team to reach out?">
             {REACH_OUT_OPTIONS.map(o => (
               <button
                 type="button"
