@@ -114,3 +114,27 @@ def test_basket_below_minimum_raises():
         validate_basket(["BTC", "ETH"])
     assert validate_basket(["BTC", "ETH", "IONQ"]) == ["BTC", "ETH", "IONQ"]
     assert len(validate_basket(None)) == len(TICKERS)
+
+
+@pytest.mark.parametrize("mode", ["method3", "convex"])
+def test_box_stays_feasible_across_basket_and_slider_space(monkeypatch, mode):
+    # The whole solve (and optimal_weights' equal-weight fallback) assumes a FEASIBLE box: for the
+    # effective cardinality c (= K in method3, = n in convex), c·w_min ≤ 1 ≤ c·w_max. Sweep every
+    # basket size and the box-affecting sliders (max-position; hold-count in method3) to lock it in.
+    from backend.financial.basket import TICKERS
+
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", mode)
+    for n in range(config.MIN_BASKET_SIZE, len(TICKERS) + 1):
+        k_values = [None, 3, max(3, n // 2), n] if mode == "method3" else [None]
+        for mps in (0, 50, 100):
+            for k in k_values:
+                kw = {} if k is None else {"holdCount": k}
+                p = map_sliders(_sliders(maxPositionSize=mps, **kw), basket_size=n)
+                c = p.cardinality_k if mode == "method3" else n
+                ctx = (mode, n, k, mps, c, p.w_min, p.w_max)
+                assert p.w_min <= p.w_max, ctx
+                assert c * p.w_min <= 1.0 + 1e-9, ctx
+                assert c * p.w_max >= 1.0 - 1e-9, ctx
+                if mode == "method3":
+                    assert p.n_units_M >= p.cardinality_k, ctx
+                    assert 3 <= p.cardinality_k <= min(n, config.METHOD3_MAX_UNITS), ctx
