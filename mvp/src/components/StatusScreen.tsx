@@ -19,6 +19,11 @@ export default function StatusScreen({ tone, title, message, action, busy }: Pro
       <div className="surface-status-eyebrow">Quip Network</div>
       <div className="surface-status-title">{title}</div>
       {message && <p className="surface-status-msg">{message}</p>}
+      {busy && (
+        <div className="surface-skeleton" aria-hidden="true">
+          <span /><span /><span />
+        </div>
+      )}
       {action && (action.href
         ? <a className="surface-status-action" href={action.href}>{action.label}</a>
         : <button type="button" className="surface-status-action" onClick={action.onClick}>{action.label}</button>

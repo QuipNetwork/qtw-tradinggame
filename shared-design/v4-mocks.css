@@ -6600,3 +6600,21 @@
     0%, 100% { background: transparent; }
     30% { background: rgba(75, 224, 255, 0.16); }
   }
+
+  /* ── (6) Loading skeleton for StatusScreen busy state ── */
+  .surface-skeleton {
+    display: flex; flex-direction: column; gap: 9px;
+    width: min(240px, 70%); margin-top: 16px;
+  }
+  .surface-skeleton span {
+    height: 12px; border-radius: 6px; opacity: 0.14;
+    background: linear-gradient(90deg, currentColor 0%, transparent 45%, currentColor 85%);
+    background-size: 220% 100%;
+    animation: surface-shimmer 1.5s ease-in-out infinite;
+  }
+  .surface-skeleton span:nth-child(2) { width: 82%; }
+  .surface-skeleton span:nth-child(3) { width: 56%; }
+  @keyframes surface-shimmer {
+    0% { background-position: 220% 0; }
+    100% { background-position: -220% 0; }
+  }
