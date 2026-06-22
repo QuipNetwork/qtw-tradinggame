@@ -287,7 +287,7 @@ export default function KioskSignUp() {
         <ResetControl onConfirm={resetForm} />
       </div>
 
-      <div className="v4m-body selector-top">
+      <main className="v4m-body selector-top">
 
         <div className="v4m-main-col">
 
@@ -419,7 +419,7 @@ export default function KioskSignUp() {
           {detailsCard}
         </aside>
 
-      </div>
+      </main>
 
       <div className="v4m-cta-bar">
         <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size < MIN_ASSETS || !nameValid || !emailValid || reachOut.size === 0}>

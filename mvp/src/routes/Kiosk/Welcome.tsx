@@ -165,7 +165,7 @@ export default function KioskWelcome() {
         <ResetControl onConfirm={() => navigate('/kiosk', { replace: true })} />
       </div>
 
-      <div className="v4m-body">
+      <main className="v4m-body">
 
         <section className="v4m-main">
           <div className="v4m-routed-banner">Routed via <span className="accent">Quip Network</span></div>
@@ -267,7 +267,7 @@ export default function KioskWelcome() {
 
         </aside>
 
-      </div>
+      </main>
     </div>
     </KioskStage>
   );
