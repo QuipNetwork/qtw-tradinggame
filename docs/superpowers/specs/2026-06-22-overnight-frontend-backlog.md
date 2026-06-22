@@ -41,7 +41,7 @@
 
 ### Polish / hygiene
 - [x] **H1 · Welcome QR.** Done `e833379` — root cause: the QR effect ran during the loading StatusScreen (canvas not mounted yet) and `[agentId, qrUrl]` never changed afterward, so it never re-fired. Added `loadState` to the deps + a `loadState === 'ready'` guard; browser-confirmed the QR now renders (was blank — a regression from the earlier loading guards).
-- [ ] **H2 · Landing rhythm.** Minor vertical-rhythm/spacing refinements on the hub; vary the hero glyph palette if it reads too monochrome. Keep the theme.
+- [x] **H2 · Landing rhythm.** Done `16d57ec` — hero glyph now uses the `mixed` palette (coral + yellow + cyan + purple), matching the design-doc reference instead of the seed's monochrome coral. Spacing/rhythm assessed as already good → left as-is (no forced subjective change). Browser-verified.
 
 ## PROPOSE ONLY — do NOT implement (write/refine a proposal in this section)
 - **Cyan/coral contrast recolor** (`#0891B2` CTA, coral text fail AA). Needs the user's eye — it shifts the brand identity. Draft exact token changes + before/after ratios; don't apply.
@@ -67,3 +67,4 @@
 - 2026-06-22 · R3 TV money → shared fmtUsd → `4fa6079` (gate green; single-source formatting).
 - 2026-06-22 · U1 directional value ticks (green up / red down) → `f004f8f` (user request; browser-confirmed red on down-tick).
 - 2026-06-22 · R2 landing fade-up entrance (motion consistency; reduced-motion audited) → `fa04370` (browser-verified).
+- 2026-06-22 · H2 hero glyph mixed palette (matches reference); spacing left as-is → `16d57ec` (browser-verified). ALL IMPLEMENT items done.
