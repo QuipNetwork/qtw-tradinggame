@@ -6618,3 +6618,23 @@
     0% { background-position: 220% 0; }
     100% { background-position: -220% 0; }
   }
+
+  /* ── (7) Phone profile — compact live holdings strip ── */
+  .qs-v4-mock .v4m-holds .v4m-alloc-stack { display: flex; height: 7px; border-radius: 4px; overflow: hidden; }
+  .qs-v4-mock .v4m-holds .v4m-alloc-stack > span { display: block; height: 100%; }
+  .qs-v4-mock .v4m-holds-list { display: flex; flex-direction: column; gap: 3px; margin-top: 9px; }
+  .qs-v4-mock .v4m-holds-row {
+    display: grid; grid-template-columns: 16px 1fr auto auto; align-items: center; gap: 8px;
+    font-size: 0.78rem;
+  }
+  .qs-v4-mock .v4m-holds-icon { width: 16px; height: 16px; border-radius: 4px; }
+  .qs-v4-mock .v4m-holds-ticker { font-weight: 600; color: #e4e4e7; }
+  .qs-v4-mock .v4m-holds-pct {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.72rem; color: #71717b; text-align: right;
+  }
+  .qs-v4-mock .v4m-holds-usd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; color: #a1a1aa; text-align: right; min-width: 58px;
+  }
+  .qs-v4-mock .v4m-holds-more {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.7rem; color: #71717b; margin-top: 3px;
+  }

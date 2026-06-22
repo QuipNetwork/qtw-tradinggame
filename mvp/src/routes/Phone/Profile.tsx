@@ -9,7 +9,7 @@ import type {
   AssetInfo,
   QpuBudgetStatus,
 } from '../../api';
-import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, rebalanceTierIndex, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
@@ -340,6 +340,13 @@ export default function PhoneProfile() {
   const sparkStr = sparkXY.map(p => `${p.x},${p.y}`).join(' ');
   const sparkHead = sparkXY[sparkXY.length - 1];
 
+  // Live portfolio for the holdings strip — prefer the streamed holdings (they
+  // move with price), fall back to the last solve, drop unknown tickers.
+  const holdings = (live?.holdings?.length
+    ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd }))
+    : result?.portfolio ?? []
+  ).filter(e => ASSET_BY_TICKER[e.ticker]);
+
   const solveTime = result?.solveTime ?? 0.42;
   const providerName = result?.provider ?? 'D-Wave Advantage';
   const raceRows = solverRaceRows(result);
@@ -442,6 +449,28 @@ export default function PhoneProfile() {
                 )}
               </svg>
             </div>
+
+            {holdings.length > 0 && (
+            <div className="v4m-holds">
+              <div className="v4m-section-eyebrow">Holdings · {holdings.length}</div>
+              <div className="v4m-alloc-stack" style={{ marginTop: 8 }}>
+                {holdings.map(h => (
+                  <span key={h.ticker} className="v4m-alloc-seg" style={{ width: `${h.pct}%`, background: assetColor(h.ticker) }}></span>
+                ))}
+              </div>
+              <div className="v4m-holds-list">
+                {holdings.slice(0, 6).map(h => (
+                  <div className="v4m-holds-row" key={h.ticker}>
+                    <img className="v4m-holds-icon" src={assetIconSrc(h.ticker)} alt="" />
+                    <span className="v4m-holds-ticker">{h.ticker}</span>
+                    <span className="v4m-holds-pct">{Math.round(h.pct)}%</span>
+                    <span className="v4m-holds-usd v4m-flash" key={Math.round(h.usd)}>${WHOLE_USD.format(Math.round(h.usd))}</span>
+                  </div>
+                ))}
+                {holdings.length > 6 && <div className="v4m-holds-more">+{holdings.length - 6} more held</div>}
+              </div>
+            </div>
+            )}
 
             <div className="v4m-phone-mega">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
