@@ -11,10 +11,9 @@ from __future__ import annotations
 import numpy as np
 
 from .. import config
-from ..financial.projection import greedy_project
+from ..financial.projection import greedy_project, weights_for_support
 from ..financial.qubo_decoder import decode_bitstring
 from ..financial.types import PortfolioProblem, correlation_matrix
-from ..financial.weighting import optimal_weights
 from .feasibility import check_feasibility
 from .types import QuboMatrix
 
@@ -79,15 +78,7 @@ def _select_solution_c2(
         support = greedy_project(bits, problem, rho)
         hit = cache.get(support)
         if hit is None:
-            idx = list(support)
-            weights = np.zeros(n)
-            weights[idx] = optimal_weights(
-                problem.mu[idx],
-                problem.Sigma[np.ix_(idx, idx)],
-                problem.gamma,
-                problem.w_min,
-                problem.w_max,
-            )
+            weights = weights_for_support(support, problem)
             hit = (weights, problem.objective(weights))
             cache[support] = hit
         weights, objective = hit

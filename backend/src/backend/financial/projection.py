@@ -58,14 +58,15 @@ def greedy_project(
     return tuple(sorted(support))
 
 
-def select_weights(
-    selection_bits: np.ndarray, problem: PortfolioProblem, rho: np.ndarray | None = None
+def weights_for_support(
+    support: tuple[int, ...] | list[int], problem: PortfolioProblem
 ) -> np.ndarray:
-    """Full C2 decode of one selection sample: greedy-project to K, then the convex weight QP.
+    """Convex weight QP on a fixed support, scattered into an N-vector (0 off-support).
 
-    Returns an N-vector (0 off the chosen support). Shared by the live race and ``verify-dwave``.
+    The one place the chosen-support → weights step lives: shared by ``select_weights`` (one sample)
+    and the live race's per-support cache in ``solvers.sampling``, so the QP-and-scatter can't drift.
     """
-    idx = list(greedy_project(selection_bits, problem, rho))
+    idx = list(support)
     w = np.zeros(problem.N)
     w[idx] = optimal_weights(
         problem.mu[idx],
@@ -75,3 +76,13 @@ def select_weights(
         problem.w_max,
     )
     return w
+
+
+def select_weights(
+    selection_bits: np.ndarray, problem: PortfolioProblem, rho: np.ndarray | None = None
+) -> np.ndarray:
+    """Full C2 decode of one selection sample: greedy-project to K, then the convex weight QP.
+
+    Returns an N-vector (0 off the chosen support). Shared by the live race and ``verify-dwave``.
+    """
+    return weights_for_support(greedy_project(selection_bits, problem, rho), problem)
