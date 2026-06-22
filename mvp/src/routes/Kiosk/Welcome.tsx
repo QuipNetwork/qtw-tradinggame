@@ -70,11 +70,14 @@ export default function KioskWelcome() {
     }, style));
   }, [agent]);
 
+  // Depend on loadState too: the QR canvas only mounts once we're 'ready', so
+  // without this the effect runs during the loading screen (ref still null) and
+  // never re-fires → a blank QR.
   useEffect(() => {
-    if (!agentId || !qrRef.current) return;
+    if (!agentId || loadState !== 'ready' || !qrRef.current) return;
     const value = qrUrl ?? `${window.location.origin}/p/${agentId}`;
     renderQR(qrRef.current, value).catch(() => {});
-  }, [agentId, qrUrl]);
+  }, [agentId, qrUrl, loadState]);
 
   // Kiosk back-guard: neutralize the browser Back gesture so an accidental
   // swipe/tap can't drop the attendee out of their completion screen before
