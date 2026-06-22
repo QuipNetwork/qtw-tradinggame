@@ -10,7 +10,7 @@
 // holdCount          = Method 3: how many of the basket the optimizer holds (K).
 //                      Absolute count in [3, basket size]; omitted ⇒ hold all.
 export type SliderValues = {
-  rebalanceFrequency: number;  // 0–100 (snaps to 5 cadence tiers)
+  rebalanceFrequency: number;  // 0–100 (snaps to 7 cadence tiers: Off … 30m)
   riskPreference: number;      // 0–100
   maxPositionSize: number;     // 0–100
   holdCount?: number;          // 3..basketSize; the cardinality K (Method 3)

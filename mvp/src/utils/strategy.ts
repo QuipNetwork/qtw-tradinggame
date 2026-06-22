@@ -4,35 +4,48 @@
 
 import type { SliderValues } from '../api';
 
+// Slider value labels. Row 0 (rebalance) is bucketed by REBALANCE_TIERS via the
+// labelFor() special-case below, not by these strings — kept here only so the
+// row indices (0 = rebalance, 1 = risk, 2 = max-position) stay aligned.
 export const SLIDER_LABELS: ReadonlyArray<ReadonlyArray<string>> = [
-  ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'],
+  ['Off', '12h', '8h', '4h', '2h', '1h', '30m'],
   ['Conservative', 'Defensive', 'Balanced', 'Aggressive', 'Speculative'],
   ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'],
 ];
 
-// Short cadence labels for the compact inline rebalance chip row (one line, so the
-// strategy card stays short and the watchlist above doesn't scroll).
-export const REBALANCE_CHIP_LABELS = ['Daily', '8h', '4h', '2h', 'Hourly'] as const;
-
-// Rebalance cadence tiers (PLACEHOLDER, owned by the backend): quantum jobs
-// cost real money, so the most aggressive setting is capped at one scheduled
-// job per hour. Over the 2-day activation (~10 booth hours/day) that is at
-// most ~20 scheduled jobs per agent, plus any manual retunes from the phone.
+// Rebalance cadence tiers. `Off` = no scheduled rebalance (the initial allocation
+// rides untouched, hours = null); `30m` is the most aggressive tier.
+// NOTE — backend reconciliation owed: the solver budget documents *Hourly* as a
+// hard cap because QPU solves cost real money (token bucket, see CLAUDE.md and
+// the qpu-budget-design note). `Off` and the sub-hourly `30m` are frontend tiers
+// the kiosk/phone now offer; when the real backend is wired (mvp/src/api is on
+// mocks today) the scheduler must reconcile 30m + Off with that QPU budget.
 export const REBALANCE_TIERS = [
-  { label: 'Daily',    hours: 24 },
-  { label: 'Every 8h', hours: 8 },
-  { label: 'Every 4h', hours: 4 },
-  { label: 'Every 2h', hours: 2 },
-  { label: 'Hourly',   hours: 1 },   // hard cap
+  { label: 'Off', hours: null },
+  { label: '12h', hours: 12 },
+  { label: '8h',  hours: 8 },
+  { label: '4h',  hours: 4 },
+  { label: '2h',  hours: 2 },
+  { label: '1h',  hours: 1 },
+  { label: '30m', hours: 0.5 },
 ] as const;
 
-// Tier index (0..len-1) for a 0–100 rebalance slider value. Single source of the
-// bucketing so the slider→hours mapping and the cadence chips can't drift apart.
+// Tier index (0..len-1) for a 0–100 rebalance slider value, and its inverse.
+// Single source of the bucketing so the slider, the cadence labels and the
+// hours mapping can't drift apart. value→index rounds onto the nearest of the
+// N evenly-spaced tier stops (Off=0 … 30m=100).
 export function rebalanceTierIndex(value: number): number {
-  return Math.min(REBALANCE_TIERS.length - 1, Math.floor(value / 20));
+  const last = REBALANCE_TIERS.length - 1;
+  return Math.max(0, Math.min(last, Math.round((value / 100) * last)));
 }
 
-export function rebalanceEveryHours(value: number): number {
+export function rebalanceTierValue(index: number): number {
+  const last = REBALANCE_TIERS.length - 1;
+  return Math.round((Math.max(0, Math.min(last, index)) / last) * 100);
+}
+
+// Hours between scheduled rebalances for a slider value, or null when Off.
+export function rebalanceEveryHours(value: number): number | null {
   return REBALANCE_TIERS[rebalanceTierIndex(value)].hours;
 }
 
@@ -49,6 +62,9 @@ export function maxPositionCapPct(basketSize: number, value: number): number {
 }
 
 export function labelFor(idx: number, val: number): string {
+  // Rebalance (row 0) buckets onto the 7 cadence tiers; the other rows keep
+  // their 5-step quintile bucketing.
+  if (idx === 0) return REBALANCE_TIERS[rebalanceTierIndex(val)].label;
   const labels = SLIDER_LABELS[idx];
   const i = Math.min(labels.length - 1, Math.floor(val / 20));
   return labels[i];

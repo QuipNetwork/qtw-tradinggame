@@ -2,19 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct, rebalanceTierIndex, REBALANCE_CHIP_LABELS, labelFor } from '../../utils/strategy';
+import { maxPositionCapPct, labelFor } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
+import RebalanceSlider from '../../components/RebalanceSlider';
 
 // All three sliders are parameters of the allocation problem the solver runs
 // (it allocates the portfolio — it doesn't execute trades): how often to
 // re-optimize, how hard to chase returns, and how big any single position
 // may get.
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number }> = [
-  // Cadence values are the REAL tiers (QPU time costs money — hourly is the
-  // hard cap at the most aggressive setting). See utils/strategy REBALANCE_TIERS.
-  // Display labels come from the shared SLIDER_LABELS (via labelFor) so the kiosk
-  // and the phone profile never disagree on a slider's wording.
+  // Cadence is a 0–100 value snapped to the 7 REBALANCE_TIERS (Off … 30m).
+  // Rendered by RebalanceSlider; the chip row was retired. See utils/strategy —
+  // and note the QPU-budget reconciliation owed for the sub-hourly/Off tiers.
   { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70 },
   { key: 'riskPreference',     label: 'Risk preference',     initial: 78 },
   { key: 'maxPositionSize',    label: 'Max position size',   initial: 50 },
@@ -388,28 +388,8 @@ export default function KioskSignUp() {
                   );
                 })()}
               </div>
-              {/* Rebalance cadence — discrete tiers as a COMPACT inline row (label +
-                  chips on one line) so the card stays short and the watchlist
-                  above doesn't scroll. */}
-              <div className="v4m-cadence">
-                <span className="v4m-cadence-label">Rebalance</span>
-                <div className="v4m-cad-row">
-                  {REBALANCE_CHIP_LABELS.map((lbl, t) => {
-                    const active = rebalanceTierIndex(sliders[0]) === t;
-                    return (
-                      <button
-                        type="button"
-                        key={lbl}
-                        className={`v4m-cad-chip${active ? ' on' : ''}`}
-                        aria-pressed={active}
-                        onClick={() => updateSlider(0, t * 25)}
-                      >
-                        {lbl}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Rebalance cadence — segmented heat-bar slider (RebalanceSlider). */}
+              <RebalanceSlider value={sliders[0]} onChange={v => updateSlider(0, v)} />
             </div>
           </div>
 

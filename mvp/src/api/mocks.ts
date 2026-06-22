@@ -116,7 +116,9 @@ export async function requestOptimization(
     agent?.sliders.riskPreference ?? 50,
   );
   const intervalHours = rebalanceEveryHours(agent?.sliders.rebalanceFrequency ?? 50);
-  const nextRebalanceAt = new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString();
+  // intervalHours is null when the cadence is Off — no scheduled rebalance.
+  const nextRebalanceAt =
+    intervalHours == null ? null : new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString();
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s

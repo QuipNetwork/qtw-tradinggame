@@ -12,8 +12,9 @@ import type {
 import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { glyphParams, labelFor, rebalanceTierIndex, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
+import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
+import RebalanceSlider from '../../components/RebalanceSlider';
 import { useTweens } from '../../utils/anim';
 import StatusScreen from '../../components/StatusScreen';
 import TickValue from '../../components/TickValue';
@@ -508,10 +509,16 @@ export default function PhoneProfile() {
               <div>
                 <div className="v4m-section-eyebrow">Next QPU rebalance</div>
                 <div className="v4m-rebalance-sub">
-                  {rebalanceIntervalHours ? `Every ${rebalanceIntervalHours}h cadence` : 'Starts after first solve'}
+                  {labelFor(0, sliders[0]) === 'Off'
+                    ? 'Rebalancing is off'
+                    : rebalanceIntervalHours == null
+                      ? 'Starts after first solve'
+                      : rebalanceIntervalHours < 1
+                        ? `Every ${Math.round(rebalanceIntervalHours * 60)}m cadence`
+                        : `Every ${rebalanceIntervalHours}h cadence`}
                 </div>
               </div>
-              <div className="v4m-rebalance-time">{rebalanceCountdown}</div>
+              <div className="v4m-rebalance-time">{labelFor(0, sliders[0]) === 'Off' ? '—' : rebalanceCountdown}</div>
             </div>
 
             <button type="button" className="v4m-basket-open" onClick={() => setView('basket')}>
@@ -583,33 +590,18 @@ export default function PhoneProfile() {
                   </div>
                 );
               })()}
-              {/* Rebalance cadence — compact inline row (label + chips on one line). */}
-              <div className="v4m-cadence">
-                <span className="v4m-cadence-label">Rebalance</span>
-                <div className="v4m-cad-row">
-                  {REBALANCE_CHIP_LABELS.map((lbl, t) => {
-                    const active = rebalanceTierIndex(sliders[0]) === t;
-                    return (
-                      <button
-                        type="button"
-                        key={lbl}
-                        className={`v4m-cad-chip${active ? ' on' : ''}`}
-                        aria-pressed={active}
-                        onClick={() =>
-                          setSliders(prev => {
-                            if (!prev) return prev;
-                            const nx = [...prev];
-                            nx[0] = t * 25;
-                            return nx;
-                          })
-                        }
-                      >
-                        {lbl}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Rebalance cadence — segmented heat-bar slider (RebalanceSlider). */}
+              <RebalanceSlider
+                value={sliders[0]}
+                onChange={v =>
+                  setSliders(prev => {
+                    if (!prev) return prev;
+                    const nx = [...prev];
+                    nx[0] = v;
+                    return nx;
+                  })
+                }
+              />
             </div>
 
             <button className={`v4m-cta${busy ? ' busy' : ''}${qpuCoolingDown ? ' cooldown' : ''}`} onClick={retune} disabled={retuneDisabled}>
