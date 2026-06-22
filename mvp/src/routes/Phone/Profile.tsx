@@ -413,11 +413,11 @@ export default function PhoneProfile() {
               )}
             </div>
             ) : (
-            <div className="v4m-phone-view">
+            <main className="v4m-phone-view">
 
             <div className="v4m-phone-head">
               <div>
-                <div className="v4m-phone-name">{agent.name}</div>
+                <h1 className="v4m-phone-name">{agent.name}</h1>
               </div>
               <canvas ref={glyphRef} width={56} height={56} aria-hidden="true"></canvas>
               <div className="v4m-phone-rank" style={{ gridColumn: '1 / 3', marginTop: 4, justifySelf: 'start' }}>
@@ -617,7 +617,7 @@ export default function PhoneProfile() {
             </button>
             {retuneHelper && <div className="v4m-cta-sub">{retuneHelper}</div>}
 
-            </div>
+            </main>
             )}
 
           </div>
