@@ -21,7 +21,7 @@ from threading import Lock
 
 from ... import config
 from ...financial.types import PortfolioProblem
-from ..sampling import select_solution
+from ..sampling import reads_for_vars, select_solution
 from ..types import QuboMatrix, Solution, SolverFailed
 
 _sampler = None
@@ -30,14 +30,6 @@ _sampler_lock = Lock()
 
 def is_configured() -> bool:
     return bool(os.environ.get("DWAVE_API_TOKEN"))
-
-
-def reads_for_vars(n_vars: int) -> int:
-    """num_reads for a QUBO of n_vars logical variables — see DWAVE_READS_BY_VARS."""
-    for max_vars, reads in config.DWAVE_READS_BY_VARS:
-        if n_vars <= max_vars:
-            return reads
-    return config.DWAVE_NUM_READS
 
 
 def srt_for_vars(n_vars: int) -> int:

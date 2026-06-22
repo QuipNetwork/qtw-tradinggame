@@ -5,9 +5,8 @@ from __future__ import annotations
 import time
 
 from ...financial.types import PortfolioProblem
-from ..sampling import select_solution
+from ..sampling import reads_for_vars, select_solution
 from ..types import QuboMatrix, Solution, SolverFailed
-from .dwave import reads_for_vars
 
 
 class SAProvider:

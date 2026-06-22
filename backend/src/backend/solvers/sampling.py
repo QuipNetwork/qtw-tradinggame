@@ -10,12 +10,23 @@ from __future__ import annotations
 
 import numpy as np
 
+from .. import config
 from ..financial.projection import greedy_project
 from ..financial.qubo_decoder import decode_bitstring
 from ..financial.types import PortfolioProblem, correlation_matrix
 from ..financial.weighting import optimal_weights
 from .feasibility import check_feasibility
 from .types import QuboMatrix
+
+
+def reads_for_vars(n_vars: int) -> int:
+    """num_reads for a QUBO of n_vars logical variables — see config.DWAVE_READS_BY_VARS. Shared by
+    the SA and D-Wave providers so both draw the same size-scaled read budget (apples-to-apples);
+    lives here (not in the D-Wave provider) so the CPU solver doesn't depend on the QPU module."""
+    for max_vars, reads in config.DWAVE_READS_BY_VARS:
+        if n_vars <= max_vars:
+            return reads
+    return config.DWAVE_NUM_READS
 
 
 def select_solution(

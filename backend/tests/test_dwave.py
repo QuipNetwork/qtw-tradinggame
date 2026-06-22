@@ -81,7 +81,7 @@ def test_best_feasible_read_beats_lowest_energy(synthetic_problem_3assets):
 
 def test_reads_scale_with_basket_size():
     from backend import config
-    from backend.solvers.providers.dwave import reads_for_vars
+    from backend.solvers.sampling import reads_for_vars
 
     # Test the lookup LOGIC, not the literal table (which re-tunes): a 500 floor (matches
     # SA's baseline), boundary-inclusive first-match, and reads never decrease with size.
