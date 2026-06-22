@@ -60,6 +60,31 @@ def test_create_and_get_agent():
         assert body["assets"] == _BASKET
 
 
+def test_patch_agent_persists_basket_without_optimizing():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        response = client.patch(f"/agents/{agent_id}", json={"assets": ["HON", "GOOGL", "IBM"]})
+        assert response.status_code == 200
+        assert response.json()["assets"] == ["HON", "GOOGL", "IBM"]
+
+        got = client.get(f"/agents/{agent_id}")
+        assert got.status_code == 200
+        assert got.json()["assets"] == ["HON", "GOOGL", "IBM"]
+
+
+def test_patch_agent_rejects_unknown_or_too_small_basket():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        assert (
+            client.patch("/agents/nope", json={"assets": ["HON", "GOOGL", "IBM"]}).status_code
+            == 404
+        )
+
+        too_small = client.patch(f"/agents/{agent_id}", json={"assets": ["BTC"]})
+        assert too_small.status_code == 422
+        assert "at least" in too_small.json()["detail"]
+
+
 def test_unknown_agent_is_404():
     with TestClient(create_app()) as client:
         assert client.get("/agents/nope").status_code == 404
@@ -128,7 +153,7 @@ def test_routing_stats_counts_recorded_winning_jobs():
             feasible=True,
         ),
     )
-    jobs.record(
+    job = jobs.record(
         "a2",
         ProviderProvenance(
             provider="sa",
@@ -138,6 +163,19 @@ def test_routing_stats_counts_recorded_winning_jobs():
             solve_time_s=0.21,
             feasible=True,
         ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id="a2",
+        sliders=_SLIDERS,
+        assets=_BASKET,
+        portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
+        holdings_units={"BTC": 1.0},
+        solver_results=[
+            {"provider": "sa", "solveTime": 0.21},
+            {"provider": "dwave", "solveTime": 0.12},
+        ],
+        winner_provider="sa",
     )
 
     with TestClient(create_app()) as client:
@@ -150,6 +188,8 @@ def test_routing_stats_counts_recorded_winning_jobs():
         assert body["qpuPct"] == 50.0
         assert body["cpuPct"] == 50.0
         assert {provider["provider"] for provider in body["providers"]} == {"dwave", "sa"}
+        assert body["recent"][0]["provider"] == "sa"
+        assert body["recent"][0]["vsTime"] == 0.12
 
 
 def test_valuation_history_returns_sampled_points_and_current_tail():

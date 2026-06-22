@@ -20,8 +20,8 @@ class SliderParams:
     gamma: float  # risk aversion (objective coefficient)
     w_max: float  # per-asset cap, relative to the basket (1/n → W_MAX_CEILING)
     w_min: float  # participation floor — every basket asset is held at least this
-    rebalance_hours: int  # scheduled re-optimization cadence (24h → 1h cap)
-    # Method 3 only (None in convex mode): the optimizer sub-selects exactly
+    rebalance_hours: float | None  # scheduled cadence in hours; None means Off
+    # cardinality only (None in convex mode): the optimizer sub-selects exactly
     # cardinality_k of the basket and weights them on an M-unit integer grid.
     cardinality_k: int | None = None
     n_units_M: int | None = None
@@ -37,7 +37,7 @@ class PortfolioProblem:
     Convex mode (cardinality_k is None): a box-constrained QP — every basket
     asset is held; Gurobi solves it natively, SA/D-Wave solve the bit QUBO.
 
-    Method 3 mode (cardinality_k set): a cardinality-constrained, semi-continuous
+    cardinality mode (cardinality_k set): a cardinality-constrained, semi-continuous
     MIQP — the optimizer holds exactly cardinality_k of the basket, each weight is
     0 or in [w_min, w_max] on an integer-unit grid (M units, u_min floor). Gurobi
     solves the true MIQP; SA/D-Wave solve the integer-units selection QUBO.
@@ -51,12 +51,12 @@ class PortfolioProblem:
     w_max: float
     asset_tickers: list[str]  # the player's basket (subset of the universe)
     w_min: float = 0.0
-    # Method 3 only (None → convex mode).
+    # cardinality only (None → convex mode).
     cardinality_k: int | None = None
     n_units_M: int | None = None
     u_min_units: int | None = None
     # Diversification / frustration reward (β): adds β·Σ_{i<j} ρ_ij·y_i·y_j to the
-    # objective (0 = off). See config.METHOD3_FRUSTRATION_BETA and encode_method3.
+    # objective (0 = off). See config.CARDINALITY_FRUSTRATION_BETA and encode_penalized.
     frustration_beta: float = 0.0
 
     @property
@@ -64,7 +64,7 @@ class PortfolioProblem:
         return self.mu.shape[0]
 
     @property
-    def is_method3(self) -> bool:
+    def is_cardinality(self) -> bool:
         return self.cardinality_k is not None
 
     def objective(self, weights: np.ndarray) -> float:
@@ -84,7 +84,7 @@ class PortfolioProblem:
         assert 0 < self.w_max <= 1.0, "w_max must be in (0, 1]"
         assert 0.0 <= self.w_min <= self.w_max, "w_min must be in [0, w_max]"
         # Budget must be reachable across the held set: m·w_min ≤ 1 ≤ m·w_max,
-        # where m = N (convex, all held) or cardinality_k (Method 3, k held).
+        # where m = N (convex, all held) or cardinality_k (cardinality, k held).
         m = self.N if self.cardinality_k is None else self.cardinality_k
         if self.cardinality_k is not None:
             assert 0 < self.cardinality_k <= self.N, "cardinality_k must be in (0, N]"

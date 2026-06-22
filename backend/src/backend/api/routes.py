@@ -1,4 +1,4 @@
-"""HTTP routes — the 4 request/response endpoints mirroring mvp/src/api/mocks.ts.
+"""HTTP routes mirroring the MVP API contract in mvp/src/api.
 
 The WebSocket channel (subscribeAgent) lives in ws.py. The heavy optimize
 pipeline runs in a worker thread so the event loop stays responsive; the
@@ -24,6 +24,7 @@ from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
 from ..solvers.types import SolverFailed
 from .schemas import (
     AgentConfig,
+    AgentPatch,
     HealthResponse,
     LeaderboardEntry,
     OptimizeRequest,
@@ -71,6 +72,30 @@ async def create_agent(config_in: AgentConfig) -> SubmitAgentResponse:
 @router.get("/agents/{agent_id}", response_model=AgentConfig)
 async def get_agent(agent_id: str) -> AgentConfig:
     record = get_agent_store().get(agent_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="agent not found")
+    config_out = record.to_config()
+    config_out.qpu_budget = get_qpu_budget_store().status(agent_id)
+    return config_out
+
+
+@router.patch("/agents/{agent_id}", response_model=AgentConfig)
+async def update_agent(agent_id: str, body: AgentPatch) -> AgentConfig:
+    store = get_agent_store()
+    if store.get(agent_id) is None:
+        raise HTTPException(status_code=404, detail="agent not found")
+    try:
+        assets = validate_basket(body.assets) if body.assets is not None else None
+        if body.sliders is not None:
+            store.update_sliders(agent_id, body.sliders)
+        if assets is not None:
+            store.update_assets(agent_id, assets)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="agent not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    record = store.get(agent_id)
     if record is None:
         raise HTTPException(status_code=404, detail="agent not found")
     config_out = record.to_config()

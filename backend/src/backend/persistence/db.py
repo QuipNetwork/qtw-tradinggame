@@ -72,7 +72,7 @@ agents_table = Table(
     Column("primary_provider", String(8), nullable=False),
     Column("last_solved_at", String, nullable=True),
     Column("next_rebalance_at", String, nullable=True),
-    Column("rebalance_interval_hours", Integer, nullable=True),
+    Column("rebalance_interval_hours", Float, nullable=True),
     Column("created_at", String, nullable=False),
     Column("updated_at", String, nullable=False),
     Column("environment", String, nullable=False),
@@ -171,6 +171,32 @@ def _ensure_columns(engine: Engine, table_name: str, columns: dict[str, str]) ->
             conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {name} {ddl}"))
 
 
+def _ensure_rebalance_interval_type(engine: Engine) -> None:
+    """Postgres needs an explicit INTEGER→FLOAT migration for 30m cadences."""
+    column = next(
+        (
+            column
+            for column in inspect(engine).get_columns("agents")
+            if column["name"] == "rebalance_interval_hours"
+        ),
+        None,
+    )
+    if column is None:
+        return
+    type_name = str(column["type"]).upper()
+    if any(kind in type_name for kind in ("DOUBLE", "FLOAT", "REAL")):
+        return
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE agents "
+                    "ALTER COLUMN rebalance_interval_hours TYPE DOUBLE PRECISION "
+                    "USING rebalance_interval_hours::double precision"
+                )
+            )
+
+
 class DbAgentStore(AgentStore):
     """DB write-through store with the in-memory dict retained as the hot path."""
 
@@ -192,10 +218,11 @@ class DbAgentStore(AgentStore):
             {
                 "last_solved_at": "VARCHAR",
                 "next_rebalance_at": "VARCHAR",
-                "rebalance_interval_hours": "INTEGER",
+                "rebalance_interval_hours": "FLOAT",
                 "update_frequency": "VARCHAR",
             },
         )
+        _ensure_rebalance_interval_type(self._engine)
         self._load()
 
     @property
@@ -545,11 +572,16 @@ class DbJobStore(JobStore):
 
     def _load(self) -> None:
         with self._engine.begin() as conn:
-            rows = conn.execute(
+            job_rows = conn.execute(
                 select(jobs_table).where(jobs_table.c.environment == self._environment)
             ).mappings()
+            snapshot_rows = conn.execute(
+                select(solve_snapshots_table)
+                .where(solve_snapshots_table.c.environment == self._environment)
+                .order_by(solve_snapshots_table.c.id)
+            ).mappings()
             with self._lock:
-                for row in rows:
+                for row in job_rows:
                     job = JobRecord(
                         id=row["id"],
                         agent_id=row["agent_id"],
@@ -562,6 +594,20 @@ class DbJobStore(JobStore):
                         solved_at=row["solved_at"],
                     )
                     self._jobs[job.id] = job
+                for row in snapshot_rows:
+                    self._solve_snapshots.append(
+                        {
+                            "job_id": row["job_id"],
+                            "agent_id": row["agent_id"],
+                            "sliders": dict(row["sliders"]),
+                            "assets": list(row["assets"]),
+                            "portfolio": list(row["portfolio"]),
+                            "holdings_units": dict(row["holdings_units"]),
+                            "solver_results": list(row["solver_results"]),
+                            "winner_provider": row["winner_provider"],
+                            "created_at": row["created_at"],
+                        }
+                    )
 
 
 class DbQpuBudgetStore(QpuBudgetStore):

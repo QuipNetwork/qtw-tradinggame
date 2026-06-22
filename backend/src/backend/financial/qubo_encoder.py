@@ -65,32 +65,32 @@ def bits_for_basket(n_assets: int) -> int:
 
 
 def units_for_cardinality(k: int) -> int:
-    """Method 3 grid size M for cardinality k: the smallest power of two ≥ k (must
+    """cardinality grid size M for cardinality k: the smallest power of two ≥ k (must
     have M ≥ k units to place k held assets), floored/capped by config. Smaller M =
     fewer increment bits = fewer QUBO variables, which is the QPU-feasibility lever
-    (see config METHOD3_MIN/MAX_UNITS and the encode_method3 b = log2(M)−1 layout)."""
-    floor = max(k, config.METHOD3_MIN_UNITS)
+    (see config CARDINALITY_MIN/MAX_UNITS and the encode_penalized b = log2(M)−1 layout)."""
+    floor = max(k, config.CARDINALITY_MIN_UNITS)
     m = 1 << (floor - 1).bit_length()  # next power of two ≥ floor
-    return min(m, config.METHOD3_MAX_UNITS)
+    return min(m, config.CARDINALITY_MAX_UNITS)
 
 
 def units_for_grid(k: int, basket_size: int) -> int:
-    """Method 3 grid size M, SIZE-AWARE (mirrors convex bits_for_basket). Raises M toward a
+    """cardinality grid size M, SIZE-AWARE (mirrors convex bits_for_basket). Raises M toward a
     FINER grid (more weight levels ≈ closer to continuous) for small baskets that stay
     embeddable, keeps it COARSE for large baskets so the dense QUBO still embeds. Always
-    floored so M ≥ K. vars = N·log2(M), so METHOD3_PREFERRED_MAX_VARS caps resolution by N.
+    floored so M ≥ K. vars = N·log2(M), so CARDINALITY_PREFERRED_MAX_VARS caps resolution by N.
     Bigger small-basket QUBOs also slow SA (cost ~vars²), keeping the QPU race-competitive."""
-    m = units_for_cardinality(k)  # K floor (and ≥ METHOD3_MIN_UNITS)
-    cand = config.METHOD3_MIN_UNITS
-    while cand * 2 <= config.METHOD3_MAX_UNITS:
+    m = units_for_cardinality(k)  # K floor (and ≥ CARDINALITY_MIN_UNITS)
+    cand = config.CARDINALITY_MIN_UNITS
+    while cand * 2 <= config.CARDINALITY_MAX_UNITS:
         cand *= 2  # next finer power-of-two grid
-        if basket_size * (cand.bit_length() - 1) <= config.METHOD3_PREFERRED_MAX_VARS:
+        if basket_size * (cand.bit_length() - 1) <= config.CARDINALITY_PREFERRED_MAX_VARS:
             m = max(m, cand)  # afford the finer grid only if vars stay within budget
-    return min(m, config.METHOD3_MAX_UNITS)
+    return min(m, config.CARDINALITY_MAX_UNITS)
 
 
 def increment_place_values(w_max: float, n_units_M: int, u_min: int, b: int) -> np.ndarray:
-    """Place values for one held asset's b increment bits (Method 3).
+    """Place values for one held asset's b increment bits (cardinality).
 
     Caps a held asset at u_cap = ⌊w_max·M⌋ units so the integer grid never exceeds the
     per-asset box (w_i ≤ w_max) — a bounded-coefficient encoding [1, 2, …, remainder].
@@ -115,7 +115,7 @@ def _add_frustration_coupling(Q: np.ndarray, rho: np.ndarray, beta: float, n: in
 
     Splits 0.5·β·ρ_ij across the (i,j) and (j,i) halves so QuboMatrix.to_dict() recombines them
     into β·ρ_ij per pair. Couples the first n variables (asset i's select bit is index i in both
-    the select and method3 layouts), diagonal untouched. Shared by encode_select and encode_method3
+    the select and cardinality layouts), diagonal untouched. Shared by encode_select and encode_penalized
     so the β convention can never drift between them.
     """
     coupling = 0.5 * beta * rho[:n, :n].copy()
@@ -130,12 +130,12 @@ def encode_qubo(
 ) -> QuboMatrix:
     """Convert the box-constrained QP → QUBO. See module docstring.
 
-    Dispatches to ``encode_method3`` for cardinality/semi-continuous problems.
+    Dispatches to ``encode_penalized`` for cardinality/semi-continuous problems.
     """
-    if problem.is_method3:
-        if config.METHOD3_ENCODING == "select":
+    if problem.is_cardinality:
+        if config.CARDINALITY_ENCODING == "select":
             return encode_select(problem)
-        return encode_method3(problem)
+        return encode_penalized(problem)
 
     b = bits_per_asset if bits_per_asset is not None else bits_for_basket(problem.N)
     pmult_budget = (
@@ -207,7 +207,7 @@ def encode_select(problem: PortfolioProblem) -> QuboMatrix:
     clique), so D-Wave embeds with short chains and every read is feasible after projection. On
     the rugged β>0 landscape D-Wave beats SA on portfolio quality. See qpu-c2-beta-findings.md.
     """
-    assert problem.is_method3, "encode_select requires cardinality_k"
+    assert problem.is_cardinality, "encode_select requires cardinality_k"
     N = problem.N
     k = problem.cardinality_k
     coef = problem.gamma / (2.0 * k * k)  # symmetric-matrix half of the (γ/K²)Σ_ij pair term
@@ -240,7 +240,7 @@ def encode_select(problem: PortfolioProblem) -> QuboMatrix:
 def select_objective_scale(problem: PortfolioProblem) -> float:
     """Peak |coefficient| of the C2 selection objective (the to_dict scale ``encode_select`` uses):
     max over −μ_i/K + (γ/2K²)Σ_ii (diagonal) and (γ/K²)Σ_ij (pairs). This is the per-problem scale
-    that lets METHOD3_FRUSTRATION_BETA be a basket-invariant fraction (see resolve_frustration_beta).
+    that lets CARDINALITY_FRUSTRATION_BETA be a basket-invariant fraction (see resolve_frustration_beta).
     """
     k, g = problem.cardinality_k, problem.gamma
     coef = g / (2.0 * k * k)
@@ -253,20 +253,20 @@ def select_objective_scale(problem: PortfolioProblem) -> float:
 def resolve_frustration_beta(problem: PortfolioProblem) -> float:
     """Effective absolute β for ``problem`` (select encoding only; 0 for convex/penalized).
 
-    METHOD3_FRUSTRATION_BETA is the PEAK fraction of the objective scale; it is (a) multiplied by
+    CARDINALITY_FRUSTRATION_BETA is the PEAK fraction of the objective scale; it is (a) multiplied by
     select_objective_scale so the relative diversification pressure is basket-invariant, and (b)
-    RAMPED by basket size N — 0 below METHOD3_BETA_N_MIN, full at/above METHOD3_BETA_N_FULL, linear
+    RAMPED by basket size N — 0 below CARDINALITY_BETA_N_MIN, full at/above CARDINALITY_BETA_N_FULL, linear
     between — because OOS backtests show β helps at scale but hurts tiny baskets
     (qpu-experiment-synthesis-2026-06-22.md §7/§9)."""
-    beta_max = config.METHOD3_FRUSTRATION_BETA
-    if not (beta_max and problem.is_method3 and config.METHOD3_ENCODING == "select"):
+    beta_max = config.CARDINALITY_FRUSTRATION_BETA
+    if not (beta_max and problem.is_cardinality and config.CARDINALITY_ENCODING == "select"):
         return 0.0
-    lo, hi = config.METHOD3_BETA_N_MIN, config.METHOD3_BETA_N_FULL
+    lo, hi = config.CARDINALITY_BETA_N_MIN, config.CARDINALITY_BETA_N_FULL
     ramp = min(1.0, max(0.0, (problem.N - lo) / max(1, hi - lo)))
     return beta_max * ramp * select_objective_scale(problem)
 
 
-def encode_method3(
+def encode_penalized(
     problem: PortfolioProblem,
     *,
     increment_bits: int | None = None,
@@ -288,7 +288,7 @@ def encode_method3(
     ratios (same philosophy as the convex budget penalty). Reference + validation:
     sketches/method3_integer_units_qubo.py.
     """
-    assert problem.is_method3, "encode_method3 requires cardinality_k / n_units_M"
+    assert problem.is_cardinality, "encode_penalized requires cardinality_k / n_units_M"
     N = problem.N
     M = problem.n_units_M
     u_min = problem.u_min_units
@@ -297,8 +297,8 @@ def encode_method3(
     # units_for_cardinality) is the single source of the bit depth.
     b = increment_bits if increment_bits is not None else (M.bit_length() - 2)
     pmult_budget = pmult_budget if pmult_budget is not None else config.PENALTY_MULT_BUDGET
-    pmult_card = pmult_card if pmult_card is not None else config.METHOD3_PENALTY_MULT_CARD
-    pmult_link = pmult_link if pmult_link is not None else config.METHOD3_PENALTY_MULT_LINK
+    pmult_card = pmult_card if pmult_card is not None else config.CARDINALITY_PENALTY_MULT_CARD
+    pmult_link = pmult_link if pmult_link is not None else config.CARDINALITY_PENALTY_MULT_LINK
 
     nv = N * (1 + b)
 
@@ -369,7 +369,7 @@ def encode_method3(
         w_max=problem.w_max,
         w_min=problem.w_min,
         asset_tickers=list(problem.asset_tickers),
-        scheme="method3",
+        scheme="penalized",
         n_units_M=M,
         u_min_units=u_min,
         increment_bits=b,

@@ -32,7 +32,7 @@ class GurobiProvider:
         model = gp.Model("portfolio", env=env)
         model.setParam("TimeLimit", deadline_s)
 
-        if problem.is_method3:
+        if problem.is_cardinality:
             # True cardinality + semi-continuous MIQP (the gold-standard benchmark
             # the QUBO solvers approximate): binary selectors, linked weights.
             w = model.addVars(N, lb=0.0, ub=problem.w_max, name="w")
@@ -52,9 +52,9 @@ class GurobiProvider:
         )
         ret = gp.quicksum(problem.mu[i] * w[i] for i in range(N))
         objective = risk - ret
-        # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j (method3 only).
+        # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j (cardinality only).
         # Binary products make the objective indefinite → enable nonconvex MIQP.
-        if problem.is_method3 and problem.frustration_beta:
+        if problem.is_cardinality and problem.frustration_beta:
             rho = correlation_matrix(problem.Sigma)
             objective = objective + gp.quicksum(
                 problem.frustration_beta * float(rho[i, j]) * y[i] * y[j]

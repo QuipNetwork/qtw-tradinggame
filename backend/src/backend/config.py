@@ -76,8 +76,8 @@ W_MAX_CEILING: float = 0.5
 MIN_POSITION_FRACTION: float = 0.25
 
 # Rebalance-frequency slider tiers → scheduled re-optimization cadence (hours).
-# Hourly is the hard cap: quantum jobs cost real money (mirrors strategy.ts).
-REBALANCE_TIERS_HOURS: tuple[int, ...] = (24, 8, 4, 2, 1)
+# None = Off; 0.5 = 30m. The QPU token bucket remains the admission guard.
+REBALANCE_TIERS_HOURS: tuple[float | None, ...] = (None, 12.0, 8.0, 4.0, 2.0, 1.0, 0.5)
 
 # -----------------------------------------------------------------------------
 # QUBO encoding hyperparameters
@@ -112,30 +112,30 @@ QUBO_NORMALIZE_TOL: float = 0.10
 # Optimization mode — which problem the race solves
 # -----------------------------------------------------------------------------
 
-# "method3" (default): cardinality-constrained, semi-continuous MIQP — the
+# "cardinality" (default): cardinality-constrained, semi-continuous MIQP — the
 # optimizer sub-selects exactly K of the player's basket and weights them on an
 # integer-unit grid (genuinely non-convex; the QPU has structure to exploit).
 # "convex": the original mean-variance box-QP fallback (every basket asset held).
-OPTIMIZATION_MODE: str = os.environ.get("OPTIMIZATION_MODE", "method3").lower()
+OPTIMIZATION_MODE: str = os.environ.get("OPTIMIZATION_MODE", "cardinality").lower()
 
-# Method 3 integer-unit grid: weights live on M units, w_i = u_i/M, so the budget
+# cardinality integer-unit grid: weights live on M units, w_i = u_i/M, so the budget
 # Σu=M is exactly representable (no normalize crutch). The layout costs n·(1+b)
 # variables with b = log2(M)−1 (u_min=1, grid [1/M, 0.5]). M is NOT fixed — it's the
 # smallest power of two that fits K (M ≥ K units for K held), clamped to [MIN, MAX]:
 # small K → small M → fewer vars → QPU-feasible. See qubo_encoder.units_for_cardinality.
-METHOD3_MIN_UNITS: int = 8  # floor (b=2, 4 weight levels) — granularity vs feasibility
-METHOD3_MAX_UNITS: int = 32  # cap (b=4) — M ≥ K so this also caps K at 32 ≥ universe
-METHOD3_U_MIN: int = 1
+CARDINALITY_MIN_UNITS: int = 8  # floor (b=2, 4 weight levels) — granularity vs feasibility
+CARDINALITY_MAX_UNITS: int = 32  # cap (b=4) — M ≥ K so this also caps K at 32 ≥ universe
+CARDINALITY_U_MIN: int = 1
 # Size-aware grid budget. Like the convex QUBO_PREFERRED_MAX_VARS, the grid M is raised
 # toward a FINER resolution (more weight levels ≈ closer to continuous) for SMALL baskets
 # that stay embeddable, and kept COARSE (b=2) for large baskets so the dense QUBO still
 # embeds. Pick the largest M with vars = N·log2(M) ≤ this (then floor at M ≥ K). At 72:
 # b=4 (16 levels) up to ~14 assets, b=3 to ~18, b=2 above. See units_for_grid.
-METHOD3_PREFERRED_MAX_VARS: int = 72
+CARDINALITY_PREFERRED_MAX_VARS: int = 72
 # Cardinality / linking penalty peak-coefficient ratios, normalized like
-# PENALTY_MULT_BUDGET (which the budget term reuses). See encode_method3.
-METHOD3_PENALTY_MULT_CARD: float = 12.0
-METHOD3_PENALTY_MULT_LINK: float = 12.0
+# PENALTY_MULT_BUDGET (which the budget term reuses). See encode_penalized.
+CARDINALITY_PENALTY_MULT_CARD: float = 12.0
+CARDINALITY_PENALTY_MULT_LINK: float = 12.0
 # Diversification / "frustration" reward (β). Adds β·Σ_{i<j} ρ_ij·x_i x_j to the objective —
 # penalizes co-selecting correlated assets, making the SELECTION landscape rugged (competing
 # pairwise pulls → many local minima) so D-Wave can out-search SA on portfolio quality. For the
@@ -144,21 +144,21 @@ METHOD3_PENALTY_MULT_LINK: float = 12.0
 # encoding. 0 = off. This is the PEAK fraction, reached at LARGE baskets — β is RAMPED by basket size
 # (below): OOS backtests show its benefit grows with N and it hurts tiny baskets
 # (qpu-experiment-synthesis-2026-06-22.md §7/§9). See also qpu-c2-beta-findings.md.
-METHOD3_FRUSTRATION_BETA: float = float(os.environ.get("METHOD3_FRUSTRATION_BETA", 0.4))
+CARDINALITY_FRUSTRATION_BETA: float = float(os.environ.get("CARDINALITY_FRUSTRATION_BETA", 0.4))
 # N-aware β ramp: 0 below N_MIN (small baskets — β over-penalizes, hurts OOS), rising linearly to the
-# full METHOD3_FRUSTRATION_BETA at/above N_FULL. At the 28-asset universe this lands ≈0.23.
-METHOD3_BETA_N_MIN: int = int(os.environ.get("METHOD3_BETA_N_MIN", 12))
-METHOD3_BETA_N_FULL: int = int(os.environ.get("METHOD3_BETA_N_FULL", 40))
+# full CARDINALITY_FRUSTRATION_BETA at/above N_FULL. At the 28-asset universe this lands ≈0.23.
+CARDINALITY_BETA_N_MIN: int = int(os.environ.get("CARDINALITY_BETA_N_MIN", 12))
+CARDINALITY_BETA_N_FULL: int = int(os.environ.get("CARDINALITY_BETA_N_FULL", 40))
 
-# Method 3 QUBO encoding:
+# cardinality QUBO encoding:
 #   "select" (C2, DEFAULT): penalty-free SELECTION-ONLY QUBO (one bit/asset, objective + β only).
 #     The greedy projector enforces exactly-K and a convex QP (financial.weighting) sets the
 #     weights — both classical — so EVERY read is feasible and D-Wave is no longer handicapped.
-#     With METHOD3_FRUSTRATION_BETA > 0 (rugged landscape) D-Wave beats SA on portfolio quality.
+#     With CARDINALITY_FRUSTRATION_BETA > 0 (rugged landscape) D-Wave beats SA on portfolio quality.
 #     See qpu-c2-beta-findings.md.
 #   "penalized" (legacy): integer-units selection QUBO with budget+cardinality+linking penalties
 #     (weights solved on the QPU; ~10% feasible at scale → the QPU is handicapped).
-METHOD3_ENCODING: str = os.environ.get("METHOD3_ENCODING", "select").lower()
+CARDINALITY_ENCODING: str = os.environ.get("CARDINALITY_ENCODING", "select").lower()
 
 # -----------------------------------------------------------------------------
 # Feasibility tolerances (V0 quality bar)
@@ -233,10 +233,10 @@ QPU_BUDGET_WINDOW_S: int = int(os.environ.get("QPU_BUDGET_WINDOW_S", 600))
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------
 
-SOLVER_DEADLINE_S: float = 4.0  # per-solver wall-clock budget (also Gurobi TimeLimit)
-RACE_OVERALL_DEADLINE_S: float = 4.0  # outer cap on the parallel race (the binding deadline)
-# Headroom raised 3→4s: SA now matches D-Wave's read budget (up to 1000 reads) on large
-# baskets (~1.5s), and D-Wave wall-clock includes cloud queue+round-trip — 4s leaves margin.
+SOLVER_DEADLINE_S: float = 10.0  # per-solver wall-clock budget (also Gurobi TimeLimit)
+RACE_OVERALL_DEADLINE_S: float = 10.0  # outer cap on the parallel race (the binding deadline)
+# Headroom raised to 10s: SA now matches D-Wave's read budget (up to 1000 reads) on large
+# baskets, and D-Wave wall-clock includes cloud queue+round-trip.
 
 # -----------------------------------------------------------------------------
 # MTM tick cadence (seconds). Match assets-api's default SPOT_INTERVAL=10s so

@@ -20,11 +20,11 @@ class SliderValues(BaseModel):
     """The three strategy sliders, all 0–100 from the UI.
 
     rebalance_frequency — how often the agent dispatches a scheduled
-        re-optimization job (Daily → Hourly; hourly is the hard cap).
+        re-optimization job (Off → 30m).
     risk_preference — risk-aversion term γ in the objective.
     max_position_size — per-asset weight cap, relative to the basket
         (equal weight 1/n → ~50% in a single asset).
-    hold_count — Method 3 only: how many of the basket the optimizer holds (K).
+    hold_count — cardinality only: how many of the basket the optimizer holds (K).
         Absolute count, clamped to [3, basket size] at map time. None ⇒ hold all.
         Floored at 3: K=2 on the integer grid forces a degenerate 50/50 split.
     """
@@ -62,7 +62,7 @@ class AgentConfig(BaseModel):
     assets: list[_Ticker] | None = Field(default=None, max_length=64)
     last_solved_at: str | None = Field(default=None, alias="lastSolvedAt")
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
-    rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
+    rebalance_interval_hours: float | None = Field(default=None, alias="rebalanceIntervalHours")
     qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -116,7 +116,7 @@ class RoutingResult(BaseModel):
     job_id: str | None = Field(default=None, alias="jobId")
     solved_at: str | None = Field(default=None, alias="solvedAt")  # ISO-8601 UTC
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
-    rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
+    rebalance_interval_hours: float | None = Field(default=None, alias="rebalanceIntervalHours")
     qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -189,7 +189,7 @@ class AgentUpdate(BaseModel):
     stale: bool = False
     holdings: list[HoldingUpdate] = Field(default_factory=list)
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
-    rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
+    rebalance_interval_hours: float | None = Field(default=None, alias="rebalanceIntervalHours")
     qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -214,6 +214,13 @@ class OptimizeRequest(BaseModel):
     Optional `sliders` and `assets` update + optimize in one atomic round-trip.
     A retune liquidates all holdings and reallocates over the new basket.
     """
+
+    sliders: SliderValues | None = None
+    assets: list[_Ticker] | None = Field(default=None, max_length=64)
+
+
+class AgentPatch(BaseModel):
+    """PATCH /agents/{id}: persist profile edits without launching a solve."""
 
     sliders: SliderValues | None = None
     assets: list[_Ticker] | None = Field(default=None, max_length=64)

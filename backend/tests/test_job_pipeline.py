@@ -96,11 +96,11 @@ def test_no_basket_defaults_to_full_universe():
     assert {e.ticker for e in result.portfolio} == set(TICKERS)
 
 
-def test_method3_holds_exactly_k_of_the_basket(monkeypatch):
+def test_cardinality_holds_exactly_k_of_the_basket(monkeypatch):
     # holdCount sub-selects K of the 7-asset basket (force mode for env-independence)
     from backend import config
 
-    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "method3")
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
     store = get_agent_store()
     record = store.create(_config(holdCount=3), bankroll=10_000.0)
     result = run_optimization(record.id).result

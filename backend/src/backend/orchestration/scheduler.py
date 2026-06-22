@@ -23,6 +23,7 @@ from ..events.bus import EventBus
 from ..financial.pnl import mark_to_market
 from ..financial.prices.base import MarketDataSource, SpotSnapshot
 from ..financial.prices.source import get_source
+from ..financial.slider_map import rebalance_every_hours
 from ..orchestration.job import run_optimization
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
@@ -133,6 +134,10 @@ async def run_scheduled_rebalance_loop(
             if not agent.holdings_units:
                 continue
             if not agent.next_rebalance_at:
+                if rebalance_every_hours(agent.sliders.rebalance_frequency) is None:
+                    if not agent.last_solved_at or agent.rebalance_interval_hours is not None:
+                        agents.ensure_rebalance_schedule(agent.id)
+                    continue
                 agents.ensure_rebalance_schedule(agent.id)
                 continue
             due_at = _parse_iso(agent.next_rebalance_at)

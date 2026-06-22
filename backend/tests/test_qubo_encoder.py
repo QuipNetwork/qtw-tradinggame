@@ -7,7 +7,7 @@ import pytest
 
 from backend import config
 from backend.financial.qubo_encoder import (
-    encode_method3,
+    encode_penalized,
     encode_qubo,
     qubo_hash,
     units_for_cardinality,
@@ -15,18 +15,18 @@ from backend.financial.qubo_encoder import (
 from backend.financial.types import PortfolioProblem
 
 
-def _method3_problem(n: int, k: int, gamma: float = 3.0) -> PortfolioProblem:
+def _cardinality_problem(n: int, k: int, gamma: float = 3.0) -> PortfolioProblem:
     m = units_for_cardinality(k)  # production grid: smallest power of two ≥ K
     return PortfolioProblem(
         mu=np.full(n, 0.05),
         Sigma=np.eye(n),
         gamma=gamma,
         w_max=0.5,
-        w_min=config.METHOD3_U_MIN / m,
+        w_min=config.CARDINALITY_U_MIN / m,
         asset_tickers=[f"A{i}" for i in range(n)],
         cardinality_k=k,
         n_units_M=m,
-        u_min_units=config.METHOD3_U_MIN,
+        u_min_units=config.CARDINALITY_U_MIN,
     )
 
 
@@ -92,28 +92,28 @@ def test_budget_penalty_ratio_is_config_invariant():
         assert ratio == pytest.approx(p_mult, rel=1e-9)
 
 
-def test_method3_shape_symmetry_and_scheme():
-    prob = _method3_problem(5, 3)
+def test_cardinality_shape_symmetry_and_scheme():
+    prob = _cardinality_problem(5, 3)
     b = prob.n_units_M.bit_length() - 2  # b = log2(M) − 1
-    q = encode_method3(prob)
+    q = encode_penalized(prob)
     assert q.Q.shape == (5 * (1 + b), 5 * (1 + b))  # n select + n·b increment bits
     assert np.allclose(q.Q, q.Q.T)
-    assert q.decode_meta.scheme == "method3"
+    assert q.decode_meta.scheme == "penalized"
     assert q.decode_meta.n_total_bits == 5 * (1 + b)
 
 
-def test_method3_dispatch_via_encode_qubo(monkeypatch):
+def test_cardinality_dispatch_via_encode_qubo(monkeypatch):
     # encode_qubo routes cardinality problems to the configured Method-3 encoder
-    monkeypatch.setattr(config, "METHOD3_ENCODING", "penalized")
-    assert encode_qubo(_method3_problem(5, 3)).decode_meta.scheme == "method3"
-    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
-    assert encode_qubo(_method3_problem(5, 3)).decode_meta.scheme == "select"
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "penalized")
+    assert encode_qubo(_cardinality_problem(5, 3)).decode_meta.scheme == "penalized"
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
+    assert encode_qubo(_cardinality_problem(5, 3)).decode_meta.scheme == "select"
 
 
-def test_method3_hash_is_content_addressed():
-    a = encode_method3(_method3_problem(6, 4))
-    assert qubo_hash(a) == qubo_hash(encode_method3(_method3_problem(6, 4)))
-    assert qubo_hash(a) != qubo_hash(encode_method3(_method3_problem(6, 3)))  # k changes it
+def test_cardinality_hash_is_content_addressed():
+    a = encode_penalized(_cardinality_problem(6, 4))
+    assert qubo_hash(a) == qubo_hash(encode_penalized(_cardinality_problem(6, 4)))
+    assert qubo_hash(a) != qubo_hash(encode_penalized(_cardinality_problem(6, 3)))  # k changes it
 
 
 def test_units_for_cardinality_minimizes_grid():
@@ -144,13 +144,13 @@ def test_units_for_grid_is_size_aware():
     for n in (5, 12, 18, 28):
         for k in range(3, n + 1):
             m = units_for_grid(k, n)
-            assert m >= k and (m & (m - 1)) == 0 and m <= config.METHOD3_MAX_UNITS
+            assert m >= k and (m & (m - 1)) == 0 and m <= config.CARDINALITY_MAX_UNITS
 
 
-def test_method3_grid_shrinks_vars_for_small_k():
+def test_cardinality_grid_shrinks_vars_for_small_k():
     # small K → small M → fewer variables (the QPU-feasibility lever)
-    small_k = encode_method3(_method3_problem(20, 4))  # K=4 → M=8 (b=2) → 3N
-    large_k = encode_method3(_method3_problem(20, 20))  # K=20 → M=32 (b=4) → 5N
+    small_k = encode_penalized(_cardinality_problem(20, 4))  # K=4 → M=8 (b=2) → 3N
+    large_k = encode_penalized(_cardinality_problem(20, 20))  # K=20 → M=32 (b=4) → 5N
     assert small_k.n == 20 * 3
     assert large_k.n == 20 * 5
     assert small_k.n < large_k.n
@@ -180,7 +180,7 @@ def test_increment_place_values_caps_at_w_max():
         n_units_M=M,
         u_min_units=1,
     )
-    q = encode_method3(prob)
+    q = encode_penalized(prob)
     w = decode_bitstring(np.ones(q.n, dtype=np.int8), q.decode_meta)
     assert w.max() <= prob.w_max + 1e-9
 
@@ -213,7 +213,7 @@ def test_frustration_beta_rewards_diversification():
     assert pb.objective(w_corr) - p0.objective(w_corr) == pytest.approx(rho[0, 1])  # +0.8
     assert pb.objective(w_anti) - p0.objective(w_anti) == pytest.approx(rho[0, 2])  # −0.5
     # and it changes the QUBO (couples the select bits) — β=0 must be untouched.
-    assert not np.allclose(encode_method3(p0).Q, encode_method3(pb).Q)
+    assert not np.allclose(encode_penalized(p0).Q, encode_penalized(pb).Q)
 
 
 def test_large_baskets_drop_to_2_bits(synthetic_problem_3assets):
@@ -235,10 +235,10 @@ def test_resolve_frustration_beta_ramps_with_basket_size(monkeypatch):
     from backend.financial.qubo_encoder import resolve_frustration_beta, select_objective_scale
     from backend.financial.types import PortfolioProblem
 
-    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
-    monkeypatch.setattr(config, "METHOD3_FRUSTRATION_BETA", 0.4)
-    monkeypatch.setattr(config, "METHOD3_BETA_N_MIN", 12)
-    monkeypatch.setattr(config, "METHOD3_BETA_N_FULL", 40)
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
+    monkeypatch.setattr(config, "CARDINALITY_FRUSTRATION_BETA", 0.4)
+    monkeypatch.setattr(config, "CARDINALITY_BETA_N_MIN", 12)
+    monkeypatch.setattr(config, "CARDINALITY_BETA_N_FULL", 40)
 
     def prob(n):
         rng = np.random.default_rng(n)

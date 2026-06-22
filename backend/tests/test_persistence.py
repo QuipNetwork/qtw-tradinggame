@@ -63,6 +63,26 @@ def test_apply_solve_updates_holdings_and_count():
     )
 
 
+def test_apply_solve_with_rebalance_off_has_no_next_schedule():
+    store = get_agent_store()
+    config_in = _config("Off").model_copy(
+        update={
+            "sliders": SliderValues(
+                rebalanceFrequency=0,
+                riskPreference=50,
+                maxPositionSize=50,
+            )
+        }
+    )
+    record = store.create(config_in, bankroll=10_000.0)
+    store.apply_solve(record.id, {"BTC": 0.1}, total=10_000.0, provider_type="CPU")
+
+    updated = store.get(record.id)
+    assert updated.last_solved_at is not None
+    assert updated.next_rebalance_at is None
+    assert updated.rebalance_interval_hours is None
+
+
 def test_leaderboard_ranks_by_total_descending():
     store = get_agent_store()
     low = store.create(_config("Low"), bankroll=10_000.0)
@@ -127,7 +147,7 @@ def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     store.update_assets(record.id, ["BTC", "ETH", "SOL"])
     store.update_sliders(
         record.id,
-        SliderValues(rebalanceFrequency=80, riskPreference=20, maxPositionSize=65),
+        SliderValues(rebalanceFrequency=100, riskPreference=20, maxPositionSize=65),
     )
     store.apply_solve(record.id, {"BTC": 0.25, "ETH": 1.5}, total=10_500.0, provider_type="CPU")
 
@@ -140,7 +160,7 @@ def test_db_agent_store_hydrates_agents_and_holdings(tmp_path):
     assert got.total == 10_500.0
     assert got.jobs_solved == 1
     assert got.next_rebalance_at == record.next_rebalance_at
-    assert got.rebalance_interval_hours == 1
+    assert got.rebalance_interval_hours == 0.5
     assert got.updates_opt_in is True
     assert got.update_frequency == "hourly"
     assert got.to_config().update_frequency == "hourly"
@@ -175,7 +195,11 @@ def test_db_job_store_records_jobs_and_solve_snapshots(tmp_path):
     reloaded = DbJobStore(url, environment="local", allow_reset=True)
     assert reloaded.get(job.id) is not None
     assert reloaded.get(job.id).q_hash == "a" * 64
-    assert reloaded.solve_snapshots() == []
+    snapshots = reloaded.solve_snapshots()
+    assert len(snapshots) == 1
+    assert snapshots[0]["job_id"] == job.id
+    assert snapshots[0]["winner_provider"] == "sa"
+    assert snapshots[0]["assets"] == ["BTC", "ETH"]
 
     with jobs.engine.begin() as conn:
         rows = conn.execute(solve_snapshots_table.select()).mappings().all()

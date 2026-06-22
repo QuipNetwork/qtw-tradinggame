@@ -90,7 +90,7 @@ def render_portfolio_email(
         '<div style="font-family:Inter,Arial,sans-serif;color:#18181b">'
         f"<p>Hi {name},</p>"
         "<p>Your <strong>Quantum.Tech World</strong> trading agent is now worth "
-        f'<strong>${total:,.0f}</strong> '
+        f"<strong>${total:,.0f}</strong> "
         f'<span style="color:{color}">({sign}${pl_abs:,.0f} · '
         f"{sign}{abs(pl_pct):.2f}%)</span>.</p>"
         "<p>Track it live and retune anytime from your profile.</p>"
@@ -105,6 +105,4 @@ def send_portfolio_update(
 ) -> None:
     """Render + dispatch one portfolio-result email via the active provider."""
     email = render_portfolio_email(name=name, total=total, pl_usd=pl_usd, pl_pct=pl_pct)
-    get_email_provider().send(
-        to=to, subject=email.subject, html=email.html, text=email.text
-    )
+    get_email_provider().send(to=to, subject=email.subject, html=email.html, text=email.text)

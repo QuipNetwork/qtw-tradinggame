@@ -62,7 +62,7 @@ def test_wrong_length_bitstring_raises(meta):
         decode_bitstring(np.zeros(meta.n_total_bits - 1, dtype=np.int8), meta)
 
 
-# --- Method 3 (integer-units selection) decode ---
+# --- cardinality (integer-units selection) decode ---
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def m3meta() -> DecodeMeta:
         w_max=0.5,
         w_min=1 / 16,
         asset_tickers=["A", "B", "C"],
-        scheme="method3",
+        scheme="penalized",
         n_units_M=16,
         u_min_units=1,
         increment_bits=3,
@@ -92,7 +92,7 @@ def _m3_bits(units: dict[int, int], meta: DecodeMeta) -> np.ndarray:
     return bits
 
 
-def test_method3_unselected_decodes_to_zero(m3meta):
+def test_cardinality_unselected_decodes_to_zero(m3meta):
     # increment bits set, but the select bit is off → weight must be 0
     bits = np.zeros(m3meta.n_total_bits, dtype=np.int8)
     for k in range(m3meta.increment_bits):
@@ -101,7 +101,7 @@ def test_method3_unselected_decodes_to_zero(m3meta):
     assert weights[0] == 0.0
 
 
-def test_method3_decode_is_exact_no_normalize(m3meta):
+def test_cardinality_decode_is_exact_no_normalize(m3meta):
     # 8 + 4 + 4 = 16 = M → Σw = 1 exactly, with normalize=False (no crutch)
     weights = decode_bitstring(_m3_bits({0: 8, 1: 4, 2: 4}, m3meta), m3meta)
     assert weights == pytest.approx([8 / 16, 4 / 16, 4 / 16])

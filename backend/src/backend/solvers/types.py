@@ -19,7 +19,7 @@ class DecodeMeta:
     x_{i,k}; every asset carries w_min plus a bit-encoded increment spanning
     [w_min, w_max] — no indicator block (basket decides participation).
 
-    scheme="method3": layout is [y_0..y_{n-1}, x_{0,0}..x_{n-1,b-1}] — n select
+    scheme="penalized": layout is [y_0..y_{n-1}, x_{0,0}..x_{n-1,b-1}] — n select
     bits then n·b increment bits; held weight = (u_min + Σ 2^k x_{i,k}) / M units.
 
     scheme="select" (C2): just n selection bits x_i (hold asset i?). Weights are NOT
@@ -32,14 +32,14 @@ class DecodeMeta:
     w_max: float
     asset_tickers: list[str]
     w_min: float = 0.0
-    scheme: Literal["convex", "method3", "select"] = "convex"
-    n_units_M: int | None = None  # method3: integer-unit grid size (2^m)
-    u_min_units: int | None = None  # method3: floor units per held asset
-    increment_bits: int | None = None  # method3: b increment bits per asset
+    scheme: Literal["convex", "penalized", "select"] = "convex"
+    n_units_M: int | None = None  # cardinality: integer-unit grid size (2^m)
+    u_min_units: int | None = None  # cardinality: floor units per held asset
+    increment_bits: int | None = None  # cardinality: b increment bits per asset
 
     @property
     def n_total_bits(self) -> int:
-        if self.scheme == "method3":
+        if self.scheme == "penalized":
             return self.n_assets * (1 + self.increment_bits)
         if self.scheme == "select":
             return self.n_assets  # one selection bit per asset (weights set classically)
@@ -51,11 +51,11 @@ class DecodeMeta:
         return (self.w_max - self.w_min) / (2**self.bits_per_asset - 1)
 
     def y(self, i: int) -> int:
-        """method3: index of asset i's select bit."""
+        """cardinality: index of asset i's select bit."""
         return i
 
     def x(self, i: int, k: int) -> int:
-        """method3: index of asset i's k-th increment bit."""
+        """cardinality: index of asset i's k-th increment bit."""
         return self.n_assets + i * self.increment_bits + k
 
 

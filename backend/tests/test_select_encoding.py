@@ -43,7 +43,7 @@ class _FakeResp:
 
 
 def test_encode_select_is_selection_only(monkeypatch):
-    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
     p = _problem()
     qubo = encode_qubo(p)
 
@@ -96,7 +96,7 @@ def test_greedy_project_matches_exact_best_k_on_small_case():
 
 
 def test_select_solution_projects_weights_and_is_feasible(monkeypatch):
-    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
     p = _problem()
     qubo = encode_qubo(p)
     # a read selecting 4 assets when K=3 → projector trims, QP sets weights
@@ -112,7 +112,7 @@ def test_select_solution_projects_weights_and_is_feasible(monkeypatch):
 def test_select_beta_changes_objective_scoring(monkeypatch):
     # With β>0 the same support is scored with the diversification term (objective() includes it),
     # so the select path optimizes the β-augmented objective.
-    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
     p = _problem(beta=1e-3)
     qubo = encode_qubo(p)
     sample = {0: 1, 1: 1, 2: 1, 3: 0, 4: 0, 5: 0}

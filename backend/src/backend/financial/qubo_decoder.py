@@ -25,8 +25,8 @@ def decode_bitstring(
     if bits.shape != (meta.n_total_bits,):
         raise ValueError(f"bitstring length {bits.shape[0]} != expected {meta.n_total_bits}")
 
-    if meta.scheme == "method3":
-        return _decode_method3(bits, meta)
+    if meta.scheme == "penalized":
+        return _decode_penalized(bits, meta)
 
     b = meta.bits_per_asset
     place_values = meta.weight_coef * (2 ** np.arange(b))
@@ -39,7 +39,7 @@ def decode_bitstring(
     return weights
 
 
-def _decode_method3(bits: np.ndarray, meta: DecodeMeta) -> np.ndarray:
+def _decode_penalized(bits: np.ndarray, meta: DecodeMeta) -> np.ndarray:
     """Integer-units decode: u_i = u_min + Σ 2^k x_{i,k} when held, else 0.
 
     Weights are exact multiples of 1/M (no normalization). Increment bits on an

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import threading
+import time
+
 import numpy as np
 import pytest
 
@@ -183,3 +186,34 @@ def test_objective_winner_prefers_best_portfolio_over_speed(monkeypatch, synthet
     )
     result = router.race(synthetic_problem_3assets, deadline_s=2.0)
     assert result.winner.provider == "fast_tie"
+
+
+def test_race_deadline_does_not_wait_for_blocked_provider(monkeypatch, synthetic_problem_3assets):
+    release = threading.Event()
+
+    class BlockingProvider(FakeProvider):
+        def solve_qubo(self, qubo, problem, deadline_s):
+            release.wait(timeout=1.0)
+            return super().solve_qubo(qubo, problem, deadline_s)
+
+    monkeypatch.setattr(config, "RACE_WINNER_BY", "speed")
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("fast", [1 / 3, 1 / 3, 1 / 3], solve_time_s=0.01),
+            BlockingProvider("blocked", [0.2, 0.4, 0.4], solve_time_s=0.02),
+        ],
+    )
+
+    started = time.perf_counter()
+    try:
+        result = router.race(synthetic_problem_3assets, deadline_s=0.05)
+    finally:
+        release.set()
+    elapsed = time.perf_counter() - started
+
+    assert elapsed < 0.3
+    assert result.winner.provider == "fast"
+    by_provider = {run.provider: run for run in result.solver_runs}
+    assert by_provider["blocked"].status == "timeout"

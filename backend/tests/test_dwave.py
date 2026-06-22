@@ -150,8 +150,8 @@ def _m3_sample(units: dict[int, int], meta) -> dict[int, int]:
     return sample
 
 
-def test_method3_decodes_units_and_respects_cardinality():
-    from backend.financial.qubo_encoder import encode_method3
+def test_cardinality_decodes_units_and_respects_cardinality():
+    from backend.financial.qubo_encoder import encode_penalized
     from backend.financial.types import PortfolioProblem
 
     prob = PortfolioProblem(
@@ -165,7 +165,7 @@ def test_method3_decodes_units_and_respects_cardinality():
         n_units_M=32,
         u_min_units=1,
     )
-    qubo = encode_method3(prob)
+    qubo = encode_penalized(prob)
     sample = _m3_sample({0: 16, 1: 16}, qubo.decode_meta)  # 0.5 / 0.5, exactly 2 held
     solution = DWaveProvider(sampler=FakeSampler([sample])).solve_qubo(qubo, prob, deadline_s=2.0)
 

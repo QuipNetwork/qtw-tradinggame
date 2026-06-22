@@ -1,7 +1,7 @@
 """V0 quality bar: budget + box (+ optional cardinality) feasibility.
 
 Convex mode (cardinality_k None): budget Σw=1 and every weight in [w_min, w_max].
-Method 3 mode (cardinality_k set): exactly k held, and the box is *semi-continuous*
+cardinality mode (cardinality_k set): exactly k held, and the box is *semi-continuous*
 — a held weight is in [w_min, w_max] while an unheld weight is 0 (so a 0 weight is
 NOT a w_min violation).
 """
@@ -21,7 +21,7 @@ class FeasibilityResult:
     budget_residual: float  # Σw_i − 1, signed
     box_violation: float  # max violation of the [w_min, w_max] bounds
     reason: str = ""
-    held_count: int | None = None  # method3: number of held assets (w > eps)
+    held_count: int | None = None  # cardinality: number of held assets (w > eps)
 
 
 def check_feasibility(

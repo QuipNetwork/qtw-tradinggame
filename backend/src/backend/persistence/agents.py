@@ -23,8 +23,12 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _next_rebalance_at(sliders: SliderValues, solved_at: datetime) -> tuple[str, str, int]:
+def _next_rebalance_at(
+    sliders: SliderValues, solved_at: datetime
+) -> tuple[str, str | None, float | None]:
     interval_hours = rebalance_every_hours(sliders.rebalance_frequency)
+    if interval_hours is None:
+        return solved_at.isoformat(), None, None
     next_at = solved_at + timedelta(hours=interval_hours)
     return solved_at.isoformat(), next_at.isoformat(), interval_hours
 
@@ -49,7 +53,7 @@ class AgentRecord:
     created_at: str = ""
     last_solved_at: str | None = None
     next_rebalance_at: str | None = None
-    rebalance_interval_hours: int | None = None
+    rebalance_interval_hours: float | None = None
     valuation_as_of: str | None = None
     valuation_stale: bool = False
     update_frequency: str | None = None  # 'daily' | 'hourly' email cadence (opt-in)

@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
 from typing import Literal
 
@@ -89,7 +90,7 @@ def race(
 ) -> RaceResult:
     """Run the race; raise SolverFailed if nothing feasible arrives in time."""
     overall_deadline = deadline_s if deadline_s is not None else config.RACE_OVERALL_DEADLINE_S
-    per_solver_deadline = config.SOLVER_DEADLINE_S
+    per_solver_deadline = min(config.SOLVER_DEADLINE_S, overall_deadline)
 
     qubo = encode_qubo(problem)
     q_h = qubo_hash(qubo)
@@ -99,13 +100,15 @@ def race(
     solver_runs: list[SolverRun] = []
     winner: Solution | None = None
 
-    with ThreadPoolExecutor(max_workers=len(providers)) as executor:
-        futures = {
-            executor.submit(_dispatch, p, problem, qubo, per_solver_deadline): p.name
-            for p in providers
-        }
+    executor = ThreadPoolExecutor(max_workers=len(providers))
+    futures = {
+        executor.submit(_dispatch, p, problem, qubo, per_solver_deadline): p.name for p in providers
+    }
+    processed_futures = set()
+    try:
         try:
             for future in as_completed(futures, timeout=overall_deadline):
+                processed_futures.add(future)
                 try:
                     solution, race_time_s = future.result()
                 except Exception as exc:  # noqa: BLE001 — fault-isolate the race
@@ -146,11 +149,12 @@ def race(
                         objective=solution.objective,
                     )
                 )
-        except TimeoutError:
+        except FuturesTimeoutError:
             pass  # deadline hit; proceed with whatever finished
 
-        finished = set(futures) - {f for f in futures if not f.done()}
-        timed_out_provider_names = {futures[future] for future in futures if future not in finished}
+        timed_out_provider_names = {
+            futures[future] for future in futures if future not in processed_futures
+        }
         seen_provider_names = {run.provider for run in solver_runs}
         for provider in providers:
             if (
@@ -168,6 +172,11 @@ def race(
                         objective=None,
                     )
                 )
+    finally:
+        for future in futures:
+            if not future.done():
+                future.cancel()
+        executor.shutdown(wait=False, cancel_futures=True)
 
     feasible_results = [solution for solution in results if solution.feasible]
     winner = pick_winner(feasible_results)

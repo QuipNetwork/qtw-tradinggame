@@ -30,10 +30,7 @@ def mark_to_market(
 
     total = Σ units[i] × spot[i];  plUSD = total − bankroll;  plPct = plUSD/bankroll × 100.
     """
-    values = {
-        ticker: units * spot_prices[ticker]
-        for ticker, units in holdings_units.items()
-    }
+    values = {ticker: units * spot_prices[ticker] for ticker, units in holdings_units.items()}
     total = sum(values.values())
     pl_usd = total - bankroll_usd
     pl_pct = (pl_usd / bankroll_usd * 100.0) if bankroll_usd else 0.0

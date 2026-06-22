@@ -182,6 +182,61 @@ async def test_scheduled_rebalance_loop_runs_due_agent_and_publishes(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_scheduled_rebalance_loop_skips_agents_with_cadence_off(monkeypatch):
+    agents = AgentStore()
+    record = agents.create(
+        AgentConfig(
+            name="Off",
+            email="off@example.com",
+            sliders=SliderValues(
+                rebalanceFrequency=0,
+                riskPreference=70,
+                maxPositionSize=50,
+            ),
+            assets=["BTC", "ETH"],
+        ),
+        bankroll=10_000.0,
+    )
+    agents.apply_solve(
+        record.id,
+        holdings_units={"BTC": 0.1, "ETH": 1.0},
+        total=10_000.0,
+        provider_type="QPU",
+    )
+    last_solved_at = record.last_solved_at
+    called = False
+
+    def fake_optimization(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("off cadence should not schedule optimization")
+
+    monkeypatch.setattr(scheduler, "run_optimization", fake_optimization)
+
+    stop = asyncio.Event()
+    task = asyncio.create_task(
+        run_scheduled_rebalance_loop(
+            EventBus(),
+            stop,
+            agents=agents,
+            jobs=SimpleNamespace(),
+            market=MovingSpot(),
+            tick_s=0.01,
+        )
+    )
+    await asyncio.sleep(0.03)
+    stop.set()
+    await task
+
+    updated = agents.get(record.id)
+    assert called is False
+    assert updated.jobs_solved == 1
+    assert updated.last_solved_at == last_solved_at
+    assert updated.next_rebalance_at is None
+    assert updated.rebalance_interval_hours is None
+
+
+@pytest.mark.asyncio
 async def test_scheduled_rebalance_defers_when_qpu_budget_is_exhausted(monkeypatch):
     agents = AgentStore()
     record = agents.create(

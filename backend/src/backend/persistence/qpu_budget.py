@@ -60,7 +60,9 @@ class QpuBudgetStore:
         now = _coerce_utc(now)
         with self._lock:
             self._prune_locked(now)
-            times = sorted(event.reserved_at for event in self._events if event.agent_id == agent_id)
+            times = sorted(
+                event.reserved_at for event in self._events if event.agent_id == agent_id
+            )
         return _status_from_times(times, now=now)
 
     def reset(self) -> None:

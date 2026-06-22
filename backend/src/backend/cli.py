@@ -110,10 +110,11 @@ def cmd_optimize(args: argparse.Namespace) -> None:
         bankroll=config.BANKROLL_USD,
     )
     params = map_sliders(agent.sliders, len(tickers))
+    rebalance_label = "off" if params.rebalance_hours is None else f"{params.rebalance_hours:g}h"
     print(f"agent {agent.id}  bankroll ${agent.bankroll:,.0f}  basket={len(tickers)} assets")
     print(
         f"params: γ={params.gamma:.2f}  w_max={params.w_max:.3f}  w_min={params.w_min:.3f}  "
-        f"rebalance={params.rebalance_hours}h"
+        f"rebalance={rebalance_label}"
     )
 
     outcome = run_optimization(agent.id)
@@ -332,7 +333,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--risk", type=int, default=50, help="risk preference 0–100")
     parser.add_argument("--max-position", type=int, default=50, help="max position size 0–100")
     parser.add_argument(
-        "--hold-count", type=int, default=None, help="Method 3: number of assets to hold (K)"
+        "--hold-count", type=int, default=None, help="cardinality: number of assets to hold (K)"
     )
     parser.add_argument("--assets", default=None, help="comma-separated basket, e.g. BTC,ETH,IONQ")
 
