@@ -76,7 +76,7 @@ class AssetsApiSource:
         # window_hours returns need window_hours + 1 price points; service caps at 90d.
         hours = min(2160, window_hours + 1)
         body = self._get("/v1/history", {"tickers": ",".join(tickers), "hours": hours})
-        bars: dict[str, list[dict]] = body.get("bars", {})
+        bars: dict[str, list[dict]] = body.get("bars") or {}  # `or {}`: tolerate "bars": null
 
         missing = [t for t in tickers if not bars.get(t)]
         if missing:
@@ -132,7 +132,7 @@ class AssetsApiSource:
 
     def _fetch_spot(self, tickers: list[str]) -> tuple[dict[str, float], str | None]:
         body = self._get("/v1/spot", {"tickers": ",".join(tickers)})
-        quotes: dict[str, dict] = body.get("prices", {})
+        quotes: dict[str, dict] = body.get("prices") or {}  # `or {}`: tolerate "prices": null
         missing = [t for t in tickers if t not in quotes]
         if missing:
             raise AssetsApiError(f"no spot price for: {missing}")

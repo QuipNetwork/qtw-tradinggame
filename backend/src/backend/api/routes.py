@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Query
 from .. import config
 from ..events.bus import get_bus
 from ..financial.basket import validate_basket
+from ..financial.prices.assets_api import AssetsApiError
 from ..orchestration.job import run_optimization
 from ..persistence.agents import get_agent_store
 from ..persistence.jobs import get_job_store
@@ -100,6 +101,10 @@ async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> Routin
         ) from exc
     except SolverFailed as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except AssetsApiError as exc:
+        # Upstream market-data dependency down/bad → 503; generic detail so the internal
+        # assets-api URL/path in the exception text isn't leaked to the client.
+        raise HTTPException(status_code=503, detail="market data temporarily unavailable") from exc
 
     bus = get_bus()
     for event in outcome.events:

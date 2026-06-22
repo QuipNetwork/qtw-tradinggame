@@ -92,6 +92,22 @@ def test_optimize_qpu_budget_exhaustion_is_429(monkeypatch):
         assert detail["qpuBudget"]["used"] == 3
 
 
+def test_optimize_market_data_unavailable_is_503(monkeypatch):
+    from backend.api import routes
+    from backend.financial.prices.assets_api import AssetsApiError
+
+    def market_down(agent_id, sliders=None, assets=None):
+        raise AssetsApiError("assets-api request failed: /v1/history: boom")
+
+    monkeypatch.setattr(routes, "run_optimization", market_down)
+
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        response = client.post(f"/agents/{agent_id}/optimize", json={})
+        assert response.status_code == 503
+        assert "v1/history" not in response.json()["detail"]  # internal path not leaked
+
+
 def test_leaderboard_lists_created_agents():
     with TestClient(create_app()) as client:
         agent_id = _create(client)

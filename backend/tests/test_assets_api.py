@@ -146,3 +146,21 @@ def test_http_error_wraps_into_assets_api_error():
 
     with pytest.raises(AssetsApiError, match="request failed"):
         _source(handler).spot_prices(["BTC"])
+
+
+def test_null_bars_payload_raises_clean_error():
+    # A malformed payload with "bars": null must degrade to AssetsApiError, not an
+    # AttributeError from calling .get on None (body.get("bars", {}) returns None here).
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"bars": None})
+
+    with pytest.raises(AssetsApiError):
+        _source(handler).hourly_returns(["BTC"], window_hours=2)
+
+
+def test_null_prices_payload_raises_clean_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"prices": None})
+
+    with pytest.raises(AssetsApiError):
+        _source(handler).spot_prices(["BTC"])
