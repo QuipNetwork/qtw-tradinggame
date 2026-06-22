@@ -32,7 +32,7 @@
 ### Accessibility / production
 - [ ] **A1 · Landmarks + headings everywhere.** `<main>` on kiosk/phone/TV; promote section eyebrows to real headings (or visually-hidden ones) for screen-reader structure.
 - [ ] **A2 · Reach-out "No thanks" semantics.** It's mutually exclusive — give it radio semantics (or a separate control) so SR users understand selecting it clears the rest.
-- [ ] **A3 · RR v7 future flags.** Opt into `v7_startTransition` + `v7_relativeSplatPath` on BrowserRouter to clear the console advisories; verify lazy/Suspense still work.
+- [x] **A3 · RR v7 future flags.** Done `9851ab3` — `future={{ v7_startTransition, v7_relativeSplatPath }}` on BrowserRouter; browser-confirmed console is now clean (warnings gone) and lazy/Suspense routing still works.
 - [ ] **A4 · Tap targets (phone side only).** Raise phone-side hit areas (basket-back, slider knob) toward 44px WITHOUT touching the fixed 1024×768 kiosk layout. Per-surface; verify the kiosk doesn't regress.
 
 ### Polish / hygiene
@@ -54,3 +54,4 @@
 - 2026-06-22 · P2 phone h1 + main → `dab6a9c` (browser-verified — name unchanged).
 - 2026-06-22 · T2 spotlight real handle + drop fake solve-age → `866be9c` (gate green).
 - 2026-06-22 · T3 TV rotation-timer bug fix (was frozen) + <main> → `4bb998e` (browser-confirmed A→B rotates).
+- 2026-06-22 · A3 RR v7 future flags → `9851ab3` (console clean, browser-verified).
