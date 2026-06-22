@@ -16,7 +16,8 @@ import { glyphParams, labelFor, rebalanceTierIndex, slidersToArray, REBALANCE_CH
 import { useAgentLive } from '../../hooks/useAgentLive';
 import { useTweens } from '../../utils/anim';
 import StatusScreen from '../../components/StatusScreen';
-import { WHOLE_USD } from '../../utils/format';
+import TickValue from '../../components/TickValue';
+import { WHOLE_USD, fmtUsd } from '../../utils/format';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
@@ -464,7 +465,7 @@ export default function PhoneProfile() {
                     <img className="v4m-holds-icon" src={assetIconSrc(h.ticker)} alt="" />
                     <span className="v4m-holds-ticker">{h.ticker}</span>
                     <span className="v4m-holds-pct">{Math.round(h.pct)}%</span>
-                    <span className="v4m-holds-usd v4m-flash" key={Math.round(h.usd)}>${WHOLE_USD.format(Math.round(h.usd))}</span>
+                    <TickValue className="v4m-holds-usd" value={Math.round(h.usd)} text={fmtUsd(h.usd)} />
                   </div>
                 ))}
                 {holdings.length > 6 && <div className="v4m-holds-more">+{holdings.length - 6} more held</div>}

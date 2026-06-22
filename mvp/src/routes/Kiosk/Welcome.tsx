@@ -9,7 +9,8 @@ import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import StatusScreen from '../../components/StatusScreen';
-import { WHOLE_USD } from '../../utils/format';
+import TickValue from '../../components/TickValue';
+import { WHOLE_USD, fmtUsd } from '../../utils/format';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 
@@ -141,7 +142,7 @@ export default function KioskWelcome() {
       <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
       <span className="v4m-alloc-name">{entry.ticker}</span>
       <span className="v4m-alloc-pct">{Math.round(entry.pct)}%</span>
-      <span className="v4m-alloc-usd v4m-flash" key={Math.round(entry.usd)}>${WHOLE_USD.format(entry.usd)}</span>
+      <TickValue className="v4m-alloc-usd" value={Math.round(entry.usd)} text={fmtUsd(entry.usd)} />
     </div>
   );
   const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');

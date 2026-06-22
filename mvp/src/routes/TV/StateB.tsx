@@ -5,6 +5,7 @@ import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
 import { useTween } from '../../utils/anim';
 import { fmtUsd } from '../../utils/format';
+import TickValue from '../../components/TickValue';
 
 export default function StateB({
   leaderboard,
@@ -133,7 +134,7 @@ export default function StateB({
                       <div className={`qs-row${top}${isSpotlit ? ' spotlit' : ''}`} key={row.agentId}>
                         <span className="rank">{String(row.rank).padStart(2, '0')}</span>
                         <span className="name">{row.name}</span>
-                        <span className="pnl tv-tick" key={`p${Math.round(row.total)}`}>{fmtUsd(row.total)}</span>
+                        <TickValue className="pnl" value={Math.round(row.total)} text={fmtUsd(row.total)} />
                       </div>
                     );
                   })}

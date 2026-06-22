@@ -6645,3 +6645,12 @@
   /* Taller invisible drag zone on the phone sliders (padding grows the touch
      area; the negative margin cancels it so layout/visuals are unchanged). */
   .phone-v4 .v4m-slider .v4m-slider-shell { padding: 14px 0; margin: -14px 0; }
+
+  /* ── (9) Directional value tick — green up / red down, like a live board ──
+     (TickValue component). Replaces the neutral cyan flash on moving money. The
+     global prefers-reduced-motion block neutralizes these animations. */
+  .tickv { border-radius: 3px; }
+  .qs-v4-mock .tickv.up, .bigscreen .tickv.up { animation: tickv-up 0.9s ease; }
+  .qs-v4-mock .tickv.down, .bigscreen .tickv.down { animation: tickv-down 0.9s ease; }
+  @keyframes tickv-up { 0%, 100% { background: transparent; } 28% { background: rgba(16, 185, 129, 0.26); } }
+  @keyframes tickv-down { 0%, 100% { background: transparent; } 28% { background: rgba(239, 68, 68, 0.24); } }

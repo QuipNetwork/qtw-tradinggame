@@ -2,6 +2,7 @@ import type { LeaderboardEntry, RoutingStats } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
 import { fmtUsd } from '../../utils/format';
+import TickValue from '../../components/TickValue';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -49,7 +50,7 @@ export default function StateA({
                     {row.rank <= 3 && <span className="medal">{MEDALS[row.rank - 1]}</span>}
                   </span>
                   <span className="name">{row.name}</span>
-                  <span className="pnl tv-tick" key={`p${Math.round(row.total)}`}>{fmtUsd(row.total)}</span>
+                  <TickValue className="pnl" value={Math.round(row.total)} text={fmtUsd(row.total)} />
                   <span className={changeClass}>{row.plPct >= 0 ? '+' : '−'}{Math.abs(row.plPct).toFixed(2)}%</span>
                 </div>
               );
