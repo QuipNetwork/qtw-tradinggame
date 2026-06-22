@@ -12,7 +12,7 @@ import type {
 import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { glyphParams, labelFor, slidersToArray } from '../../utils/strategy';
+import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import RebalanceSlider from '../../components/RebalanceSlider';
 import { useTweens } from '../../utils/anim';
@@ -254,8 +254,9 @@ export default function PhoneProfile() {
       return acc;
     }, {} as SliderValues);
     const assets = ASSETS.filter(a => basket.has(a.ticker)).map(a => a.ticker);
-    // Method 3 cardinality K, clamped to the (possibly edited) basket; default = all.
-    next.holdCount = Math.max(3, Math.min(holdCount ?? assets.length, assets.length));
+    // Method 3 cardinality K, clamped to the (possibly edited) basket. Default =
+    // round(N/3) and capped at N−1 so it stays a real selection (K = N is degenerate).
+    next.holdCount = clampHoldCount(holdCount ?? holdCountDefault(assets.length), assets.length);
     try {
       const r = await requestOptimization(agentId, { sliders: next, assets });
       setAgent(prev => prev ? {
@@ -562,15 +563,16 @@ export default function PhoneProfile() {
               {/* Number to hold (K) — the third slider; a count tied to the basket. */}
               {(() => {
                 const n = basket.size;
-                const ready = n >= 2;
-                const k = ready ? Math.max(3, Math.min(holdCount ?? n, n)) : 3;
-                const pct = ready ? (n > 2 ? ((k - 2) / (n - 2)) * 100 : 100) : 0;
+                const ready = n >= 3;
+                const maxK = holdCountMax(n);
+                const k = ready ? clampHoldCount(holdCount ?? holdCountDefault(n), n) : 3;
+                const pct = ready ? (maxK > 3 ? ((k - 3) / (maxK - 3)) * 100 : 100) : 0;
                 return (
                   <div className={`v4m-slider${ready ? '' : ' disabled'}`} key="holdCount">
                     <div className="v4m-slider-top">
                       <span className="v4m-slider-label">Number to hold</span>
                       <span className="v4m-slider-val">
-                        {ready ? `${k} of ${n}${k === n ? ' · all' : ''}` : 'edit basket'}
+                        {ready ? `${k} of ${n}` : 'edit basket'}
                       </span>
                     </div>
                     <div className="v4m-slider-shell">
@@ -580,7 +582,7 @@ export default function PhoneProfile() {
                       </div>
                       <input
                         type="range" className="range-overlay"
-                        min={3} max={Math.max(3, n)} step={1} value={k}
+                        min={3} max={maxK} step={1} value={k}
                         aria-label="Number to hold"
                         aria-valuetext={ready ? `${k} of ${n}` : 'Edit basket first'}
                         disabled={!ready}

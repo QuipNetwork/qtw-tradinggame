@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct, labelFor } from '../../utils/strategy';
+import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -144,8 +144,9 @@ export default function KioskSignUp() {
       acc[def.key] = sliders[i];
       return acc;
     }, {} as SliderValues);
-    // K (Method 3): hold the best K of the watchlist; default = hold all.
-    sliderValues.holdCount = Math.max(3, Math.min(holdCount ?? selected.size, selected.size));
+    // K (Method 3): hold the best K of the watchlist. Default = round(N/3) — the
+    // meaningful-selection regime — not hold-all; capped at N−1 so it's a real subset.
+    sliderValues.holdCount = clampHoldCount(holdCount ?? holdCountDefault(selected.size), selected.size);
     try {
       const { agentId, qrUrl } = await submitAgent({
         name: previewName,
@@ -354,8 +355,9 @@ export default function KioskSignUp() {
                 {(() => {
                   const n = selected.size;
                   const ready = n >= 3;
-                  const k = ready ? Math.max(3, Math.min(holdCount ?? n, n)) : 3;
-                  const pct = ready ? (n > 3 ? ((k - 3) / (n - 3)) * 100 : 100) : 0;
+                  const maxK = holdCountMax(n);
+                  const k = ready ? clampHoldCount(holdCount ?? holdCountDefault(n), n) : 3;
+                  const pct = ready ? (maxK > 3 ? ((k - 3) / (maxK - 3)) * 100 : 100) : 0;
                   return (
                     <div className={`v4m-slider${ready ? '' : ' disabled'}`} key="holdCount">
                       <div className="v4m-slider-top">
@@ -370,7 +372,7 @@ export default function KioskSignUp() {
                           type="range"
                           className="range-overlay"
                           min={3}
-                          max={Math.max(3, n)}
+                          max={maxK}
                           step={1}
                           value={k}
                           aria-label="Number to hold"
@@ -381,7 +383,7 @@ export default function KioskSignUp() {
                       </div>
                       <div className="v4m-slider-bottom">
                         <span className="v4m-slider-val">
-                          {ready ? `${k} of ${n}${k === n ? ' · all' : ''}` : 'pick a watchlist first'}
+                          {ready ? `${k} of ${n}` : 'pick a watchlist first'}
                         </span>
                       </div>
                     </div>

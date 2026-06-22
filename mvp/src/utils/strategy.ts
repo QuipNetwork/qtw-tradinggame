@@ -61,6 +61,25 @@ export function maxPositionCapPct(basketSize: number, value: number): number {
   return Math.round(cap * 100);
 }
 
+// Hold-count K guardrails (mirror the backend slider_map.py / qubo_encoder).
+// K is how many of the N selected assets the optimizer actually holds. K = N is
+// degenerate — there's no subset to choose, so SA, D-Wave and Gurobi all return
+// the same portfolio (no race, no quantum story). The meaningful regime — where
+// selection matters, diversification helps out-of-sample and the QPU beats
+// classical — is K ≈ N/3, which the backend's N-aware β now targets too.
+//   - Backend clamps K to [3, min(N, 32)]. The slider caps one BELOW N so there
+//     is always ≥1 asset to exclude (a real selection): max = min(N − 1, 32).
+//   - A fresh agent defaults to round(N/3) (≥3), not hold-all.
+export function holdCountMax(basketSize: number): number {
+  return Math.max(3, Math.min(basketSize - 1, 32));
+}
+export function holdCountDefault(basketSize: number): number {
+  return Math.min(Math.max(3, Math.round(basketSize / 3)), holdCountMax(basketSize));
+}
+export function clampHoldCount(k: number, basketSize: number): number {
+  return Math.max(3, Math.min(k, holdCountMax(basketSize)));
+}
+
 export function labelFor(idx: number, val: number): string {
   // Rebalance (row 0) buckets onto the 7 cadence tiers; the other rows keep
   // their 5-step quintile bucketing.
