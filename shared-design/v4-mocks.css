@@ -6638,3 +6638,10 @@
   .qs-v4-mock .v4m-holds-more {
     font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.7rem; color: #71717b; margin-top: 3px;
   }
+
+  /* ── (8) Phone tap targets (phone only — the fixed kiosk layout is untouched) ── */
+  /* Bigger back button on the basket screen. */
+  .phone-v4 .v4m-basket-back { width: 40px; height: 40px; }
+  /* Taller invisible drag zone on the phone sliders (padding grows the touch
+     area; the negative margin cancels it so layout/visuals are unchanged). */
+  .phone-v4 .v4m-slider .v4m-slider-shell { padding: 14px 0; margin: -14px 0; }
