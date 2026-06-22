@@ -18,7 +18,7 @@
 - [x] **R1 · Loading skeletons.** Done `672f9c5` — StatusScreen busy state now renders a subtle 3-bar shimmer (currentColor, ≤0.14 opacity; reduced-motion → static). Follow-up: per-surface skeleton shapes if desired.
 - [ ] **R2 · Motion language consistency.** Audit entrance transitions across surfaces; unify on the existing fade-up/fade-in vocabulary; ensure every animation is reduced-motion-safe. No new libraries.
 - [ ] **R3 · Number-formatting consistency.** Route every $/% through the shared `utils/format.ts`; consistent rounding/tabular-nums on P&L, totals, allocation. Add `format` helpers if needed.
-- [ ] **R4 · SignUp double-submit guard.** If `submitAgent` succeeds but `requestOptimization` throws, don't strand the user or allow a duplicate agent on re-press; navigate to welcome (it re-solves) or disable re-submit.
+- [x] **R4 · SignUp double-submit guard.** Done `6fc09b2` — persist agentId + navigate right after `submitAgent` succeeds; the first solve is now best-effort (welcome re-solves), so a failed optimize can't strand the attendee or let a re-press create a duplicate.
 
 ### Phone
 - [ ] **P1 · Live holdings on the phone profile.** The phone shows P&L but not the moving portfolio. Add a compact, live per-holding strip (the mock already streams `holdings`) — reuse the allocation bar + value-flash so the player watches their own prices move. Design-careful; keep the screen from overflowing (it scrolls).
@@ -47,3 +47,4 @@
 
 ## Progress log (loop appends here)
 - 2026-06-22 · R1 loading skeletons → `672f9c5` (tsc/lint/build green).
+- 2026-06-22 · R4 kiosk create/solve decoupling → `6fc09b2` (tsc/lint/build green). Picked over R2/R3 (broader audits) as the concrete high-value win.
