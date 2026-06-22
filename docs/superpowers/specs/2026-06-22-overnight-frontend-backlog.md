@@ -37,7 +37,7 @@
 - [x] **A4 · Tap targets (phone side only).** Done `187b281` — `.phone-v4 .v4m-basket-back` 28→40px; phone slider drag zone padding 10→14px (margin cancels → layout/visuals unchanged, ~track+28px touch area). Scoped to `.phone-v4`, so the fixed kiosk is untouched.
 
 ### Polish / hygiene
-- [ ] **H1 · Welcome QR.** Investigate the blank QR canvas for seeded agents (now that qrcode is lazy); ensure it renders.
+- [x] **H1 · Welcome QR.** Done `e833379` — root cause: the QR effect ran during the loading StatusScreen (canvas not mounted yet) and `[agentId, qrUrl]` never changed afterward, so it never re-fired. Added `loadState` to the deps + a `loadState === 'ready'` guard; browser-confirmed the QR now renders (was blank — a regression from the earlier loading guards).
 - [ ] **H2 · Landing rhythm.** Minor vertical-rhythm/spacing refinements on the hub; vary the hero glyph palette if it reads too monochrome. Keep the theme.
 
 ## PROPOSE ONLY — do NOT implement (write/refine a proposal in this section)
@@ -60,3 +60,4 @@
 - 2026-06-22 · A5 kiosk step eyebrows → headings (role=heading) → `da0c0be` (gate green, zero visual change).
 - 2026-06-22 · A2 reach-out role=group label → `fc9299c` (gate green; radio-split deferred as it would misrepresent the multi-select).
 - 2026-06-22 · A4 phone tap targets (basket-back 40px, slider drag zone) → `187b281` (phone-scoped; kiosk untouched).
+- 2026-06-22 · H1 Welcome QR render fix (loading-guard regression) → `e833379` (browser-confirmed scannable QR).
