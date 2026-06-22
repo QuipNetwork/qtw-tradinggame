@@ -2,18 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { getValuationHistory } from '../../api';
 import type { LeaderboardEntry, RoutingStats, ValuationHistoryPoint } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
+import Countdown from './Countdown';
+import { useTween } from '../../utils/anim';
+import { fmtUsd } from '../../utils/format';
+import TickValue from '../../components/TickValue';
 
 export default function StateB({
   leaderboard,
   rankIndex,
   routingStats,
+  phaseSeconds = 15,
 }: {
   leaderboard: LeaderboardEntry[];
   rankIndex: number;
   routingStats: RoutingStats;
+  phaseSeconds?: number;
 }) {
-  const agent = leaderboard[rankIndex % leaderboard.length];
+  // Fall back to the top agent if the spotlight index is ever out of range
+  // (e.g. a NaN from a transiently empty board); BoothTV guarantees ≥1 entry.
+  const agent = leaderboard[rankIndex % leaderboard.length] ?? leaderboard[0];
   const [history, setHistory] = useState<ValuationHistoryPoint[]>([]);
+  const tweenTotal = useTween(agent.total, { durationMs: 600 });
   const rankPadded = String(agent.rank).padStart(2, '0');
   const displayPct = Math.round(agent.plPct * 100) / 100;
   const lineColor = displayPct > 0 ? '#0A832E' : displayPct < 0 ? '#ff6467' : '#71717b';
@@ -56,11 +65,11 @@ export default function StateB({
         <div className="qs-hero-left">
           <div className="left">
             <h1>Rank {rankPadded} · <span className="it">{agent.name}.</span></h1>
-            <div className="spot-handle">02h 14m on the board</div>
+            <div className="spot-handle">{agent.handle ?? `Rank ${rankPadded} on the leaderboard`}</div>
           </div>
           <div className="right">
             <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Spotlight</div>
-            <div className="countdown" style={{ fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: '3.4cqh', color: '#18181b', fontVariantNumeric: 'tabular-nums' }}>12s</div>
+            <div className="countdown" style={{ fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: '3.4cqh', color: '#18181b', fontVariantNumeric: 'tabular-nums' }}><Countdown seconds={phaseSeconds} /></div>
           </div>
         </div>
 
@@ -69,7 +78,7 @@ export default function StateB({
             <div className="spot-stats">
               <div className="ss-cell">
                 <div className="ss-lbl">Total P&amp;L</div>
-                <div className="ss-val ss-pl">${Math.round(agent.total).toLocaleString()}</div>
+                <div className="ss-val ss-pl">{fmtUsd(tweenTotal)}</div>
               </div>
               <div className="ss-cell">
                 <div className="ss-lbl">Change</div>
@@ -102,7 +111,6 @@ export default function StateB({
               <div className={`v4-pr ${agent.primaryProvider === 'QPU' ? 'q' : 'c'}`}>
                 <span className="type">{agent.primaryProvider}</span>
                 <span className="nm">Solved by {agent.primaryProvider === 'QPU' ? 'D-Wave Advantage' : 'Helios-12'}</span>
-                <span className="pct" style={{ fontFamily: "'JetBrains Mono',monospace", color: '#71717b' }}>4s ago</span>
               </div>
             </div>
           </div>
@@ -126,7 +134,7 @@ export default function StateB({
                       <div className={`qs-row${top}${isSpotlit ? ' spotlit' : ''}`} key={row.agentId}>
                         <span className="rank">{String(row.rank).padStart(2, '0')}</span>
                         <span className="name">{row.name}</span>
-                        <span className="pnl">${Math.round(row.total).toLocaleString()}</span>
+                        <TickValue className="pnl" value={Math.round(row.total)} text={fmtUsd(row.total)} />
                       </div>
                     );
                   })}

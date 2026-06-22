@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct, rebalanceTierIndex, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
+import { maxPositionCapPct, rebalanceTierIndex, REBALANCE_CHIP_LABELS, labelFor } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 
@@ -10,12 +10,14 @@ import ResetControl from './ResetControl';
 // (it allocates the portfolio — it doesn't execute trades): how often to
 // re-optimize, how hard to chase returns, and how big any single position
 // may get.
-const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number; labels: [string, string, string, string, string] }> = [
+const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: number }> = [
   // Cadence values are the REAL tiers (QPU time costs money — hourly is the
   // hard cap at the most aggressive setting). See utils/strategy REBALANCE_TIERS.
-  { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70, labels: ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'] },
-  { key: 'riskPreference',     label: 'Risk preference',     initial: 78, labels: ['Safe', 'Conservative', 'Balanced', 'Aggressive', 'Reckless'] },
-  { key: 'maxPositionSize',    label: 'Max position size',   initial: 50, labels: ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'] },
+  // Display labels come from the shared SLIDER_LABELS (via labelFor) so the kiosk
+  // and the phone profile never disagree on a slider's wording.
+  { key: 'rebalanceFrequency', label: 'Rebalance frequency', initial: 70 },
+  { key: 'riskPreference',     label: 'Risk preference',     initial: 78 },
+  { key: 'maxPositionSize',    label: 'Max position size',   initial: 50 },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,11 +45,6 @@ const REACH_OUT_OPTIONS: Array<{ label: string; value: string }> = [
   { label: 'Learning more about post-quantum cryptography', value: "Yes, I'd like to learn more about post-quantum cryptography" },
   { label: 'No thanks',                                     value: REACH_OUT_DECLINE },
 ];
-
-function labelFor(value: number, labels: readonly string[]): string {
-  const i = Math.min(labels.length - 1, Math.floor(value / 20));
-  return labels[i];
-}
 
 function handleFromName(name: string): string {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -160,10 +157,18 @@ export default function KioskSignUp() {
         sliders: sliderValues,
         assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
       });
-      const result = await requestOptimization(agentId);
-      sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
-      sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      // The agent now exists — persist it and move on, so a failed first solve
+      // can't strand the attendee here or let a re-press create a duplicate
+      // agent. The first solve is best-effort caching; the welcome screen
+      // re-solves on its own if it's missing.
       localStorage.setItem('quip:lastAgentId', agentId);
+      sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      try {
+        const result = await requestOptimization(agentId);
+        sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
+      } catch {
+        // Leave it to the welcome screen to solve and surface any error.
+      }
       navigate(`/kiosk/welcome?agent=${agentId}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your agent. Check the backend connection.');
@@ -193,7 +198,7 @@ export default function KioskSignUp() {
   const detailsCard = (
     <div className="v4m-mega">
       <div className="v4m-mega-section">
-        <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">3</span>Your details</span>
+        <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">3</span>Your details</span>
         <div className="v4m-field">
           <label htmlFor="kiosk-name">Player name (required)</label>
           <input
@@ -245,7 +250,7 @@ export default function KioskSignUp() {
         )}
         <div className="v4m-field v4m-field-checklist">
           <label>Would you like someone from our team to reach out?<span className="lead">Yes, I'm interested in…<span className="req" aria-hidden="true">*</span></span></label>
-          <div className="v4m-checklist">
+          <div className="v4m-checklist" role="group" aria-label="Would you like someone from our team to reach out?">
             {REACH_OUT_OPTIONS.map(o => (
               <button
                 type="button"
@@ -270,7 +275,7 @@ export default function KioskSignUp() {
 
       <div className="v4m-nav">
         <div className="v4m-mark">
-          <svg className="quip-wm"><use href="#quip-wm" /></svg>
+          <svg className="quip-wm" role="img" aria-label="Quip Network"><use href="#quip-wm" /></svg>
           <div className="v4m-nav-divider"></div>
           <span className="v4m-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
@@ -282,14 +287,14 @@ export default function KioskSignUp() {
         <ResetControl onConfirm={resetForm} />
       </div>
 
-      <div className="v4m-body selector-top">
+      <main className="v4m-body selector-top">
 
         <div className="v4m-main-col">
 
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
+                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
                 <span className={`v4m-selector-count${selected.size > 0 && selected.size < MIN_ASSETS ? ' under' : ''}`}>{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
@@ -309,7 +314,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-sliders-mega" aria-label="Strategy sliders">
             <div className="v4m-mega-section">
               <div className="v4m-sliders-head">
-                <span className="v4m-section-eyebrow eyebrow-step"><span className="v4m-step-chip">2</span>Tune your strategy</span>
+                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">2</span>Tune your strategy</span>
               </div>
               <div className="v4m-sliders-row">
                 {SLIDER_DEFS.map((def, i) =>
@@ -329,12 +334,14 @@ export default function KioskSignUp() {
                           min={0}
                           max={100}
                           value={sliders[i]}
+                          aria-label={def.label}
+                          aria-valuetext={labelFor(i, sliders[i])}
                           onChange={e => updateSlider(i, parseInt(e.target.value, 10))}
                         />
                       </div>
                       <div className="v4m-slider-bottom">
                         <span className="v4m-slider-val">
-                          {labelFor(sliders[i], def.labels)}
+                          {labelFor(i, sliders[i])}
                           {/* the position cap is relative to the basket — show the live number */}
                           {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
                         </span>
@@ -366,6 +373,8 @@ export default function KioskSignUp() {
                           max={Math.max(3, n)}
                           step={1}
                           value={k}
+                          aria-label="Number to hold"
+                          aria-valuetext={ready ? `${k} of ${n}` : 'Pick a watchlist first'}
                           disabled={!ready}
                           onChange={e => setHoldCount(parseInt(e.target.value, 10))}
                         />
@@ -410,7 +419,7 @@ export default function KioskSignUp() {
           {detailsCard}
         </aside>
 
-      </div>
+      </main>
 
       <div className="v4m-cta-bar">
         <button className={`v4m-cta${busy ? ' busy' : ''}`} onClick={launch} disabled={busy || selected.size < MIN_ASSETS || !nameValid || !emailValid || reachOut.size === 0}>
@@ -430,7 +439,7 @@ export default function KioskSignUp() {
                     ? 'Choose a reach-out preference (or “No thanks”) to launch'
                     : null;
           return (
-            <div className={`v4m-cta-sub${blocked ? '' : ' ok'}`}>
+            <div className={`v4m-cta-sub${blocked ? '' : ' ok'}`} role="status">
               {blocked ?? 'All set — ready to launch'}
             </div>
           );

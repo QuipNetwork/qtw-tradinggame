@@ -1,14 +1,19 @@
 import type { LeaderboardEntry, RoutingStats } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
+import Countdown from './Countdown';
+import { fmtUsd } from '../../utils/format';
+import TickValue from '../../components/TickValue';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default function StateA({
   leaderboard,
   routingStats,
+  phaseSeconds = 12,
 }: {
   leaderboard: LeaderboardEntry[];
   routingStats: RoutingStats;
+  phaseSeconds?: number;
 }) {
   return (
     <div className="bigscreen dir-quipsite v4">
@@ -27,8 +32,8 @@ export default function StateA({
             <h1>Top ten <span className="it">quantum</span> trading agents.</h1>
           </div>
           <div className="right">
-            <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Refreshing in</div>
-            <div className="countdown" style={{ fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: '3.4cqh', color: '#18181b', fontVariantNumeric: 'tabular-nums' }}>02.5s</div>
+            <div className="lbl" style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: '1.3cqh', letterSpacing: '0.18em', textTransform: 'uppercase', color: '#71717b' }}>Next view in</div>
+            <div className="countdown" style={{ fontFamily: 'Georgia,serif', fontStyle: 'italic', fontSize: '3.4cqh', color: '#18181b', fontVariantNumeric: 'tabular-nums' }}><Countdown seconds={phaseSeconds} /></div>
           </div>
         </div>
 
@@ -45,7 +50,7 @@ export default function StateA({
                     {row.rank <= 3 && <span className="medal">{MEDALS[row.rank - 1]}</span>}
                   </span>
                   <span className="name">{row.name}</span>
-                  <span className="pnl">${Math.round(row.total).toLocaleString()}</span>
+                  <TickValue className="pnl" value={Math.round(row.total)} text={fmtUsd(row.total)} />
                   <span className={changeClass}>{row.plPct >= 0 ? '+' : '−'}{Math.abs(row.plPct).toFixed(2)}%</span>
                 </div>
               );

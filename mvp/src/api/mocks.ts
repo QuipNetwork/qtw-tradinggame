@@ -14,6 +14,7 @@ import type {
   SolverResult,
   SubmitAgentResponse,
   SubscribeOptions,
+  TvEvent,
   ValuationHistoryPoint,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
@@ -182,11 +183,42 @@ export async function requestOptimization(
   });
 }
 
-export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-  return delay(TOP_10);
+// Live leaderboard simulation: each poll nudges every agent's total by a small
+// random walk (slight upward bias), re-sorts, and reassigns ranks — so the TV
+// board visibly moves and occasionally reshuffles, mirroring the backend MTM.
+let boardState: LeaderboardEntry[] | null = null;
+
+function tickBoard(): LeaderboardEntry[] {
+  if (!boardState) boardState = TOP_10.map(entry => ({ ...entry }));
+  for (const entry of boardState) {
+    const drift = (Math.random() - 0.48) * 14;       // slight upward bias
+    const total = Math.max(9200, entry.total + drift);
+    entry.total = total;
+    entry.plUSD = Math.round(total - 10000);
+    entry.plPct = Math.round((entry.plUSD / 10000) * 10000) / 100;
+    if (Math.random() < 0.05) entry.jobsSolved += 1;
+  }
+  boardState.sort((a, b) => b.total - a.total);
+  boardState.forEach((entry, i) => { entry.rank = i + 1; });
+  return boardState.map(entry => ({ ...entry }));
 }
 
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  return delay(tickBoard(), 120);
+}
+
+// Live routing-stats simulation: a solve lands now and then; the QPU wins most.
+const routingState = { total: 10, qpuWins: 8, cpuWins: 2 };
+
 export async function getRoutingStats(): Promise<RoutingStats> {
+  if (Math.random() < 0.35) {
+    routingState.total += 1;
+    if (Math.random() < 0.8) routingState.qpuWins += 1;
+    else routingState.cpuWins += 1;
+  }
+  const { total, qpuWins, cpuWins } = routingState;
+  const qpuPct = Math.round((qpuWins / total) * 100);
+  const cpuPct = 100 - qpuPct;
   // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU.
   const now = Date.now();
   const recent = Array.from({ length: 16 }, (_, i) => {
@@ -204,14 +236,14 @@ export async function getRoutingStats(): Promise<RoutingStats> {
     };
   });
   return delay({
-    total: 10,
-    qpuWins: 8,
-    cpuWins: 2,
-    qpuPct: 80,
-    cpuPct: 20,
+    total,
+    qpuWins,
+    cpuWins,
+    qpuPct,
+    cpuPct,
     providers: [
-      { provider: 'dwave', providerType: 'QPU', count: 8, pct: 80 },
-      { provider: 'sa', providerType: 'CPU', count: 2, pct: 20 },
+      { provider: 'dwave', providerType: 'QPU', count: qpuWins, pct: qpuPct },
+      { provider: 'sa', providerType: 'CPU', count: cpuWins, pct: cpuPct },
     ],
     recent,
   });
@@ -329,6 +361,28 @@ export function subscribeAgent(
   return () => {
     cancelled = true;
     if (timer) clearInterval(timer);
+    options.onStatus?.('closed');
+  };
+}
+
+// Synthetic booth-wide TV events. Emits a new-agent "interrupt" on a timer so
+// the State D welcome is demonstrable offline — the real backend publishes the
+// same shape on /tv/events when an agent's first solve lands (orchestration/job.py).
+const DEMO_NEW_AGENTS = ['Coherent Carla', 'Tunneling Theo', 'Qubit Quokka', 'Bra-Ket Bo', 'Eigen Ada', 'Annealing Ana'];
+
+export function subscribeTvEvents(
+  callback: (event: TvEvent) => void,
+  options: SubscribeOptions = {},
+): () => void {
+  options.onStatus?.('live');
+  let i = 0;
+  const timer = setInterval(() => {
+    const name = DEMO_NEW_AGENTS[i % DEMO_NEW_AGENTS.length];
+    i += 1;
+    callback({ type: 'new-agent', agentId: `demo-${i}`, name });
+  }, 25_000);
+  return () => {
+    clearInterval(timer);
     options.onStatus?.('closed');
   };
 }

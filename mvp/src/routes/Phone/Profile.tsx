@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import type {
   AgentConfig,
@@ -9,12 +9,15 @@ import type {
   AssetInfo,
   QpuBudgetStatus,
 } from '../../api';
-import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc } from '../../api';
+import { getAgent, getLeaderboard, requestOptimization, updateAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, rebalanceTierIndex, slidersToArray, REBALANCE_CHIP_LABELS } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
-import { useTween } from '../../utils/anim';
+import { useTweens } from '../../utils/anim';
+import StatusScreen from '../../components/StatusScreen';
+import TickValue from '../../components/TickValue';
+import { WHOLE_USD, fmtUsd } from '../../utils/format';
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
@@ -24,7 +27,6 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
 
 // A basket needs at least this many assets (mirrors the kiosk sign-up rule).
 const MIN_ASSETS = 3;
-const WHOLE_USD = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 type RankInfo = { rank: number | null; total: number };
 
 function formatRebalanceCountdown(nextRebalanceAt?: string | null, nowMs: number = Date.now()): string {
@@ -130,31 +132,42 @@ export default function PhoneProfile() {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [qpuCooldownUntilMs, setQpuCooldownUntilMs] = useState<number | null>(null);
   const [rankInfo, setRankInfo] = useState<RankInfo | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'error'>('loading');
+  const [retryNonce, setRetryNonce] = useState(0);
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!agentId) return;
+    let cancelled = false;
+    setLoadState('loading');
     (async () => {
-      const a = await getAgent(agentId);
-      if (!a) return;
-      setAgent(a);
-      setSliders(slidersToArray(a.sliders));
-      setHoldCount(a.sliders.holdCount ?? null);
-      setBasket(new Set(a.assets ?? []));
-      const targetMs = qpuCooldownTargetMs(a.qpuBudget);
-      if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
+      try {
+        const a = await getAgent(agentId);
+        if (cancelled) return;
+        if (!a) { setLoadState('notfound'); return; }
+        setAgent(a);
+        setSliders(slidersToArray(a.sliders));
+        setHoldCount(a.sliders.holdCount ?? null);
+        setBasket(new Set(a.assets ?? []));
+        const targetMs = qpuCooldownTargetMs(a.qpuBudget);
+        if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
 
-      const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
-      if (cachedRaw) {
-        try {
-          const cached = JSON.parse(cachedRaw) as RoutingResult;
-          setResult(cached);
-          const targetMs = qpuCooldownTargetMs(cached.qpuBudget);
-          if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
-        } catch { /* ignore */ }
+        const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
+        if (cachedRaw) {
+          try {
+            const cached = JSON.parse(cachedRaw) as RoutingResult;
+            setResult(cached);
+            const cachedTargetMs = qpuCooldownTargetMs(cached.qpuBudget);
+            if (cachedTargetMs && cachedTargetMs > Date.now()) setQpuCooldownUntilMs(cachedTargetMs);
+          } catch { /* ignore a corrupt cache entry */ }
+        }
+        setLoadState('ready');
+      } catch {
+        if (!cancelled) setLoadState('error');
       }
     })();
-  }, [agentId]);
+    return () => { cancelled = true; };
+  }, [agentId, retryNonce]);
 
   useEffect(() => {
     if (!agentId) return;
@@ -210,15 +223,26 @@ export default function PhoneProfile() {
 
   // Live values, tweened so the numbers count smoothly toward each tick. These
   // are hooks, so they must run before the early returns below.
-  const liveTotal = live?.total ?? 10142;
-  const livePlUSD = live?.plUSD ?? 142;
-  const livePlPct = live?.plPct ?? 1.42;
-  const tweenTotal = useTween(liveTotal);
-  const tweenPlUSD = useTween(livePlUSD);
-  const tweenPlPct = useTween(livePlPct);
+  // Neutral until the first live tick — never show a fabricated gain.
+  const liveTotal = live?.total ?? 10000;
+  const livePlUSD = live?.plUSD ?? 0;
+  const livePlPct = live?.plPct ?? 0;
+  const [tweenTotal, tweenPlUSD, tweenPlPct] = useTweens([liveTotal, livePlUSD, livePlPct]);
 
-  if (!agentId) return <div style={{ padding: 40 }}>Missing agent.</div>;
-  if (!agent || !sliders) return null;
+  const phoneFrame = (body: ReactNode) => (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a10', padding: 16 }}>
+      <div className="mockup-frame phone dark">
+        <div className="screen">
+          <div className="qs-v4-mock phone-v4">{body}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!agentId) return phoneFrame(<StatusScreen tone="dark" title="Missing agent" message="This link has no agent id." action={{ label: 'Open kiosk', href: '/kiosk' }} />);
+  if (loadState === 'notfound') return phoneFrame(<StatusScreen tone="dark" title="Profile not found" message="The link may be stale or the agent was reset." action={{ label: 'Open kiosk', href: '/kiosk' }} />);
+  if (loadState === 'error') return phoneFrame(<StatusScreen tone="dark" title="Can't reach Quip Network" message="We couldn't load your profile. Check your connection and try again." action={{ label: 'Retry', onClick: () => setRetryNonce(n => n + 1) }} />);
+  if (!agent || !sliders) return phoneFrame(<StatusScreen tone="dark" busy title="Loading your profile…" />);
 
   async function retune() {
     if (busy || !agentId || !sliders) return;
@@ -317,6 +341,13 @@ export default function PhoneProfile() {
   const sparkStr = sparkXY.map(p => `${p.x},${p.y}`).join(' ');
   const sparkHead = sparkXY[sparkXY.length - 1];
 
+  // Live portfolio for the holdings strip — prefer the streamed holdings (they
+  // move with price), fall back to the last solve, drop unknown tickers.
+  const holdings = (live?.holdings?.length
+    ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd }))
+    : result?.portfolio ?? []
+  ).filter(e => ASSET_BY_TICKER[e.ticker]);
+
   const solveTime = result?.solveTime ?? 0.42;
   const providerName = result?.provider ?? 'D-Wave Advantage';
   const raceRows = solverRaceRows(result);
@@ -383,13 +414,13 @@ export default function PhoneProfile() {
               )}
             </div>
             ) : (
-            <div className="v4m-phone-view">
+            <main className="v4m-phone-view">
 
             <div className="v4m-phone-head">
               <div>
-                <div className="v4m-phone-name">{agent.name}</div>
+                <h1 className="v4m-phone-name">{agent.name}</h1>
               </div>
-              <canvas ref={glyphRef} width={56} height={56}></canvas>
+              <canvas ref={glyphRef} width={56} height={56} aria-hidden="true"></canvas>
               <div className="v4m-phone-rank" style={{ gridColumn: '1 / 3', marginTop: 4, justifySelf: 'start' }}>
                 <span>You're</span>
                 <span className="v4m-rank-num">{rankText}</span>
@@ -404,6 +435,10 @@ export default function PhoneProfile() {
                 <div className={`v4m-pl-change ${pnl.tone}`}>
                   {pnl.sign}${usdText} · {pnl.sign}{pctText}%
                 </div>
+                {/* One settled announcement per tick (the visible numbers tween silently). */}
+                <span className="sr-only" aria-live="polite">
+                  Total ${WHOLE_USD.format(Math.round(liveTotal))}, {pnl.tone === 'up' ? 'up' : pnl.tone === 'down' ? 'down' : 'flat'} {pnl.pct} percent
+                </span>
               </div>
               <svg className="v4m-spark" viewBox="0 0 80 36" preserveAspectRatio="none" aria-hidden="true" style={{ color: lineColor }}>
                 <polyline
@@ -415,6 +450,28 @@ export default function PhoneProfile() {
                 )}
               </svg>
             </div>
+
+            {holdings.length > 0 && (
+            <div className="v4m-holds">
+              <div className="v4m-section-eyebrow">Holdings · {holdings.length}</div>
+              <div className="v4m-alloc-stack" style={{ marginTop: 8 }}>
+                {holdings.map(h => (
+                  <span key={h.ticker} className="v4m-alloc-seg" style={{ width: `${h.pct}%`, background: assetColor(h.ticker) }}></span>
+                ))}
+              </div>
+              <div className="v4m-holds-list">
+                {holdings.slice(0, 6).map(h => (
+                  <div className="v4m-holds-row" key={h.ticker}>
+                    <img className="v4m-holds-icon" src={assetIconSrc(h.ticker)} alt="" />
+                    <span className="v4m-holds-ticker">{h.ticker}</span>
+                    <span className="v4m-holds-pct">{Math.round(h.pct)}%</span>
+                    <TickValue className="v4m-holds-usd" value={Math.round(h.usd)} text={fmtUsd(h.usd)} />
+                  </div>
+                ))}
+                {holdings.length > 6 && <div className="v4m-holds-more">+{holdings.length - 6} more held</div>}
+              </div>
+            </div>
+            )}
 
             <div className="v4m-phone-mega">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -479,6 +536,8 @@ export default function PhoneProfile() {
                       <input
                         type="range" className="range-overlay"
                         min={0} max={100} value={sliders[i]}
+                        aria-label={def.label}
+                        aria-valuetext={labelFor(i, sliders[i])}
                         onChange={e => {
                           const v = parseInt(e.target.value, 10);
                           setSliders(prev => {
@@ -515,6 +574,8 @@ export default function PhoneProfile() {
                       <input
                         type="range" className="range-overlay"
                         min={3} max={Math.max(3, n)} step={1} value={k}
+                        aria-label="Number to hold"
+                        aria-valuetext={ready ? `${k} of ${n}` : 'Edit basket first'}
                         disabled={!ready}
                         onChange={e => setHoldCount(parseInt(e.target.value, 10))}
                       />
@@ -557,7 +618,7 @@ export default function PhoneProfile() {
             </button>
             {retuneHelper && <div className="v4m-cta-sub">{retuneHelper}</div>}
 
-            </div>
+            </main>
             )}
 
           </div>

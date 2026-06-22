@@ -8,12 +8,12 @@
 // riskPreference     = risk-aversion term in the objective;
 // maxPositionSize    = per-asset weight cap;
 // holdCount          = Method 3: how many of the basket the optimizer holds (K).
-//                      Absolute count in [2, basket size]; omitted ⇒ hold all.
+//                      Absolute count in [3, basket size]; omitted ⇒ hold all.
 export type SliderValues = {
   rebalanceFrequency: number;  // 0–100 (snaps to 5 cadence tiers)
   riskPreference: number;      // 0–100
   maxPositionSize: number;     // 0–100
-  holdCount?: number;          // 2..basketSize; the cardinality K (Method 3)
+  holdCount?: number;          // 3..basketSize; the cardinality K (Method 3)
 };
 
 export type AgentConfig = {
@@ -181,4 +181,13 @@ export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'closed'
 
 export type SubscribeOptions = {
   onStatus?: (status: ConnectionStatus) => void;
+};
+
+// Booth-wide TV events (WS /tv/events): a new agent's first solve triggers the
+// State D welcome interrupt. Mirrors the payload published in orchestration/job.py.
+export type TvEvent = {
+  type: 'new-agent';
+  agentId: string;
+  name: string;
+  handle?: string | null;
 };

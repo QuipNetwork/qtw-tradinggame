@@ -11,6 +11,7 @@ import type {
   RoutingStats,
   SubmitAgentResponse,
   SubscribeOptions,
+  TvEvent,
   ValuationHistoryPoint,
 } from './types';
 import { ReconnectingSocket } from './socket';
@@ -157,6 +158,17 @@ export function subscribeAgent(
 ): () => void {
   const socket = new ReconnectingSocket<AgentUpdate>(
     websocketUrl(`/agents/${encodeURIComponent(agentId)}`),
+    { onMessage: callback, onStatus: options.onStatus },
+  );
+  return () => socket.close();
+}
+
+export function subscribeTvEvents(
+  callback: (event: TvEvent) => void,
+  options: SubscribeOptions = {},
+): () => void {
+  const socket = new ReconnectingSocket<TvEvent>(
+    websocketUrl('/tv/events'),
     { onMessage: callback, onStatus: options.onStatus },
   );
   return () => socket.close();

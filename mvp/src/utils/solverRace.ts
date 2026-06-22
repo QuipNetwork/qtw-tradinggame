@@ -68,15 +68,22 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
     };
   }
 
-  const fasterPct = Math.max(
-    0,
-    ((opponent.solveTime - winner.solveTime) / opponent.solveTime) * 100,
-  );
-  const rounded = Math.round(fasterPct);
+  // The race is scored on PORTFOLIO QUALITY (best objective), so the winner can be the best
+  // portfolio yet slower than the classical runner-up. Only claim a speed margin when the winner
+  // is genuinely faster; otherwise lead with the quality win instead of a misleading "0% faster".
+  const fasterPct = ((opponent.solveTime - winner.solveTime) / opponent.solveTime) * 100;
+  if (fasterPct >= 1) {
+    const rounded = Math.round(fasterPct);
+    return {
+      value: `${rounded}%`,
+      label: `Faster than ${opponent.providerType}`,
+      summary: `${rounded}% faster than ${opponent.providerType}`,
+    };
+  }
   return {
-    value: `${rounded}%`,
-    label: `Faster than ${opponent.providerType}`,
-    summary: `${rounded}% faster than ${opponent.providerType}`,
+    value: 'Best',
+    label: `Portfolio vs ${opponent.providerType}`,
+    summary: `Best portfolio vs ${opponent.providerType} · ${winner.providerType} ${winner.timeLabel}`,
   };
 }
 
