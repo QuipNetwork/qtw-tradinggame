@@ -55,20 +55,30 @@ async def run_mtm_loop(
                 for agent in records:
                     if not agent.holdings_units:
                         continue
-                    update = mark_to_market(
-                        agent.holdings_units,
-                        snapshot.prices,
-                        agent.bankroll,
-                        as_of=snapshot.as_of,
-                        stale=snapshot.stale,
-                    )
-                    update.next_rebalance_at = agent.next_rebalance_at
-                    update.rebalance_interval_hours = agent.rebalance_interval_hours
-                    agents.set_valuation(agent.id, update)
-                    if _snapshot_due(agent.id, now, last_snapshot_at):
-                        agents.record_valuation_snapshot(agent.id, update)
-                        last_snapshot_at[agent.id] = now
-                    bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
+                    try:
+                        update = mark_to_market(
+                            agent.holdings_units,
+                            snapshot.prices,
+                            agent.bankroll,
+                            as_of=snapshot.as_of,
+                            stale=snapshot.stale,
+                        )
+                        update.next_rebalance_at = agent.next_rebalance_at
+                        update.rebalance_interval_hours = agent.rebalance_interval_hours
+                        agents.set_valuation(agent.id, update)
+                        if _snapshot_due(agent.id, now, last_snapshot_at):
+                            agents.record_valuation_snapshot(agent.id, update)
+                            last_snapshot_at[agent.id] = now
+                        bus.publish(f"agent:{agent.id}", update.model_dump(by_alias=True))
+                    except Exception as exc:  # noqa: BLE001 — isolate one agent's failure
+                        # A single agent's failure (e.g. a DB write) must not starve the rest of
+                        # the tick — a persistently-bad agent would otherwise freeze every agent
+                        # ordered after it (stale P&L on the live feed). Skip just this one.
+                        if now - last_error_log >= config.MTM_ERROR_LOG_INTERVAL_S:
+                            log.warning(
+                                "MTM update failed for agent %s; skipping: %s", agent.id, exc
+                            )
+                            last_error_log = now
         except Exception as exc:
             # A flaky data source must not kill the loop; skip this tick.
             now = time.monotonic()
@@ -128,7 +138,10 @@ async def run_scheduled_rebalance_loop(
             due_at = _parse_iso(agent.next_rebalance_at)
             if due_at is None or due_at > now:
                 continue
-            if monotonic_now - last_attempt_at.get(agent.id, 0.0) < config.REBALANCE_RETRY_BACKOFF_S:
+            if (
+                monotonic_now - last_attempt_at.get(agent.id, 0.0)
+                < config.REBALANCE_RETRY_BACKOFF_S
+            ):
                 continue
             last_attempt_at[agent.id] = monotonic_now
             try:

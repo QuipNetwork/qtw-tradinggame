@@ -58,9 +58,7 @@ async def test_mtm_loop_requests_held_tickers_and_publishes_holdings():
     stop = asyncio.Event()
     market = MovingSpot()
 
-    task = asyncio.create_task(
-        run_mtm_loop(bus, stop, agents=agents, market=market, tick_s=60.0)
-    )
+    task = asyncio.create_task(run_mtm_loop(bus, stop, agents=agents, market=market, tick_s=60.0))
     payload = await asyncio.wait_for(queue.get(), timeout=1.0)
     stop.set()
     await task
@@ -72,6 +70,47 @@ async def test_mtm_loop_requests_held_tickers_and_publishes_holdings():
     assert payload["nextRebalanceAt"] == agents.get(record.id).next_rebalance_at
     assert payload["rebalanceIntervalHours"] == 4
     assert {h["ticker"] for h in payload["holdings"]} == {"BTC", "ETH"}
+
+
+@pytest.mark.asyncio
+async def test_mtm_loop_isolates_a_failing_agent():
+    # A persistently-failing agent (e.g. a bad DB write) must not starve the rest of the tick:
+    # the healthy agent still gets its MTM update even though an earlier agent raised.
+    class FailOneStore(AgentStore):
+        bad_id: str | None = None
+
+        def set_valuation(self, agent_id, update):
+            if agent_id == self.bad_id:
+                raise RuntimeError("boom")
+            super().set_valuation(agent_id, update)
+
+    sliders = SliderValues(rebalanceFrequency=50, riskPreference=70, maxPositionSize=50)
+    agents = FailOneStore()
+    bad = agents.create(
+        AgentConfig(name="Bad", email="b@x.io", sliders=sliders, assets=["BTC", "ETH"]),
+        bankroll=10_000.0,
+    )
+    good = agents.create(
+        AgentConfig(name="Good", email="g@x.io", sliders=sliders, assets=["BTC", "ETH"]),
+        bankroll=10_000.0,
+    )
+    for r in (bad, good):
+        agents.apply_solve(
+            r.id, holdings_units={"BTC": 0.1, "ETH": 1.0}, total=10_000.0, provider_type="CPU"
+        )
+    agents.bad_id = bad.id  # set after setup so only the MTM tick trips it
+
+    bus = EventBus()
+    good_q = bus.subscribe(f"agent:{good.id}")
+    stop = asyncio.Event()
+    task = asyncio.create_task(
+        run_mtm_loop(bus, stop, agents=agents, market=MovingSpot(), tick_s=60.0)
+    )
+    # `bad` is processed first (insertion order) and raises; `good` must still be published.
+    payload = await asyncio.wait_for(good_q.get(), timeout=1.0)
+    stop.set()
+    await task
+    assert payload["total"] == pytest.approx(11_000.0)
 
 
 @pytest.mark.asyncio
