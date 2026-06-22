@@ -7,6 +7,12 @@ from dataclasses import dataclass
 import numpy as np
 
 
+def correlation_matrix(sigma: np.ndarray) -> np.ndarray:
+    """Pearson correlation ρ from a covariance Σ: ρ = D^{-1/2} Σ D^{-1/2}."""
+    d = np.sqrt(np.clip(np.diag(sigma), 1e-12, None))
+    return sigma / np.outer(d, d)
+
+
 @dataclass(frozen=True)
 class SliderParams:
     """Physical parameters derived from `SliderValues` via slider_map."""
@@ -49,6 +55,9 @@ class PortfolioProblem:
     cardinality_k: int | None = None
     n_units_M: int | None = None
     u_min_units: int | None = None
+    # Diversification / frustration reward (β): adds β·Σ_{i<j} ρ_ij·y_i·y_j to the
+    # objective (0 = off). See config.METHOD3_FRUSTRATION_BETA and encode_method3.
+    frustration_beta: float = 0.0
 
     @property
     def N(self) -> int:
@@ -59,8 +68,15 @@ class PortfolioProblem:
         return self.cardinality_k is not None
 
     def objective(self, weights: np.ndarray) -> float:
-        """Mean-variance objective value at the given weights."""
-        return float(0.5 * self.gamma * weights @ self.Sigma @ weights - self.mu @ weights)
+        """Mean-variance objective, plus the frustration reward when β > 0."""
+        value = 0.5 * self.gamma * weights @ self.Sigma @ weights - self.mu @ weights
+        if self.frustration_beta:
+            held = (weights > 1e-9).astype(float)
+            rho = correlation_matrix(self.Sigma)
+            # Σ_{i<j} ρ_ij·y_i·y_j = ½·(yᵀρy − Σ y_i)  (ρ_ii = 1, y binary)
+            pair_corr = 0.5 * (held @ rho @ held - held.sum())
+            value += self.frustration_beta * pair_corr
+        return float(value)
 
     def __post_init__(self) -> None:
         assert self.Sigma.shape == (self.N, self.N), "Sigma must be (N, N)"

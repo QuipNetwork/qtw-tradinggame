@@ -53,7 +53,7 @@ import numpy as np
 
 from .. import config
 from ..solvers.types import DecodeMeta, QuboMatrix
-from .types import PortfolioProblem
+from .types import PortfolioProblem, correlation_matrix
 
 
 def bits_for_basket(n_assets: int) -> int:
@@ -71,6 +71,21 @@ def units_for_cardinality(k: int) -> int:
     (see config METHOD3_MIN/MAX_UNITS and the encode_method3 b = log2(M)−1 layout)."""
     floor = max(k, config.METHOD3_MIN_UNITS)
     m = 1 << (floor - 1).bit_length()  # next power of two ≥ floor
+    return min(m, config.METHOD3_MAX_UNITS)
+
+
+def units_for_grid(k: int, basket_size: int) -> int:
+    """Method 3 grid size M, SIZE-AWARE (mirrors convex bits_for_basket). Raises M toward a
+    FINER grid (more weight levels ≈ closer to continuous) for small baskets that stay
+    embeddable, keeps it COARSE for large baskets so the dense QUBO still embeds. Always
+    floored so M ≥ K. vars = N·log2(M), so METHOD3_PREFERRED_MAX_VARS caps resolution by N.
+    Bigger small-basket QUBOs also slow SA (cost ~vars²), keeping the QPU race-competitive."""
+    m = units_for_cardinality(k)  # K floor (and ≥ METHOD3_MIN_UNITS)
+    cand = config.METHOD3_MIN_UNITS
+    while cand * 2 <= config.METHOD3_MAX_UNITS:
+        cand *= 2  # next finer power-of-two grid
+        if basket_size * (cand.bit_length() - 1) <= config.METHOD3_PREFERRED_MAX_VARS:
+            m = max(m, cand)  # afford the finer grid only if vars stay within budget
     return min(m, config.METHOD3_MAX_UNITS)
 
 
@@ -105,6 +120,8 @@ def encode_qubo(
     Dispatches to ``encode_method3`` for cardinality/semi-continuous problems.
     """
     if problem.is_method3:
+        if config.METHOD3_ENCODING == "select":
+            return encode_select(problem)
         return encode_method3(problem)
 
     b = bits_per_asset if bits_per_asset is not None else bits_for_basket(problem.N)
@@ -166,6 +183,77 @@ def encode_qubo(
     return QuboMatrix(Q=Q, decode_meta=decode_meta)
 
 
+def encode_select(problem: PortfolioProblem) -> QuboMatrix:
+    """Penalty-free SELECTION-ONLY QUBO (C2): one binary x_i per asset, no weight bits.
+
+    Minimizes the equal-weight (1/K) surrogate of subset value
+        −(1/K)·Σ μ_i x_i  +  (γ/2K²)·Σ_ij Σ_ij x_i x_j
+    plus the diversification reward β·Σ_{i<j} ρ_ij x_i x_j. NO budget/cardinality penalties:
+    the greedy projector enforces exactly-K and a convex QP (financial.weighting.optimal_weights)
+    sets the weights, both classically (see solvers.sampling). The QUBO is sparse (no constraint
+    clique), so D-Wave embeds with short chains and every read is feasible after projection. On
+    the rugged β>0 landscape D-Wave beats SA on portfolio quality. See qpu-c2-beta-findings.md.
+    """
+    assert problem.is_method3, "encode_select requires cardinality_k"
+    N = problem.N
+    k = problem.cardinality_k
+    coef = problem.gamma / (2.0 * k * k)  # symmetric-matrix half of the (γ/K²)Σ_ij pair term
+
+    # Off-diagonals = (γ/2K²)Σ_ij; diagonal = −μ_i/K + (γ/2K²)Σ_ii (x_i² = x_i). Via to_dict the
+    # pair coefficient becomes (γ/K²)Σ_ij — the equal-weight risk−return surrogate over subsets.
+    Q = coef * problem.Sigma.astype(float)
+    for i in range(N):
+        Q[i, i] = -problem.mu[i] / k + coef * problem.Sigma[i, i]
+
+    # Diversification / frustration reward β·Σ_{i<j} ρ_ij x_i x_j (split across the symmetric pair).
+    if problem.frustration_beta:
+        rho = correlation_matrix(problem.Sigma)
+        beta = problem.frustration_beta
+        for i in range(N):
+            for j in range(i + 1, N):
+                c = 0.5 * beta * rho[i, j]
+                Q[i, j] += c
+                Q[j, i] += c
+
+    assert np.allclose(Q, Q.T), "QUBO matrix must be symmetric"
+    decode_meta = DecodeMeta(
+        n_assets=N,
+        bits_per_asset=1,
+        w_max=problem.w_max,
+        w_min=problem.w_min,
+        asset_tickers=list(problem.asset_tickers),
+        scheme="select",
+        n_units_M=problem.n_units_M,
+        u_min_units=problem.u_min_units,
+        increment_bits=0,
+    )
+    return QuboMatrix(Q=Q, decode_meta=decode_meta)
+
+
+def select_objective_scale(problem: PortfolioProblem) -> float:
+    """Peak |coefficient| of the C2 selection objective (the to_dict scale ``encode_select`` uses):
+    max over −μ_i/K + (γ/2K²)Σ_ii (diagonal) and (γ/K²)Σ_ij (pairs). This is the per-problem scale
+    that lets METHOD3_FRUSTRATION_BETA be a basket-invariant fraction (see resolve_frustration_beta).
+    """
+    k, g = problem.cardinality_k, problem.gamma
+    coef = g / (2.0 * k * k)
+    diag = np.abs(-problem.mu / k + coef * np.diagonal(problem.Sigma))
+    off = 2.0 * coef * np.abs(problem.Sigma)
+    np.fill_diagonal(off, 0.0)
+    return float(max(diag.max(), off.max(), 1e-12))
+
+
+def resolve_frustration_beta(problem: PortfolioProblem) -> float:
+    """Effective absolute β for ``problem`` from config.METHOD3_FRUSTRATION_BETA. β is a SELECT-only
+    diversification knob: for the select encoding the config value is a FRACTION of the objective
+    scale (multiplied by select_objective_scale so the validated 0.25–0.5 band is consistent across
+    baskets); for convex / legacy-penalized it is off (0.0)."""
+    beta = config.METHOD3_FRUSTRATION_BETA
+    if beta and problem.is_method3 and config.METHOD3_ENCODING == "select":
+        return beta * select_objective_scale(problem)
+    return 0.0
+
+
 def encode_method3(
     problem: PortfolioProblem,
     *,
@@ -217,9 +305,23 @@ def encode_method3(
         for kk in range(b):
             G[i, xidx(i, kk)] = inc_coeffs[kk]
 
-    # Objective: (γ/2M²) uᵀΣu − (1/M) μᵀu.
+    # Objective: (γ/2M²) uᵀΣu − (1/M) μᵀu.  (zᵀQm z + linᵀz is exactly the economic
+    # objective in u-space, since w = u/M and Qm = (γ/2M²)GᵀΣG.)
     Qm = (problem.gamma / (2.0 * M * M)) * (G.T @ problem.Sigma @ G)
     lin = -(1.0 / M) * (G.T @ problem.mu)
+
+    # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j on the SELECT bits
+    # (economic units, same as objective()). Added BEFORE obj_scale so the constraint
+    # penalties below still dominate it and feasibility is preserved.
+    if problem.frustration_beta:
+        rho = correlation_matrix(problem.Sigma)
+        beta = problem.frustration_beta
+        for i in range(N):
+            for j in range(i + 1, N):
+                c = 0.5 * beta * rho[i, j]  # split across the symmetric pair
+                Qm[yidx(i), yidx(j)] += c
+                Qm[yidx(j), yidx(i)] += c
+
     obj_scale = max(float(np.abs(Qm).max()), float(np.abs(lin).max()), 1e-12)
 
     # Budget penalty λ_bud (vᵀz − M)², v = Gᵀ1 — peak normalized to pmult·obj_scale.

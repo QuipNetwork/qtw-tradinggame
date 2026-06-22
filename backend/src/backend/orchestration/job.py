@@ -20,6 +20,7 @@ from ..financial.pnl import mark_to_market
 from ..financial.prices.base import MarketDataSource
 from ..financial.prices.source import get_source
 from ..financial.qubo_decoder import weights_to_portfolio
+from ..financial.qubo_encoder import resolve_frustration_beta
 from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
 from ..persistence.agents import AgentStore, get_agent_store
@@ -101,6 +102,8 @@ def run_optimization(
         n_units_M=params.n_units_M,
         u_min_units=params.u_min_units,
     )
+    # β is config'd as a fraction of the objective scale (select encoding) → effective absolute β.
+    problem.frustration_beta = resolve_frustration_beta(problem)
 
     qpu_budget_status = (
         qpu_budget.reserve(agent_id, source=source) if include_qpu else qpu_budget.status(agent_id)

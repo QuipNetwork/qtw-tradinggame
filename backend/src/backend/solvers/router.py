@@ -166,7 +166,7 @@ def race(
                 )
 
     feasible_results = [solution for solution in results if solution.feasible]
-    winner = min(feasible_results, key=lambda solution: solution.solve_time_s, default=None)
+    winner = pick_winner(feasible_results)
     if winner is None:
         raise SolverFailed("no feasible solution from any provider before deadline")
 
@@ -175,15 +175,19 @@ def race(
             run.status = "winner"
             break
 
-    # Mark the best-objective feasible solver (lowest objective). Winner stays the
-    # FASTEST feasible (above); this is the quality leader, surfaced separately. Skip
-    # non-finite objectives, and break ties toward the winner so the badge doesn't move
-    # to a slower solver that merely matched the winning portfolio's objective.
-    best_obj = min(
-        (s for s in feasible_results if s.objective is not None and math.isfinite(s.objective)),
-        key=lambda s: (s.objective, s is not winner),
-        default=None,
-    )
+    # Flag the best-objective (quality-leader) solver. Under RACE_WINNER_BY="objective" the winner
+    # IS the best portfolio (lowest objective, fastest among quality ties), so the badge IS the
+    # winner — keeping the "winner" and "best portfolio" UI coherent. Under "speed" the winner is
+    # fastest, so surface the strict lowest-objective solver separately (it may differ); skip
+    # non-finite objectives and break ties toward the winner.
+    if config.RACE_WINNER_BY == "objective":
+        best_obj = winner
+    else:
+        best_obj = min(
+            (s for s in feasible_results if s.objective is not None and math.isfinite(s.objective)),
+            key=lambda s: (s.objective, s is not winner),
+            default=None,
+        )
     if best_obj is not None:
         for run in solver_runs:
             if run.provider == best_obj.provider and run.feasible:
@@ -197,6 +201,27 @@ def race(
         solver_runs=solver_runs,
         q_hash=q_h,
     )
+
+
+def pick_winner(feasible: list[Solution]) -> Solution | None:
+    """The race winner. RACE_WINNER_BY="objective" (booth default): the best feasible PORTFOLIO
+    (lowest objective), tie-broken by speed within RACE_WINNER_OBJECTIVE_TOL — so equal-quality
+    solvers fall back to fastest, but a materially better portfolio wins regardless of speed.
+    "speed": legacy fastest-feasible."""
+    if not feasible:
+        return None
+    if config.RACE_WINNER_BY == "objective":
+        scored = [s for s in feasible if s.objective is not None and math.isfinite(s.objective)]
+        if scored:
+            best_val = min(s.objective for s in scored)
+            tol = config.RACE_WINNER_OBJECTIVE_TOL
+            tied = [
+                s
+                for s in scored
+                if abs(s.objective - best_val) <= tol * max(abs(s.objective), abs(best_val), 1e-12)
+            ]
+            return min(tied, key=lambda s: s.solve_time_s)
+    return min(feasible, key=lambda s: s.solve_time_s)
 
 
 def _pick_runner_up_classical(winner: Solution, results: list[Solution]) -> Solution | None:

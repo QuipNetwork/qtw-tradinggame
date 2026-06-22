@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..financial.projection import greedy_project
 from ..financial.qubo_decoder import decode_bitstring
-from ..financial.types import PortfolioProblem
+from ..financial.types import PortfolioProblem, correlation_matrix
+from ..financial.weighting import optimal_weights
 from .feasibility import check_feasibility
 from .types import QuboMatrix
 
@@ -21,6 +23,9 @@ def select_solution(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return (weights, bits) of the best feasible sample by true objective,
     falling back to the lowest-energy sample when none is feasible."""
+    if qubo.decode_meta.scheme == "select":
+        return _select_solution_c2(response, qubo, problem)
+
     best_objective = None
     best: tuple[np.ndarray, np.ndarray] | None = None
     fallback: tuple[np.ndarray, np.ndarray] | None = None
@@ -40,6 +45,48 @@ def select_solution(
                 best = (weights, bits)
 
     return best if best is not None else fallback
+
+
+def _select_solution_c2(
+    response, qubo: QuboMatrix, problem: PortfolioProblem
+) -> tuple[np.ndarray, np.ndarray]:
+    """C2 (penalty-free selection): project EVERY read to exactly-K (greedy), set the weights by
+    the convex QP, score by the true objective; return the best portfolio. Cardinality/budget/box
+    are enforced HERE (not in the QUBO), so every read yields a feasible portfolio — the identical
+    classical finish for SA and D-Wave (apples-to-apples; removes the QPU feasibility handicap)."""
+    n = problem.N
+    # Hoist the correlation matrix out of the per-read loop (greedy_project would otherwise
+    # rebuild it every read); cache (weights, objective) per UNIQUE support so the QP and
+    # objective() run once per distinct selection, not once per read.
+    rho = correlation_matrix(problem.Sigma) if problem.frustration_beta else None
+    best_obj: float | None = None
+    best: tuple[np.ndarray, np.ndarray] | None = None
+    cache: dict[tuple[int, ...], tuple[np.ndarray, float]] = {}  # support → (weights, objective)
+
+    for sample in _samples(response):
+        bits = np.array([sample[i] for i in range(qubo.n)], dtype=np.int8)
+        support = greedy_project(bits, problem, rho)
+        hit = cache.get(support)
+        if hit is None:
+            idx = list(support)
+            weights = np.zeros(n)
+            weights[idx] = optimal_weights(
+                problem.mu[idx],
+                problem.Sigma[np.ix_(idx, idx)],
+                problem.gamma,
+                problem.w_min,
+                problem.w_max,
+            )
+            hit = (weights, problem.objective(weights))
+            cache[support] = hit
+        weights, objective = hit
+        if best_obj is None or objective < best_obj:
+            best_obj = objective
+            best = (weights, bits)
+
+    if best is None:  # no samples (defensive); degenerate empty portfolio → router gates it out
+        return np.zeros(n), np.zeros(qubo.n, dtype=np.int8)
+    return best
 
 
 def _samples(response):

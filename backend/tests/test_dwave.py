@@ -83,12 +83,13 @@ def test_reads_scale_with_basket_size():
     from backend import config
     from backend.solvers.providers.dwave import reads_for_vars
 
-    # Test the lookup LOGIC, not the literal table (which re-tunes): boundary-inclusive
-    # first-match, and reads never decrease with size (small → few/fast to win on speed).
-    assert reads_for_vars(30) == config.DWAVE_READS_BY_VARS[0][1]  # tier boundary inclusive
-    assert reads_for_vars(31) > reads_for_vars(30)  # next tier up
-    reads = [reads_for_vars(n) for n in (12, 30, 31, 60, 84, 140)]
+    # Test the lookup LOGIC, not the literal table (which re-tunes): a 500 floor (matches
+    # SA's baseline), boundary-inclusive first-match, and reads never decrease with size.
+    assert reads_for_vars(48) == config.DWAVE_READS_BY_VARS[0][1]  # first tier (floor 500)
+    assert reads_for_vars(49) > reads_for_vars(48)  # next tier up
+    reads = [reads_for_vars(n) for n in (12, 48, 49, 72, 84, 140)]
     assert reads == sorted(reads)  # monotonic non-decreasing
+    assert min(reads) == 500  # floored at SA's 500 baseline (apples-to-apples)
 
 
 def test_srt_disabled_by_default():
@@ -115,11 +116,28 @@ def test_srt_forwarded_to_sampler_when_enabled(monkeypatch, synthetic_problem_3a
 
 
 def test_solve_qubo_uses_size_based_reads(synthetic_problem_3assets):
-    qubo = encode_qubo(synthetic_problem_3assets)  # 3 assets × b4 = 12 vars → small tier
+    qubo = encode_qubo(synthetic_problem_3assets)  # 3 assets × b4 = 12 vars → floor tier
     bits = _bits_for_levels([8, 8, 5], qubo.n)
     sampler = FakeSampler([_as_sample(bits)])
     DWaveProvider(sampler=sampler).solve_qubo(qubo, synthetic_problem_3assets, deadline_s=2.0)
-    assert sampler.last_kwargs["num_reads"] == 150
+    assert sampler.last_kwargs["num_reads"] == 500  # 12v → floored at 500
+
+
+def test_sa_reads_match_dwave_above_baseline(monkeypatch, synthetic_problem_3assets):
+    # apples-to-apples: SA matches D-Wave's read budget when it exceeds the 500 baseline;
+    # small problems keep the 500 floor (so SA is never starved of restarts).
+    from backend.solvers.providers import sa as sa_mod
+
+    qubo = encode_qubo(synthetic_problem_3assets)
+    bits = _bits_for_levels([8, 8, 5], qubo.n)
+    s1 = FakeSampler([_as_sample(bits)])
+    sa_mod.SAProvider(sampler=s1).solve_qubo(qubo, synthetic_problem_3assets, deadline_s=2.0)
+    assert s1.last_kwargs["num_reads"] == 500  # reads_for_vars(12)=150 < 500 → floor
+
+    monkeypatch.setattr(sa_mod, "reads_for_vars", lambda n: 1000)
+    s2 = FakeSampler([_as_sample(bits)])
+    sa_mod.SAProvider(sampler=s2).solve_qubo(qubo, synthetic_problem_3assets, deadline_s=2.0)
+    assert s2.last_kwargs["num_reads"] == 1000  # D-Wave schedule > 500 → SA matches
 
 
 def _m3_sample(units: dict[int, int], meta) -> dict[int, int]:

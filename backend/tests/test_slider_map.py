@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from backend import config
 from backend.api.schemas import SliderValues
-from backend.financial.qubo_encoder import units_for_cardinality
+from backend.financial.qubo_encoder import units_for_grid
 from backend.financial.slider_map import map_sliders, max_position_cap, rebalance_every_hours
 
 
@@ -75,8 +75,8 @@ def test_method3_sets_grid_and_cardinality(monkeypatch):
     monkeypatch.setattr(config, "OPTIMIZATION_MODE", "method3")
     params = map_sliders(_sliders(holdCount=4), basket_size=10)
     assert params.cardinality_k == 4
-    # M is the smallest power of two ≥ K (floored at MIN); K=4 → M=8.
-    assert params.n_units_M == units_for_cardinality(4)
+    # M is size-aware: a 10-asset basket affords the finest grid (M=32) within the budget.
+    assert params.n_units_M == units_for_grid(4, 10)
     assert params.n_units_M >= params.cardinality_k
     assert params.u_min_units == config.METHOD3_U_MIN
     assert params.w_min == pytest.approx(config.METHOD3_U_MIN / params.n_units_M)

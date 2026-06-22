@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 
-from ...financial.types import PortfolioProblem
+from ...financial.types import PortfolioProblem, correlation_matrix
 from ..types import QuboMatrix, Solution, SolverFailed
 
 
@@ -51,7 +51,18 @@ class GurobiProvider:
             for j in range(N)
         )
         ret = gp.quicksum(problem.mu[i] * w[i] for i in range(N))
-        model.setObjective(risk - ret, GRB.MINIMIZE)
+        objective = risk - ret
+        # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j (method3 only).
+        # Binary products make the objective indefinite → enable nonconvex MIQP.
+        if problem.is_method3 and problem.frustration_beta:
+            rho = correlation_matrix(problem.Sigma)
+            objective = objective + gp.quicksum(
+                problem.frustration_beta * float(rho[i, j]) * y[i] * y[j]
+                for i in range(N)
+                for j in range(i + 1, N)
+            )
+            model.params.NonConvex = 2
+        model.setObjective(objective, GRB.MINIMIZE)
 
         t0 = time.perf_counter()
         model.optimize()

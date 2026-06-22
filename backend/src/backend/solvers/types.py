@@ -21,6 +21,10 @@ class DecodeMeta:
 
     scheme="method3": layout is [y_0..y_{n-1}, x_{0,0}..x_{n-1,b-1}] — n select
     bits then n·b increment bits; held weight = (u_min + Σ 2^k x_{i,k}) / M units.
+
+    scheme="select" (C2): just n selection bits x_i (hold asset i?). Weights are NOT
+    encoded — a greedy projector + convex QP set them classically (see solvers.sampling,
+    financial.projection, financial.weighting). The QUBO carries only the objective + β.
     """
 
     n_assets: int
@@ -28,7 +32,7 @@ class DecodeMeta:
     w_max: float
     asset_tickers: list[str]
     w_min: float = 0.0
-    scheme: Literal["convex", "method3"] = "convex"
+    scheme: Literal["convex", "method3", "select"] = "convex"
     n_units_M: int | None = None  # method3: integer-unit grid size (2^m)
     u_min_units: int | None = None  # method3: floor units per held asset
     increment_bits: int | None = None  # method3: b increment bits per asset
@@ -37,6 +41,8 @@ class DecodeMeta:
     def n_total_bits(self) -> int:
         if self.scheme == "method3":
             return self.n_assets * (1 + self.increment_bits)
+        if self.scheme == "select":
+            return self.n_assets  # one selection bit per asset (weights set classically)
         return self.n_assets * self.bits_per_asset
 
     @property

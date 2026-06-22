@@ -126,10 +126,33 @@ OPTIMIZATION_MODE: str = os.environ.get("OPTIMIZATION_MODE", "method3").lower()
 METHOD3_MIN_UNITS: int = 8  # floor (b=2, 4 weight levels) — granularity vs feasibility
 METHOD3_MAX_UNITS: int = 32  # cap (b=4) — M ≥ K so this also caps K at 32 ≥ universe
 METHOD3_U_MIN: int = 1
+# Size-aware grid budget. Like the convex QUBO_PREFERRED_MAX_VARS, the grid M is raised
+# toward a FINER resolution (more weight levels ≈ closer to continuous) for SMALL baskets
+# that stay embeddable, and kept COARSE (b=2) for large baskets so the dense QUBO still
+# embeds. Pick the largest M with vars = N·log2(M) ≤ this (then floor at M ≥ K). At 72:
+# b=4 (16 levels) up to ~14 assets, b=3 to ~18, b=2 above. See units_for_grid.
+METHOD3_PREFERRED_MAX_VARS: int = 72
 # Cardinality / linking penalty peak-coefficient ratios, normalized like
 # PENALTY_MULT_BUDGET (which the budget term reuses). See encode_method3.
 METHOD3_PENALTY_MULT_CARD: float = 12.0
 METHOD3_PENALTY_MULT_LINK: float = 12.0
+# Diversification / "frustration" reward (β). Adds β·Σ_{i<j} ρ_ij·x_i x_j to the objective —
+# penalizes co-selecting correlated assets, making the SELECTION landscape rugged (competing
+# pairwise pulls → many local minima) so D-Wave can out-search SA on portfolio quality. For the
+# SELECT encoding this value is a FRACTION of the per-problem objective scale (resolve_frustration_beta
+# scales it per basket, so the validated 0.25–0.5 band is basket-invariant); it applies only to the
+# select encoding. 0 = off. Default 0.4 = on, mid-band where D-Wave wins. See qpu-c2-beta-findings.md.
+METHOD3_FRUSTRATION_BETA: float = float(os.environ.get("METHOD3_FRUSTRATION_BETA", 0.4))
+
+# Method 3 QUBO encoding:
+#   "select" (C2, DEFAULT): penalty-free SELECTION-ONLY QUBO (one bit/asset, objective + β only).
+#     The greedy projector enforces exactly-K and a convex QP (financial.weighting) sets the
+#     weights — both classical — so EVERY read is feasible and D-Wave is no longer handicapped.
+#     With METHOD3_FRUSTRATION_BETA > 0 (rugged landscape) D-Wave beats SA on portfolio quality.
+#     See qpu-c2-beta-findings.md.
+#   "penalized" (legacy): integer-units selection QUBO with budget+cardinality+linking penalties
+#     (weights solved on the QPU; ~10% feasible at scale → the QPU is handicapped).
+METHOD3_ENCODING: str = os.environ.get("METHOD3_ENCODING", "select").lower()
 
 # -----------------------------------------------------------------------------
 # Feasibility tolerances (V0 quality bar)
@@ -147,6 +170,18 @@ EPS_BOX: float = 1e-3  # wᵢ ≤ w_max + EPS_BOX
 # SA (CPU) vs D-Wave (QPU). GUROBI_IN_RACE=0 to preview the production field.
 GUROBI_IN_RACE: bool = os.environ.get("GUROBI_IN_RACE", "1").lower() not in ("0", "false")
 
+# How the race picks the WINNER:
+#   "objective" (default): the best feasible PORTFOLIO (lowest objective), tie-broken by speed
+#     within RACE_WINNER_OBJECTIVE_TOL — equal-quality solvers fall back to fastest, but a
+#     materially better portfolio wins regardless of speed (so the booth shows "the quantum
+#     computer found the best portfolio", with time reported alongside).
+#   "speed": legacy fastest-feasible.
+RACE_WINNER_BY: str = os.environ.get("RACE_WINNER_BY", "objective").lower()
+# Relative tolerance for the objective tie-break: solvers within this fraction of the best
+# objective are a quality tie and ranked by speed (β=0 → both optimal → faster wins; a β>0
+# quality gap of ~1%+ → the better portfolio wins).
+RACE_WINNER_OBJECTIVE_TOL: float = float(os.environ.get("RACE_WINNER_OBJECTIVE_TOL", 0.005))
+
 # -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------
@@ -154,20 +189,19 @@ GUROBI_IN_RACE: bool = os.environ.get("GUROBI_IN_RACE", "1").lower() not in ("0"
 # All knobs are env-overridable for tuning sweeps, e.g.
 #   DWAVE_CHAIN_STRENGTH_PREFACTOR=4 qtw verify-dwave
 DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # fallback / verify-dwave
-# Anneal time. Feasibility is flat across 20–500µs (2026-06-20 sweep), so this is a
-# tuning knob, not a feasibility lever.
-DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
+# Anneal time. The 2026-06-20 real-data sweep showed BOTH feasibility and objective
+# quality are flat across 20–500µs; longer anneal slightly REDUCES feasibility and costs
+# 2–3× more QPU access time. So use the short end — faster, no quality cost.
+DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 20))
 
-# num_reads scaled to QUBO size. Small problems are feasibility-rich → fewer reads keep
-# QPU access time (the reported race time) low so it WINS on speed; large problems → more
-# reads to catch a rare feasible sample (feasible-reads scale ~linearly). One job either
-# way, so wall-clock stays cheap. Tiers: (max_vars_inclusive, num_reads), first match.
+# num_reads scaled to QUBO size, FLOORED at 500 to match SA's baseline (apples-to-apples
+# at both ends — D-Wave and SA draw the same minimum). Large baskets get more reads to
+# catch a rare feasible sample (feasible-reads scale ~linearly); capped at 1000. One QPU
+# job, so wall-clock stays cheap. Tiers: (max_vars_inclusive, num_reads), first match.
 DWAVE_READS_BY_VARS: tuple[tuple[int, int], ...] = (
-    (30, 150),
-    (48, 350),
+    (48, 500),
     (72, 600),
-    (96, 1000),
-    (10**9, 1500),
+    (10**9, 1000),
 )
 # Spin-reversal transforms (gauge averaging, ~1.35× feasibility via ICE cancellation).
 # DISABLED in the race: the only API is the client-side composite, which runs each gauge
@@ -193,8 +227,10 @@ QPU_BUDGET_WINDOW_S: int = int(os.environ.get("QPU_BUDGET_WINDOW_S", 600))
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------
 
-SOLVER_DEADLINE_S: float = 2.0  # per-solver wall-clock budget
-RACE_OVERALL_DEADLINE_S: float = 3.0  # outer cap on the parallel race
+SOLVER_DEADLINE_S: float = 4.0  # per-solver wall-clock budget (also Gurobi TimeLimit)
+RACE_OVERALL_DEADLINE_S: float = 4.0  # outer cap on the parallel race (the binding deadline)
+# Headroom raised 3→4s: SA now matches D-Wave's read budget (up to 1000 reads) on large
+# baskets (~1.5s), and D-Wave wall-clock includes cloud queue+round-trip — 4s leaves margin.
 
 # -----------------------------------------------------------------------------
 # MTM tick cadence (seconds). Match assets-api's default SPOT_INTERVAL=10s so

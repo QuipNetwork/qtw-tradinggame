@@ -102,10 +102,12 @@ def test_method3_shape_symmetry_and_scheme():
     assert q.decode_meta.n_total_bits == 5 * (1 + b)
 
 
-def test_method3_dispatch_via_encode_qubo():
-    # encode_qubo routes cardinality problems to the Method 3 encoder
-    q = encode_qubo(_method3_problem(5, 3))
-    assert q.decode_meta.scheme == "method3"
+def test_method3_dispatch_via_encode_qubo(monkeypatch):
+    # encode_qubo routes cardinality problems to the configured Method-3 encoder
+    monkeypatch.setattr(config, "METHOD3_ENCODING", "penalized")
+    assert encode_qubo(_method3_problem(5, 3)).decode_meta.scheme == "method3"
+    monkeypatch.setattr(config, "METHOD3_ENCODING", "select")
+    assert encode_qubo(_method3_problem(5, 3)).decode_meta.scheme == "select"
 
 
 def test_method3_hash_is_content_addressed():
@@ -126,6 +128,23 @@ def test_units_for_cardinality_minimizes_grid():
     for k in range(2, 29):
         m = units_for_cardinality(k)
         assert m >= k and (m & (m - 1)) == 0
+
+
+def test_units_for_grid_is_size_aware():
+    from backend.financial.qubo_encoder import units_for_grid
+
+    # small basket → finest grid (M=32, b=4 ≈ continuous); large basket → coarse (M=8, b=2)
+    assert units_for_grid(5, 6) == 32  # 6·log2(32)=30 ≤ 72
+    assert units_for_grid(5, 12) == 32  # 12·5=60 ≤ 72
+    assert units_for_grid(6, 18) == 16  # 18·5=90 > 72 → step down to b=3 (18·4=72)
+    assert units_for_grid(8, 28) == 8  # 28·4=112 > 72 → coarse b=2 (embeddable)
+    # K floor always wins when large K needs a bigger grid, even on a large basket
+    assert units_for_grid(20, 28) == 32  # K=20 forces M=32 despite the size budget
+    # invariants across the universe: power of two, M ≥ K, ≤ MAX_UNITS
+    for n in (5, 12, 18, 28):
+        for k in range(3, n + 1):
+            m = units_for_grid(k, n)
+            assert m >= k and (m & (m - 1)) == 0 and m <= config.METHOD3_MAX_UNITS
 
 
 def test_method3_grid_shrinks_vars_for_small_k():
@@ -151,12 +170,50 @@ def test_increment_place_values_caps_at_w_max():
     # (the old plain-2^k encoding would have allowed 4/8 = 0.5 > 0.375 here).
     M = 8
     prob = PortfolioProblem(
-        mu=np.full(4, 0.05), Sigma=np.eye(4), gamma=3.0, w_max=0.375, w_min=1 / M,
-        asset_tickers=[f"A{i}" for i in range(4)], cardinality_k=3, n_units_M=M, u_min_units=1,
+        mu=np.full(4, 0.05),
+        Sigma=np.eye(4),
+        gamma=3.0,
+        w_max=0.375,
+        w_min=1 / M,
+        asset_tickers=[f"A{i}" for i in range(4)],
+        cardinality_k=3,
+        n_units_M=M,
+        u_min_units=1,
     )
     q = encode_method3(prob)
     w = decode_bitstring(np.ones(q.n, dtype=np.int8), q.decode_meta)
     assert w.max() <= prob.w_max + 1e-9
+
+
+def test_frustration_beta_rewards_diversification():
+    from backend.financial.types import PortfolioProblem, correlation_matrix
+
+    # assets 0&1 correlated (+0.8), 0&2 anti-correlated (−0.5)
+    Sigma = np.array([[1.0, 0.8, -0.5], [0.8, 1.0, 0.0], [-0.5, 0.0, 1.0]])
+    fields = dict(
+        mu=np.full(3, 0.05),
+        Sigma=Sigma,
+        gamma=2.0,
+        w_max=0.6,
+        w_min=1 / 8,
+        asset_tickers=["A", "B", "C"],
+        cardinality_k=2,
+        n_units_M=8,
+        u_min_units=1,
+    )
+    p0 = PortfolioProblem(**fields, frustration_beta=0.0)
+    pb = PortfolioProblem(**fields, frustration_beta=1.0)
+    rho = correlation_matrix(Sigma)
+    w_corr = np.array([0.5, 0.5, 0.0])  # hold the correlated pair {0,1}
+    w_anti = np.array([0.5, 0.0, 0.5])  # hold the anti-correlated pair {0,2}
+
+    # β=0 leaves the objective as plain mean-variance.
+    assert p0.objective(w_corr) == pytest.approx(0.5 * 2.0 * (w_corr @ Sigma @ w_corr) - 0.05)
+    # β>0 adds exactly β·ρ_ij for the held pair (penalizes +corr, rewards −corr).
+    assert pb.objective(w_corr) - p0.objective(w_corr) == pytest.approx(rho[0, 1])  # +0.8
+    assert pb.objective(w_anti) - p0.objective(w_anti) == pytest.approx(rho[0, 2])  # −0.5
+    # and it changes the QUBO (couples the select bits) — β=0 must be untouched.
+    assert not np.allclose(encode_method3(p0).Q, encode_method3(pb).Q)
 
 
 def test_large_baskets_drop_to_2_bits(synthetic_problem_3assets):

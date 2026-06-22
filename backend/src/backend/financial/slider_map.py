@@ -19,7 +19,7 @@ import math
 
 from .. import config
 from ..api.schemas import SliderValues
-from .qubo_encoder import units_for_cardinality
+from .qubo_encoder import units_for_grid
 from .types import SliderParams
 
 
@@ -78,9 +78,9 @@ def map_sliders(sliders: SliderValues, basket_size: int) -> SliderParams:
         # degenerate 50/50 split), capped to the basket and the grid's unit ceiling.
         k = sliders.hold_count if sliders.hold_count is not None else basket_size
         k = max(3, min(int(k), basket_size, config.METHOD3_MAX_UNITS))
-        # Grid M is the smallest power of two that fits K (fewest QUBO vars → best QPU
-        # feasibility); units_for_cardinality guarantees M ≥ K so the budget is placeable.
-        m_units = units_for_cardinality(k)
+        # Grid M is SIZE-AWARE: fine (more weight levels) for small baskets that stay
+        # embeddable, coarse for large ones — floored so M ≥ K (budget placeable).
+        m_units = units_for_grid(k, basket_size)
         w_min = u_min / m_units  # integer-grid floor = the minimum buy-in if held
         # K-dominant, grid-aware: the cap can't make the INTEGER budget unreachable.
         # K held assets must place M units, so each may need up to ⌈M/K⌉ units;
