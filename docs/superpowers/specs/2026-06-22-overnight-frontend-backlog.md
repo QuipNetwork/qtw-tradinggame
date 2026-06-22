@@ -21,7 +21,7 @@
 - [x] **R4 · SignUp double-submit guard.** Done `6fc09b2` — persist agentId + navigate right after `submitAgent` succeeds; the first solve is now best-effort (welcome re-solves), so a failed optimize can't strand the attendee or let a re-press create a duplicate.
 
 ### Phone
-- [ ] **P1 · Live holdings on the phone profile.** The phone shows P&L but not the moving portfolio. Add a compact, live per-holding strip (the mock already streams `holdings`) — reuse the allocation bar + value-flash so the player watches their own prices move. Design-careful; keep the screen from overflowing (it scrolls).
+- [x] **P1 · Live holdings on the phone profile.** Done `a256e6b` — gliding allocation bar + top-6 holdings rows (ticker/pct/$, value-flash on change) + "+N more held", under the P&L block; browser-verified (28-holding a06, values move, scrolls cleanly, no overflow).
 - [ ] **P2 · Phone heading + landmark.** Add an `<h1>` (agent name) and `<main>` so the profile has real document structure.
 
 ### TV
@@ -50,3 +50,4 @@
 - 2026-06-22 · R4 kiosk create/solve decoupling → `6fc09b2` (tsc/lint/build green). Picked over R2/R3 (broader audits) as the concrete high-value win.
 - 2026-06-22 · Loop paused mid-T1: concurrent backend loop held the shared working tree (branch `backend-hardening`). Backend since merged to deployment-dev; resumed on the main tree.
 - 2026-06-22 · T1 StateC live asset drift → `f87388b` (tsc/lint/build green). When the backlog's implementable items are exhausted, merge this branch into deployment-dev (user-authorized; disjoint from backend).
+- 2026-06-22 · P1 phone live holdings strip → `a256e6b` (browser-verified; values move, bar glides).
