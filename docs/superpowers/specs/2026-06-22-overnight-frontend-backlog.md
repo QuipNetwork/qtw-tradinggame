@@ -26,7 +26,7 @@
 
 ### TV
 - [x] **T1 · StateC live asset changes.** Done `f87388b` — per-asset 24h change seeded then drifts every 2s (clamped −6…+7%) while on screen; interval cleaned up on unmount.
-- [ ] **T2 · Spotlight derived labels.** Replace StateB's hardcoded "02h 14m on the board" / "4s ago" with values derived from data (a ticking relative clock; omit if no timestamp available) rather than frozen strings.
+- [x] **T2 · Spotlight derived labels.** Done `866be9c` — "02h 14m on the board" → the agent's real `handle` (fallback to rank); dropped the fabricated "4s ago" (no per-agent solve timestamp exists). Honest data only.
 - [ ] **T3 · TV landmarks + transition polish.** `<main>` on the TV; confirm the cross-fade reads well; ensure the rotation timer can't double-fire on a refresh (stale-closure check in BoothTV).
 
 ### Accessibility / production
@@ -52,3 +52,4 @@
 - 2026-06-22 · T1 StateC live asset drift → `f87388b` (tsc/lint/build green). When the backlog's implementable items are exhausted, merge this branch into deployment-dev (user-authorized; disjoint from backend).
 - 2026-06-22 · P1 phone live holdings strip → `a256e6b` (browser-verified; values move, bar glides).
 - 2026-06-22 · P2 phone h1 + main → `dab6a9c` (browser-verified — name unchanged).
+- 2026-06-22 · T2 spotlight real handle + drop fake solve-age → `866be9c` (gate green).
