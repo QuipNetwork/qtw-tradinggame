@@ -6,9 +6,14 @@ while keeping Python attributes snake_case.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# Universe tickers are ≤6 chars; cap each list item and the list length so an oversized payload
+# can't reach validate_basket / persistence (resource-exhaustion guard). 64 tolerates duplicates
+# above the 28-asset universe (dedup happens in validate_basket).
+_Ticker = Annotated[str, Field(max_length=12)]
 
 
 class SliderValues(BaseModel):
@@ -27,7 +32,7 @@ class SliderValues(BaseModel):
     rebalance_frequency: float = Field(ge=0, le=100, alias="rebalanceFrequency")
     risk_preference: float = Field(ge=0, le=100, alias="riskPreference")
     max_position_size: float = Field(ge=0, le=100, alias="maxPositionSize")
-    hold_count: int | None = Field(default=None, ge=3, alias="holdCount")
+    hold_count: int | None = Field(default=None, ge=3, le=100, alias="holdCount")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -43,18 +48,18 @@ class QpuBudgetStatus(BaseModel):
 
 
 class AgentConfig(BaseModel):
-    name: str
-    handle: str | None = None  # display handle, auto-derived from the name
-    email: str | None = None  # required at sign-up; optional for seeded demo agents
-    reach_out: list[str] | None = Field(default=None, alias="reachOut")
+    name: str = Field(max_length=80)
+    handle: str | None = Field(default=None, max_length=40)  # auto-derived from the name
+    email: str | None = Field(default=None, max_length=254)  # required at sign-up (RFC max)
+    reach_out: list[str] | None = Field(default=None, max_length=20, alias="reachOut")
     updates_opt_in: bool | None = Field(default=None, alias="updatesOptIn")
     # Cadence for portfolio-result emails: 'daily' | 'hourly' (see notifications
     # scaffold). Only meaningful when updates_opt_in is true.
-    update_frequency: str | None = Field(default=None, alias="updateFrequency")
+    update_frequency: str | None = Field(default=None, max_length=16, alias="updateFrequency")
     sliders: SliderValues
     # The player's selected basket — a subset of the 28-asset universe.
     # None/empty falls back to the full universe; re-selectable on retune.
-    assets: list[str] | None = None
+    assets: list[_Ticker] | None = Field(default=None, max_length=64)
     last_solved_at: str | None = Field(default=None, alias="lastSolvedAt")
     next_rebalance_at: str | None = Field(default=None, alias="nextRebalanceAt")
     rebalance_interval_hours: int | None = Field(default=None, alias="rebalanceIntervalHours")
@@ -211,7 +216,7 @@ class OptimizeRequest(BaseModel):
     """
 
     sliders: SliderValues | None = None
-    assets: list[str] | None = None
+    assets: list[_Ticker] | None = Field(default=None, max_length=64)
 
 
 class HealthResponse(BaseModel):
