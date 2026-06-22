@@ -224,9 +224,12 @@ DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(os.environ.get("DWAVE_CHAIN_STRENG
 # experiments, not a hard pin.
 DWAVE_SOLVER_TOPOLOGY: str = os.environ.get("DWAVE_SOLVER_TOPOLOGY", "")
 
-# Per-agent QPU admission budget. This limits optimization attempts that would
-# include D-Wave in the race; CPU-only runs are unaffected.
-QPU_BUDGET_MAX_ATTEMPTS: int = int(os.environ.get("QPU_BUDGET_MAX_ATTEMPTS", 3))
+# Per-agent QPU admission budget. Limits optimization attempts that include
+# D-Wave in the race; CPU-only runs are unaffected. QPU access is ~0.13–0.3 s per
+# solve, so one hour of QPU time covers booth retunes comfortably (~12k–27k solves)
+# — this cap is the per-agent retune cooldown / anti-spam knob, NOT a booth-wide
+# budget gate. Set to 8 / 10 min (a retune ≈ every 75 s) now that the cost is known.
+QPU_BUDGET_MAX_ATTEMPTS: int = int(os.environ.get("QPU_BUDGET_MAX_ATTEMPTS", 8))
 QPU_BUDGET_WINDOW_S: int = int(os.environ.get("QPU_BUDGET_WINDOW_S", 600))
 
 # -----------------------------------------------------------------------------

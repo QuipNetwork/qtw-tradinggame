@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from backend import config
 from backend.api.schemas import AgentConfig, SliderValues
 from backend.orchestration import job
 from backend.orchestration.job import run_optimization
@@ -17,14 +18,15 @@ from backend.persistence.qpu_budget import QpuBudgetExceeded, QpuBudgetStore
 from backend.solvers.types import Solution
 
 
-def test_qpu_budget_allows_three_attempts_per_rolling_window():
+def test_qpu_budget_allows_capped_attempts_per_rolling_window():
     store = QpuBudgetStore()
     now = datetime(2026, 6, 18, 12, 0, tzinfo=UTC)
+    cap = config.QPU_BUDGET_MAX_ATTEMPTS
 
-    for _ in range(3):
+    for _ in range(cap):
         status = store.reserve("a1", source="manual", now=now)
 
-    assert status.used == 3
+    assert status.used == cap
     assert status.retry_after_seconds == 600
     with pytest.raises(QpuBudgetExceeded) as exc:
         store.reserve("a1", source="manual", now=now)
@@ -94,10 +96,11 @@ def test_run_optimization_consumes_qpu_budget_when_dwave_configured(monkeypatch)
 
     monkeypatch.setattr(job, "race", fake_race)
 
-    for _ in range(3):
+    cap = config.QPU_BUDGET_MAX_ATTEMPTS
+    for _ in range(cap):
         result = run_optimization(record.id, qpu_budget=budget).result
-        assert result.qpu_budget.used <= 3
+        assert result.qpu_budget.used <= cap
 
     with pytest.raises(QpuBudgetExceeded):
         run_optimization(record.id, qpu_budget=budget)
-    assert store.get(record.id).jobs_solved == 3
+    assert store.get(record.id).jobs_solved == cap
