@@ -1,7 +1,7 @@
 # Copy to /etc/caddy/Caddyfile on the DigitalOcean droplet, then reload Caddy.
 # Caddy automatically provisions and renews TLS certificates for the hostname.
 
-api.qtw.quip.network {
+qtw.backend.quip.network {
 	encode zstd gzip
 
 	# Reject oversized request bodies before they're buffered (the API only takes

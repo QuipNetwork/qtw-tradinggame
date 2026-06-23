@@ -11,9 +11,11 @@ Run/test refs:
 
 ## Current State
 
-- **Game contract**: 3 sliders, 28-asset basket, min 3 assets, $10K bankroll.
+- **Game contract**: 3 sliders plus K hold-count, 28-asset universe, min 15
+  selected assets, $10K bankroll.
 - **Market data**: `assets-api` is the default backend source; synthetic remains
-  for tests/offline work.
+  for tests/offline work. The redeployed assets-api spot loop defaults to 10s,
+  and the backend MTM cadence now matches that by default.
 - **Optimizer inputs**: no fabricated closed-hour returns. Missing stock hours
   and pre-listing gaps stay missing/NaN.
 - **Live display**: frontend consumes backend websocket `AgentUpdate` messages.
@@ -27,9 +29,12 @@ Run/test refs:
   solver race.
 - **Containerization/deploy**: backend Docker image build and GitLab deploy
   scaffold are in place; droplet provisioning and first live deploy remain.
-- **QPU budget**: each agent gets 3 QPU-admitted solves per rolling 10 minutes;
-  manual over-budget requests return 429 and scheduled rebalances defer.
-- **Not yet wired**: Proton SMTP sending.
+- **QPU budget**: 8 QPU-admitted solves per agent per rolling 10 minutes
+  (`QPU_BUDGET_MAX_ATTEMPTS=8`, the code default; production sets it explicitly).
+  Manual over-budget requests return 429 and scheduled rebalances defer.
+- **Email**: Proton SMTP provider is wired for opted-in signup confirmation emails when
+  backend SMTP env is present. Recurring hourly/daily result emails are not yet
+  implemented.
 
 ## Next Work
 
@@ -46,8 +51,7 @@ rollout and one real Supabase-backed smoke test.
   pytest fixtures.
 - Keep the MTM hot path cheap: frequent valuation ticks should not write every
   tick.
-- Store analytics valuation snapshots every 60s by default; revisit after the
-  assets-api spot refresh cadence is finalized.
+- Store analytics valuation snapshots every 60s by default.
 - Add/confirm a cleanup query for local/test rows before booth use.
 
 Implementation notes:
@@ -67,40 +71,9 @@ Environment/operations notes:
 - First production deployment should be one backend container with one Uvicorn
   worker. That still supports many phone websocket connections; it just means
   one process owns the MTM scheduler, in-process event bus, and solve queue.
-- Email capture and sending are separate concerns: Supabase already stores
-  email/consent; FastAPI SMTP sending still needs to be implemented with
-  backend-only credentials. Proton SMTP should use a generated SMTP token, not
-  the Proton account password.
-
-### P0 - assets-api Spot Freshness
-
-Move market-price freshness control into `../assets-api`; QTW backend should
-consume the resulting spot contract.
-
-- Split spot refresh cadence from history/bar refresh.
-- Keep history bars hourly-oriented for μ/Σ.
-- Make `/v1/spot` refresh faster with an env-tunable cadence, likely 30s or
-  60s to start.
-- Choose the cadence against Alpaca, Massive, and CoinGecko rate limits.
-- Preserve per-ticker `stale` metadata from assets-api.
-
-Implementation notes:
-- assets-api owns provider fallback, rate-limit protection, spot caching, and
-  quote freshness.
-- QTW backend owns holdings, MTM, leaderboard, and frontend websocket pushes.
-- Frontend wording should be `Live` when all held quotes are fresh and
-  `Last close` when any holding uses a stale/last-known quote.
-
-### P0 - Align Backend MTM Cadence
-
-After assets-api exposes the intended spot refresh cadence, align QTW backend
-MTM publishing to it.
-
-- Current backend MTM cadence is still 3s.
-- If assets-api spot refresh is 30s, backend MTM should usually publish around
-  30s, or publish on an assets-api price-update signal later.
-- Avoid recomputing/pushing the same valuation every 3s when the spot cache has
-  not changed.
+- Email capture and sending are separate concerns: Supabase stores
+  email/consent; FastAPI SMTP sending uses backend-only credentials. Proton
+  SMTP should use a generated SMTP token, not the Proton account password.
 
 ### P1 - Production Deployment Wiring
 
@@ -111,20 +84,21 @@ Make the deployed frontend and backend agree on URLs and runtime env.
   deploy job.
 - Netlify frontend env: set `VITE_API_BASE` to the deployed backend.
 - Set `VITE_WS_BASE` only if websocket traffic uses a different host.
-- Backend env: set `DATABASE_URL`, `ASSETS_API_BASE_URL`, `QR_BASE_URL`, CORS
-  origins, and solver/QPU vars as needed.
+- Backend env: set `DATABASE_URL`, `ASSETS_API_BASE_URL`, `QR_BASE_URL`, and
+  solver/QPU vars as needed.
 - Keep `QR_BASE_URL=https://qtw.quip.network` unless the canonical domain
   changes.
+- Current CORS origins are hardcoded in backend config; add a code change only
+  if the deployed frontend/backend domains differ from the current values.
 
-### P1 - Proton SMTP Email Sending
+### P1 - Email Cadence Operations
 
-Email/consent is stored today; sending is not implemented.
+Proton SMTP sending is implemented for the initial opt-in signup confirmation. The
+hourly/daily update cadence still needs an operational scheduler pass.
 
-- Add backend-only SMTP env parsing.
-- Add an email sender module with tests that use a fake sender.
-- Send confirmation/recap email only after agent creation has already been
-  stored.
-- Log SMTP failures without failing signup.
+- Wire recurring emails from the scheduler using each agent's `updateFrequency`.
+- Send only to agents with `updatesOptIn=true` and a stored email address.
+- Use the latest mark-to-market totals and avoid duplicate sends after restarts.
 - Keep SMTP credentials out of Netlify/browser env.
 
 ### P1 - QPU Budget Operations
@@ -132,7 +106,8 @@ Email/consent is stored today; sending is not implemented.
 Per-agent solve metering is implemented; booth operations may still need
 aggregate budget visibility.
 
-- Current rule: 3 QPU-admitted solves per agent per rolling 10 minutes.
+- Production env rule: 8 QPU-admitted solves per agent per rolling 10 minutes
+  (`QPU_BUDGET_MAX_ATTEMPTS=8`, matching the code default).
 - First solve, manual retune, and scheduled/background rebalance share the same
   per-agent budget.
 - Manual over-budget optimize returns 429 + `Retry-After`.
@@ -198,6 +173,9 @@ Clean up temporary UI/state work after persistence and freshness are done.
 - **Backend deploy automation scaffold**: GitLab CI can test, build, push the
   backend image to the GitLab registry, and manually deploy to a provisioned
   droplet.
+- **assets-api spot freshness + MTM alignment**: assets-api owns provider
+  fallback, rate-limit protection, and a 10s spot loop; QTW backend defaults
+  `MTM_TICK_S` to 10s to publish after the spot cache can change.
 - **TV routing stats**: `/routing-stats` computes QPU-vs-CPU winner share and
   provider breakdown from recorded solve jobs.
 - **TV valuation history**: `/agents/{id}/valuation-history` drives the

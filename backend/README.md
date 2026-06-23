@@ -47,12 +47,12 @@ market source — handy for quick checks and for sanity-testing data later.
 
 ```bash
 .venv/bin/qtw market                                  # spot, hourly μ and vol per asset
-.venv/bin/qtw optimize --risk 70 --assets BTC,ETH,IONQ   # full solve → portfolio
+.venv/bin/qtw optimize --risk 70                      # full-universe solve → portfolio
 .venv/bin/qtw race --max-position 80                  # one solver race, all providers + timing
 ```
 
 Slider flags (`--risk`, `--max-position`, `--rebalance`) take 0–100;
-`--assets` is a comma-separated basket (min 3, defaults to all 28).
+`--assets` is a comma-separated basket (min 15, defaults to all 28).
 
 ## Market data (assets-api by default)
 
@@ -88,7 +88,7 @@ provider uses the clique sampler (cached embeddings — no per-solve embedding
 search) and picks the best *feasible* anneal read, not just the lowest-energy
 one.
 
-QPU admission is budgeted per agent: 3 QPU-admitted solves per rolling
+QPU admission is budgeted per agent: 8 QPU-admitted solves per rolling
 10 minutes. First solve, manual retune, and scheduled rebalance share that
 budget. Manual over-budget optimize returns HTTP 429 + `Retry-After`;
 scheduled over-budget rebalance defers `nextRebalanceAt`.
@@ -154,21 +154,29 @@ curl http://127.0.0.1:8001/healthz
 ```bash
 BASE=http://127.0.0.1:8000
 
-# 1. Create an agent → returns agentId, qrUrl, bankroll
-curl -s $BASE/agents -H 'content-type: application/json' -d '{
+# 1. Create an agent → returns agentId, qrUrl, bankroll, token
+CREATE_RESPONSE=$(curl -s $BASE/agents -H 'content-type: application/json' -d '{
   "name":"Neo","email":"neo@example.com",
   "sliders":{"rebalanceFrequency":50,"riskPreference":70,"maxPositionSize":50},
-  "assets":["BTC","ETH","IONQ","QBTS"]
-}'
+  "assets":["BTC","ETH","SOL","USDC","IONQ","QBTS","RGTI","IBM","GOOGL","NVDA","MSFT","AMZN","HON","SAF","SPCX"]
+}')
+printf '%s\n' "$CREATE_RESPONSE"
+AGENT_ID=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["agentId"])' <<<"$CREATE_RESPONSE")
+TOKEN=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])' <<<"$CREATE_RESPONSE")
 
 # 2. Optimize (first solve). Use the agentId from step 1.
-curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' -d '{}'
+curl -s "$BASE/agents/$AGENT_ID/optimize" \
+  -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{}'
 #    → RoutingResult: provider, providerType, solveTime, solverResults[],
 #      portfolio[], kind="first", nextRebalanceAt
 
 # 3. Retune — new sliders and/or a re-selected basket (liquidates + reallocates)
-curl -s $BASE/agents/<AGENT_ID>/optimize -H 'content-type: application/json' \
-  -d '{"sliders":{"rebalanceFrequency":50,"riskPreference":90,"maxPositionSize":80},"assets":["HON","GOOGL","IBM"]}'
+curl -s "$BASE/agents/$AGENT_ID/optimize" \
+  -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"sliders":{"rebalanceFrequency":50,"riskPreference":90,"maxPositionSize":80},"assets":["BNB","XRP","USDT","DOGE","HYPE","ZEC","ALGO","FIL","RENDER","STRK","ARQQ","LAES","QUBT","IBM","SPCX"]}'
 
 # 4. Leaderboard
 curl -s $BASE/leaderboard
@@ -185,7 +193,8 @@ Things worth checking in the response:
 
 ## Test the live WebSocket
 
-The MTM loop pushes a valuation every ~3s, and each optimize also pushes one.
+The MTM loop pushes a valuation every `MTM_TICK_S` seconds (10s by default,
+matching assets-api's spot loop), and each optimize also pushes one.
 Scheduled rebalances run in a separate loop and use the same QPU-capable
 optimization path as manual retunes. With the server running and an agent that
 has optimized at least once:
@@ -194,8 +203,9 @@ has optimized at least once:
 .venv/bin/python - <<'PY'
 import asyncio, json, websockets
 AGENT = "<AGENT_ID>"
+TOKEN = "<TOKEN>"
 async def main():
-    async with websockets.connect(f"ws://127.0.0.1:8000/agents/{AGENT}") as ws:
+    async with websockets.connect(f"ws://127.0.0.1:8000/agents/{AGENT}?t={TOKEN}") as ws:
         for _ in range(3):
             print(json.loads(await ws.recv()))   # {plUSD, plPct, total, holdings, asOf, stale, nextRebalanceAt}
 asyncio.run(main())
@@ -206,11 +216,12 @@ PY
 
 ## Production wiring status
 
-See `../docs/ENVIRONMENT.md` for production environment variables,
-Supabase/Postgres behavior, Proton SMTP status, and the selected DigitalOcean
-Droplet + Docker deployment shape.
+See `../docs/DEPLOY.md` for the consolidated DigitalOcean Droplet + Docker
+operator runbook, production environment variables, Supabase/Postgres behavior,
+and Proton SMTP setup.
 
 GitLab CI now includes backend test/build image jobs and a manual droplet deploy
 job. The deploy job becomes usable after the droplet is provisioned, Docker/Caddy
 are installed, `/opt/qtw/backend.env` exists, and the GitLab CI deploy variables
-are set. Proton email sending is still not implemented.
+are set. Proton SMTP is wired for opted-in signup confirmation emails when SMTP env is
+present; recurring hourly/daily result emails still need scheduler work.

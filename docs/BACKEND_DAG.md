@@ -17,12 +17,13 @@ and the solver race.
   out of the production race with `GUROBI_IN_RACE=0`.
 - Scheduled rebalances are implemented. They call the same optimization path as
   manual retunes, so they are QPU-capable when D-Wave is configured.
-- Per-agent QPU budgeting is implemented: 3 QPU-admitted solves per rolling
+- Per-agent QPU budgeting is implemented: 8 QPU-admitted solves per rolling
   10 minutes, shared by first solve, manual retune, and scheduled rebalance.
 - TV views now consume live backend data for leaderboard rows, valuation
   history, and QPU-vs-CPU winner share instead of hardcoded demo stats.
 - The backend Docker image build and GitLab deploy scaffold are implemented.
-  Droplet provisioning and Proton SMTP sending remain pending.
+  Droplet provisioning remains pending. Proton SMTP is wired for opt-in signup
+  recap emails when backend SMTP env is present.
 
 ## High-Level DAG
 
@@ -234,7 +235,8 @@ This loop is separate from MTM so a solve does not block valuation pushes.
 
 ### 4. Mark-To-Market
 
-`run_mtm_loop` runs every `MTM_TICK_S`.
+`run_mtm_loop` runs every `MTM_TICK_S` seconds. The default is 10s, matching
+assets-api's default `SPOT_INTERVAL=10s`.
 
 1. Collect all tickers currently held by active agents.
 2. Fetch one spot snapshot for that ticker set.
@@ -308,7 +310,7 @@ snapshots are sampled separately.
 
 - Frontend env (`VITE_API_BASE`, optional `VITE_WS_BASE`) belongs in Netlify.
 - Backend env (`DATABASE_URL`, `ASSETS_API_BASE_URL`, `DWAVE_API_TOKEN`,
-  `QR_BASE_URL`, SMTP secrets later) belongs only on the backend host/container,
+  `QR_BASE_URL`, SMTP secrets) belongs only on the backend host/container,
   normally `/opt/qtw/backend.env` on the droplet.
 - Supabase hosts Postgres only; the browser never connects to the database.
 - assets-api owns provider fallback, rate-limit protection, quote freshness, and
@@ -331,14 +333,13 @@ LISTEN/NOTIFY plus advisory locks.
 
 ## Still Missing
 
-- Proton SMTP sender: email/consent fields are stored, but no backend email
-  sender exists yet.
+- Recurring result emails: SMTP is wired for the initial opt-in signup confirmation,
+  but hourly/daily scheduled email delivery still needs a cadence-safe scheduler
+  pass.
 - Droplet rollout: GitLab CI can build/push/deploy the backend image, but the
   droplet, DNS, `/opt/qtw/backend.env`, and CI deploy variables still need to be
   provisioned before the first live deploy.
 - Global QPU budget operations: per-agent admission is implemented; aggregate
   booth-wide QPU millisecond metering is still optional future work.
-- assets-api spot freshness: QTW consumes the spot contract; faster freshness
-  belongs in `../assets-api`.
-- MTM cadence alignment: once assets-api spot freshness is finalized, align
-  `MTM_TICK_S` with that cadence.
+- assets-api spot freshness operations: QTW consumes the spot contract; further
+  provider-specific cadence/rate-limit tuning belongs in `../assets-api`.
