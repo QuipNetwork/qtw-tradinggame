@@ -61,9 +61,47 @@ def _check_required_config() -> None:
         )
 
 
+def _configure_email_provider() -> None:
+    """Register SMTP when configured; otherwise reset to the no-op provider."""
+    from ..notifications.email import NoopEmailProvider, SmtpEmailProvider, set_email_provider
+
+    if not config.SMTP_ENABLED:
+        set_email_provider(NoopEmailProvider())
+        log.info("email provider: noop")
+        return
+
+    required = {
+        "SMTP_HOST": config.SMTP_HOST,
+        "SMTP_USERNAME": config.SMTP_USERNAME,
+        "SMTP_PASSWORD": config.SMTP_PASSWORD,
+        "SMTP_FROM": config.SMTP_FROM,
+    }
+    missing = [name for name, value in required.items() if not value]
+    if missing:
+        raise RuntimeError(f"SMTP_ENABLED requires {', '.join(missing)}")
+
+    set_email_provider(
+        SmtpEmailProvider(
+            host=config.SMTP_HOST,
+            port=config.SMTP_PORT,
+            username=config.SMTP_USERNAME,
+            password=config.SMTP_PASSWORD,
+            sender=config.SMTP_FROM,
+            timeout_s=config.SMTP_TIMEOUT_S,
+        )
+    )
+    log.info(
+        "email provider: smtp host=%s port=%s username=%s",
+        config.SMTP_HOST,
+        config.SMTP_PORT,
+        config.SMTP_USERNAME,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     _check_required_config()
+    _configure_email_provider()
     _check_market_source()
     stop = asyncio.Event()
     bus = get_bus()

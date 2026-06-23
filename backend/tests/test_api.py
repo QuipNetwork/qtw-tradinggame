@@ -20,7 +20,40 @@ requires_gurobi = pytest.mark.skipif(
 )
 
 _SLIDERS = {"rebalanceFrequency": 50, "riskPreference": 70, "maxPositionSize": 50}
-_BASKET = ["BTC", "ETH", "IONQ", "QBTS"]
+_BASKET = [
+    "BTC",
+    "ETH",
+    "SOL",
+    "USDC",
+    "IONQ",
+    "QBTS",
+    "RGTI",
+    "IBM",
+    "GOOGL",
+    "NVDA",
+    "MSFT",
+    "AMZN",
+    "HON",
+    "SAF",
+    "SPCX",
+]
+_ALT_BASKET = [
+    "BNB",
+    "XRP",
+    "USDT",
+    "DOGE",
+    "HYPE",
+    "ZEC",
+    "ALGO",
+    "FIL",
+    "RENDER",
+    "STRK",
+    "ARQQ",
+    "LAES",
+    "QUBT",
+    "IBM",
+    "SPCX",
+]
 
 
 def _create(client: TestClient, name: str = "Neo") -> str:
@@ -64,25 +97,101 @@ def test_create_and_get_agent():
         assert body["assets"] == _BASKET
 
 
+def test_create_agent_sends_signup_confirmation_for_update_opt_in(monkeypatch):
+    from backend.api import routes
+
+    sent: list[dict[str, object]] = []
+
+    def capture_send(**kwargs):
+        sent.append(kwargs)
+
+    monkeypatch.setattr(routes, "send_signup_confirmation", capture_send)
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/agents",
+            json={
+                "name": "Mail",
+                "email": "mail@example.com",
+                "updatesOptIn": True,
+                "updateFrequency": "daily",
+                "sliders": _SLIDERS,
+                "assets": _BASKET,
+            },
+        )
+
+    assert response.status_code == 200
+    assert sent == [
+        {
+            "to": "mail@example.com",
+            "name": "Mail",
+        }
+    ]
+
+
+def test_create_agent_skips_email_without_update_opt_in(monkeypatch):
+    from backend.api import routes
+
+    sent: list[dict[str, object]] = []
+    monkeypatch.setattr(routes, "send_signup_confirmation", lambda **kwargs: sent.append(kwargs))
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/agents",
+            json={
+                "name": "NoMail",
+                "email": "nomail@example.com",
+                "updatesOptIn": False,
+                "sliders": _SLIDERS,
+                "assets": _BASKET,
+            },
+        )
+
+    assert response.status_code == 200
+    assert sent == []
+
+
+def test_create_agent_email_failure_does_not_fail_signup(monkeypatch):
+    from backend.api import routes
+
+    def fail_send(**kwargs):
+        raise OSError("smtp down")
+
+    monkeypatch.setattr(routes, "send_signup_confirmation", fail_send)
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/agents",
+            json={
+                "name": "Resilient",
+                "email": "resilient@example.com",
+                "updatesOptIn": True,
+                "updateFrequency": "hourly",
+                "sliders": _SLIDERS,
+                "assets": _BASKET,
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["agentId"]
+
+
 def test_patch_agent_persists_basket_without_optimizing():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
-        response = client.patch(f"/agents/{agent_id}", json={"assets": ["HON", "GOOGL", "IBM"]})
+        response = client.patch(f"/agents/{agent_id}", json={"assets": _ALT_BASKET})
         assert response.status_code == 200
-        assert response.json()["assets"] == ["HON", "GOOGL", "IBM"]
+        assert response.json()["assets"] == _ALT_BASKET
 
         got = client.get(f"/agents/{agent_id}")
         assert got.status_code == 200
-        assert got.json()["assets"] == ["HON", "GOOGL", "IBM"]
+        assert got.json()["assets"] == _ALT_BASKET
 
 
 def test_patch_agent_rejects_unknown_or_too_small_basket():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
-        assert (
-            client.patch("/agents/nope", json={"assets": ["HON", "GOOGL", "IBM"]}).status_code
-            == 404
-        )
+        assert client.patch("/agents/nope", json={"assets": _ALT_BASKET}).status_code == 404
 
         too_small = client.patch(f"/agents/{agent_id}", json={"assets": ["BTC"]})
         assert too_small.status_code == 422
@@ -100,7 +209,12 @@ def test_per_agent_routes_require_owner_token():
         # Create directly (public) so this client carries no Authorization header.
         body = client.post(
             "/agents",
-            json={"name": "Auth", "email": "auth@example.com", "sliders": _SLIDERS, "assets": _BASKET},
+            json={
+                "name": "Auth",
+                "email": "auth@example.com",
+                "sliders": _SLIDERS,
+                "assets": _BASKET,
+            },
         ).json()
         agent_id, token = body["agentId"], body["token"]
         good = {"Authorization": f"Bearer {token}"}
@@ -111,7 +225,10 @@ def test_per_agent_routes_require_owner_token():
         assert client.patch(f"/agents/{agent_id}", json={"assets": _BASKET}).status_code == 401
         assert client.get(f"/agents/{agent_id}/valuation-history").status_code == 401
         # Wrong token → 403.
-        assert client.get(f"/agents/{agent_id}", headers={"Authorization": "Bearer wrong"}).status_code == 403
+        assert (
+            client.get(f"/agents/{agent_id}", headers={"Authorization": "Bearer wrong"}).status_code
+            == 403
+        )
         # Correct token → 200; email is returned only to the authorized owner.
         ok = client.get(f"/agents/{agent_id}", headers=good)
         assert ok.status_code == 200
@@ -316,7 +433,12 @@ def test_signup_rate_limited_per_ip(monkeypatch):
 def test_rate_limit_keys_on_real_ip_not_spoofable_forwarded_for(monkeypatch):
     monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 2)
     with TestClient(create_app()) as client:
-        body = {"name": "Spoof", "email": "spoof@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        body = {
+            "name": "Spoof",
+            "email": "spoof@example.com",
+            "sliders": _SLIDERS,
+            "assets": _BASKET,
+        }
         real = {"X-Real-IP": "5.5.5.5"}  # what Caddy sets (trusted, overwritten)
         # Varying the client-supplied X-Forwarded-For must NOT escape the bucket.
         for i in range(2):
@@ -331,13 +453,11 @@ def test_optimize_accepts_a_new_basket():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
         client.post(f"/agents/{agent_id}/optimize", json={})
-        response = client.post(
-            f"/agents/{agent_id}/optimize", json={"assets": ["HON", "GOOGL", "IBM"]}
-        )
+        response = client.post(f"/agents/{agent_id}/optimize", json={"assets": _ALT_BASKET})
         assert response.status_code == 200
         body = response.json()
         assert body["kind"] == "retune"
-        assert {e["ticker"] for e in body["portfolio"]} == {"HON", "GOOGL", "IBM"}
+        assert {e["ticker"] for e in body["portfolio"]} == set(_ALT_BASKET)
 
         too_small = client.post(f"/agents/{agent_id}/optimize", json={"assets": ["BTC"]})
         assert too_small.status_code == 422

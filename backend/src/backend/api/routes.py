@@ -9,16 +9,18 @@ from __future__ import annotations
 
 import asyncio
 import ipaddress
+import logging
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from .. import config
 from ..events.bus import get_bus
 from ..financial.basket import validate_basket
 from ..financial.prices.assets_api import AssetsApiError
+from ..notifications.email import send_signup_confirmation
 from ..orchestration.job import run_optimization
-from ..persistence.agents import get_agent_store
+from ..persistence.agents import AgentRecord, get_agent_store
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
@@ -42,6 +44,7 @@ from .schemas import (
 RECENT_ROUTING_LIMIT = 24
 
 router = APIRouter()
+log = logging.getLogger(__name__)
 
 
 @router.get("/healthz", response_model=HealthResponse)
@@ -58,7 +61,9 @@ async def healthz() -> HealthResponse:
 
 
 @router.post("/agents", response_model=SubmitAgentResponse)
-async def create_agent(config_in: AgentConfig, request: Request) -> SubmitAgentResponse:
+async def create_agent(
+    config_in: AgentConfig, request: Request, background_tasks: BackgroundTasks
+) -> SubmitAgentResponse:
     retry_after = request.app.state.signup_limiter.check(_client_ip(request))
     if retry_after is not None:
         raise HTTPException(
@@ -74,6 +79,7 @@ async def create_agent(config_in: AgentConfig, request: Request) -> SubmitAgentR
     record = get_agent_store().create(
         config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
     )
+    background_tasks.add_task(_send_signup_confirmation_email, record)
     return SubmitAgentResponse(
         agent_id=record.id,
         # Token in the URL fragment — never sent to the server, so it stays out of logs.
@@ -81,6 +87,19 @@ async def create_agent(config_in: AgentConfig, request: Request) -> SubmitAgentR
         bankroll=record.bankroll,
         token=token,
     )
+
+
+def _send_signup_confirmation_email(record: AgentRecord) -> None:
+    """Send an opt-in signup confirmation without letting SMTP failures break signup."""
+    if not record.email or record.updates_opt_in is not True:
+        return
+    try:
+        send_signup_confirmation(
+            to=record.email,
+            name=record.name,
+        )
+    except Exception:
+        log.warning("signup confirmation email failed agent_id=%s", record.id, exc_info=True)
 
 
 @router.get(
