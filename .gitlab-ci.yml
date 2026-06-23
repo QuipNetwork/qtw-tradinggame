@@ -33,15 +33,20 @@ backend:image:
     entrypoint: [""]
   needs:
     - backend:test
+  before_script:
+    # GPU-runner firmware workaround. The amd64 builders are NVIDIA GPU hosts
+    # that bind-mount host firmware into /lib, so kaniko can't remove /lib to
+    # recreate the usr-merge symlink while those mounts are busy. The build
+    # passes --ignore-path=/lib so kaniko leaves /lib untouched; that drops the
+    # multilib dir holding the ELF loader (ld-linux-x86-64.so.2), so recreate
+    # it here or every RUN fails with "no such file or directory".
+    - mkdir -p /lib && ln -sfn /usr/lib/x86_64-linux-gnu /lib/x86_64-linux-gnu
   script:
     - mkdir -p /kaniko/.docker
     - >
       printf '{"auths":{"%s":{"username":"%s","password":"%s"}}}'
       "$CI_REGISTRY" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD"
       > /kaniko/.docker/config.json
-    # --ignore-path=/lib/firmware: GPU runners bind-mount host NVIDIA firmware
-    # into the container; kaniko can't remove /lib to recreate the usr-merge
-    # symlink while those mounts are busy, so it must skip that subtree.
     - |
       DESTINATIONS="--destination ${BACKEND_IMAGE_SHA} --destination ${BACKEND_IMAGE_REF}"
       if [ "$CI_COMMIT_BRANCH" = "deployment-dev" ]; then
@@ -55,7 +60,7 @@ backend:image:
         --dockerfile "$CI_PROJECT_DIR/backend/Dockerfile" \
         --cache=true \
         --cache-repo "$CI_REGISTRY_IMAGE/cache/backend" \
-        --ignore-path=/lib/firmware \
+        --ignore-path=/lib \
         $DESTINATIONS
 
 backend:deploy:
