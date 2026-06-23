@@ -35,3 +35,24 @@ def test_negative_weight_is_a_box_violation():
     result = check_feasibility(np.array([0.8, 0.4, -0.2]), w_max=0.6, w_min=0.0)
     assert not result.feasible
     assert "box" in result.reason
+
+
+def test_cardinality_exact_count_passes():
+    # 2 held + 1 unheld (0.0); k=2. The 0.0 must NOT trip the w_min floor.
+    result = check_feasibility(np.array([0.5, 0.5, 0.0]), w_max=0.6, w_min=0.1, cardinality_k=2)
+    assert result.feasible
+    assert result.held_count == 2
+
+
+def test_cardinality_wrong_count_fails():
+    result = check_feasibility(np.array([0.5, 0.5, 0.0]), w_max=0.6, w_min=0.1, cardinality_k=3)
+    assert not result.feasible
+    assert "cardinality" in result.reason
+    assert result.held_count == 2
+
+
+def test_semicont_held_below_floor_still_fails():
+    # held assets must respect w_min even in cardinality mode
+    result = check_feasibility(np.array([0.93, 0.05, 0.02]), w_max=0.95, w_min=0.1, cardinality_k=3)
+    assert not result.feasible
+    assert "box" in result.reason

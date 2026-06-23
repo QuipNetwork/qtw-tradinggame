@@ -20,13 +20,13 @@ from .financial.estimators.covariance import covariance
 from .financial.estimators.expected_return import expected_return
 from .financial.prices.assets_api import AssetsApiError
 from .financial.prices.source import get_source
-from .financial.qubo_encoder import encode_qubo
+from .financial.qubo_encoder import encode_qubo, resolve_frustration_beta
 from .financial.slider_map import map_sliders
-from .financial.types import PortfolioProblem
+from .financial.types import PortfolioProblem, correlation_matrix
 from .orchestration.job import run_optimization
 from .persistence.agents import get_agent_store
 from .solvers.feasibility import check_feasibility
-from .solvers.router import build_providers
+from .solvers.router import build_providers, pick_winner
 from .solvers.types import SolverFailed
 
 
@@ -35,6 +35,7 @@ def _sliders(args: argparse.Namespace) -> SliderValues:
         rebalanceFrequency=args.rebalance,
         riskPreference=args.risk,
         maxPositionSize=args.max_position,
+        holdCount=getattr(args, "hold_count", None),
     )
 
 
@@ -46,14 +47,20 @@ def _basket(args: argparse.Namespace) -> list[str]:
 def _build_problem(tickers: list[str], args: argparse.Namespace) -> PortfolioProblem:
     params = map_sliders(_sliders(args), len(tickers))
     returns = get_source().hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
-    return PortfolioProblem(
+    classes = [basket.get_asset(t).asset_class for t in tickers]
+    problem = PortfolioProblem(
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
-        Sigma=covariance(returns),
+        Sigma=covariance(returns, classes),
         gamma=params.gamma,
         w_max=params.w_max,
         w_min=params.w_min,
         asset_tickers=tickers,
+        cardinality_k=params.cardinality_k,
+        n_units_M=params.n_units_M,
+        u_min_units=params.u_min_units,
     )
+    problem.frustration_beta = resolve_frustration_beta(problem)
+    return problem
 
 
 def _print_solution(provider_name, role, solution, feas, tickers, tag=""):
@@ -78,8 +85,9 @@ def cmd_market(args: argparse.Namespace) -> None:
     source = get_source()
     tickers = list(basket.TICKERS)
     returns = source.hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
+    classes = [basket.get_asset(t).asset_class for t in tickers]
     mu = expected_return(returns, config.MU_WINDOW_HOURS)
-    vol = np.sqrt(np.diag(covariance(returns)))
+    vol = np.sqrt(np.diag(covariance(returns, classes)))
     spot = source.spot_prices(tickers)
 
     print(
@@ -102,10 +110,11 @@ def cmd_optimize(args: argparse.Namespace) -> None:
         bankroll=config.BANKROLL_USD,
     )
     params = map_sliders(agent.sliders, len(tickers))
+    rebalance_label = "off" if params.rebalance_hours is None else f"{params.rebalance_hours:g}h"
     print(f"agent {agent.id}  bankroll ${agent.bankroll:,.0f}  basket={len(tickers)} assets")
     print(
         f"params: γ={params.gamma:.2f}  w_max={params.w_max:.3f}  w_min={params.w_min:.3f}  "
-        f"rebalance={params.rebalance_hours}h"
+        f"rebalance={rebalance_label}"
     )
 
     outcome = run_optimization(agent.id)
@@ -126,7 +135,9 @@ def cmd_optimize(args: argparse.Namespace) -> None:
     print("\nsolver race (waited for all):")
     winner_solution = None
     for solution in outcome.solver_results:
-        feas = check_feasibility(solution.weights, params.w_max, params.w_min)
+        feas = check_feasibility(
+            solution.weights, params.w_max, params.w_min, cardinality_k=params.cardinality_k
+        )
         is_winner = solution.provider == outcome.winner_provider
         if is_winner:
             winner_solution = solution
@@ -142,7 +153,7 @@ def cmd_optimize(args: argparse.Namespace) -> None:
 
 
 def cmd_race(args: argparse.Namespace) -> None:
-    """Race the solvers, streaming each result as it finishes (winner first)."""
+    """Race the solvers, then pick the winner per RACE_WINNER_BY (best portfolio by default)."""
     tickers = _basket(args)
     problem = _build_problem(tickers, args)
     qubo = encode_qubo(problem)
@@ -150,9 +161,10 @@ def cmd_race(args: argparse.Namespace) -> None:
     note = (
         "" if any(p.role == "QPU" for p in providers) else " (set DWAVE_API_TOKEN to add the QPU)"
     )
+    by_quality = config.RACE_WINNER_BY == "objective"
     print(
         f"racing {', '.join(p.name for p in providers)} over {len(tickers)} assets{note} — "
-        f"first feasible wins, printed as each finishes\n",
+        f"{'best portfolio (objective) wins; time shown' if by_quality else 'fastest feasible time wins'}\n",
         flush=True,
     )
 
@@ -161,7 +173,6 @@ def cmd_race(args: argparse.Namespace) -> None:
             return provider.solve_qp(problem, config.SOLVER_DEADLINE_S)
         return provider.solve_qubo(qubo, problem, config.SOLVER_DEADLINE_S)
 
-    winner = None
     results = []
     with ThreadPoolExecutor(max_workers=len(providers)) as executor:
         futures = {executor.submit(dispatch, p): p for p in providers}
@@ -172,18 +183,22 @@ def cmd_race(args: argparse.Namespace) -> None:
             except SolverFailed as exc:
                 print(f"  {provider.name:<8}{provider.role:<5} failed: {exc}", flush=True)
                 continue
-            feas = check_feasibility(solution.weights, problem.w_max, problem.w_min)
+            feas = check_feasibility(
+                solution.weights, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+            )
             solution.feasible = feas.feasible
-            tag = ""
-            if feas.feasible and winner is None:
-                winner = solution
-                tag = "  ← WINNER"
-            _print_solution(provider.name, provider.role, solution, feas, tickers, tag)
+            _print_solution(provider.name, provider.role, solution, feas, tickers)
             results.append(solution)
 
+    feasible = [solution for solution in results if solution.feasible]
+    winner = pick_winner(feasible)
     if winner is None:
         print("\nno feasible solution from any solver")
         return
+    basis = "best portfolio" if by_quality else "solve/access time"
+    print(
+        f"\nwinner by {basis}: {winner.provider} ({winner.provider_role})  obj={winner.objective:.5f}"
+    )
     _print_speedup(winner, results, winner.provider)
 
 
@@ -254,7 +269,9 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
             print(f"{key}: {timing[key]} µs")
 
     weights, _ = select_solution(response, qubo, problem)
-    feas = check_feasibility(weights, problem.w_max, problem.w_min)
+    feas = check_feasibility(
+        weights, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+    )
     print(
         f"\nbest read: Σw={weights.sum():.4f}  feasible={feas.feasible}"
         + ("" if feas.feasible else f"  ({feas.reason})")
@@ -263,13 +280,24 @@ def cmd_verify_dwave(args: argparse.Namespace) -> None:
     # Objective spread across feasible reads — if the QPU 'sees' the objective,
     # the best feasible read beats the mean; identical values mean it's only
     # satisfying constraints and the spread is random.
+    from .financial.projection import select_weights
     from .financial.qubo_decoder import decode_bitstring
 
+    # The "select" encoding decodes via greedy-project + QP (not the bit→weight decoder, which
+    # has no select branch and would silently misread the selection bits as convex weights).
+    is_select = qubo.decode_meta.scheme == "select"
+    rho = correlation_matrix(problem.Sigma) if (is_select and problem.frustration_beta) else None
     objectives = []
     for sample in response.samples():
         bits = np.array([sample[i] for i in range(qubo.n)], dtype=np.int8)
-        w = decode_bitstring(bits, qubo.decode_meta, normalize=True)
-        if check_feasibility(w, problem.w_max, problem.w_min).feasible:
+        w = (
+            select_weights(bits, problem, rho)
+            if is_select
+            else decode_bitstring(bits, qubo.decode_meta, normalize=True)
+        )
+        if check_feasibility(
+            w, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+        ).feasible:
             objectives.append(problem.objective(w))
     if objectives:
         print(
@@ -282,18 +310,31 @@ def _print_speedup(winner, results, winner_label) -> None:
     if winner is None or winner.solve_time_s <= 0:
         return
     classical = [s for s in results if s is not winner and s.provider_role == "CPU"]
-    if classical:
-        slowest = max(classical, key=lambda s: s.solve_time_s)
+    classical = [s for s in classical if s.solve_time_s and s.solve_time_s > 0]
+    if not classical:
+        return
+    # Compare to the FASTEST classical (the toughest, most honest comparison). The quality
+    # winner can be SLOWER than classical — report the time relationship in the right direction.
+    other = min(classical, key=lambda s: s.solve_time_s)
+    ratio = other.solve_time_s / winner.solve_time_s
+    if ratio >= 1.05:
+        print(f"\nwinner {winner_label} solved ~{ratio:.0f}× faster than {other.provider}")
+    elif ratio <= 0.95:
         print(
-            f"\nwinner {winner_label} solved "
-            f"~{slowest.solve_time_s / winner.solve_time_s:.0f}× faster than {slowest.provider}"
+            f"\nwinner {winner_label} took ~{1 / ratio:.0f}× longer than {other.provider} "
+            f"but found the better portfolio"
         )
+    else:
+        print(f"\nwinner {winner_label} and {other.provider} solved in ~the same time")
 
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--rebalance", type=int, default=50, help="rebalance frequency 0–100")
     parser.add_argument("--risk", type=int, default=50, help="risk preference 0–100")
     parser.add_argument("--max-position", type=int, default=50, help="max position size 0–100")
+    parser.add_argument(
+        "--hold-count", type=int, default=None, help="cardinality: number of assets to hold (K)"
+    )
     parser.add_argument("--assets", default=None, help="comma-separated basket, e.g. BTC,ETH,IONQ")
 
 

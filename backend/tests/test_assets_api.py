@@ -1,4 +1,4 @@
-"""assets-api client: grid alignment, forward-fill, spot, error paths."""
+"""assets-api client: grid alignment, no-fabrication gaps, spot, error paths."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def _bar(t: str, c: float) -> dict:
     return {"t": t, "o": c, "h": c, "l": c, "c": c, "v": 1.0}
 
 
-def test_returns_align_stock_gaps_onto_crypto_grid():
+def test_stock_gaps_stay_nan_and_overnight_jump_is_excluded():
     hours = [f"2026-06-05T{h:02d}:00:00Z" for h in range(5)]
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -30,7 +30,7 @@ def test_returns_align_stock_gaps_onto_crypto_grid():
                 "bars": {
                     # crypto: every hour, +1% per hour
                     "BTC": [_bar(t, 100.0 * 1.01**i) for i, t in enumerate(hours)],
-                    # stock: missing hours 1 and 2 (market closed)
+                    # stock: trades hour 0, then closed hours 1-2, reopens 3-4
                     "IONQ": [_bar(hours[0], 50.0), _bar(hours[3], 52.0), _bar(hours[4], 51.0)],
                 },
             },
@@ -39,8 +39,40 @@ def test_returns_align_stock_gaps_onto_crypto_grid():
     returns = _source(handler).hourly_returns(["BTC", "IONQ"], window_hours=4)
     assert returns.shape == (4, 2)
     assert np.allclose(returns[:, 0], 0.01)
-    # forward-filled hours are flat (zero return), then the gap-close jump
-    assert returns[:, 1] == pytest.approx([0.0, 0.0, 52.0 / 50.0 - 1.0, 51.0 / 52.0 - 1.0])
+    # Closed hours are NaN (never zero-filled), and the 50→52 reopen move is
+    # NOT a return — it would need the missing hour-2 price — so only the real
+    # intraday 52→51 step survives. No fabrication, no overnight jump.
+    col = returns[:, 1]
+    assert np.isnan(col[:3]).all()
+    assert col[3] == pytest.approx(51.0 / 52.0 - 1.0)
+
+
+def test_bad_close_prices_become_nan_not_inf_or_minus_one():
+    # A zero close (BTC) or a non-numeric close (HON) must drop to NaN, not
+    # produce a finite −1.0 (its own return) or +inf (next hour's 1/0 divide),
+    # which would otherwise poison μ/Σ.
+    hours = [f"2026-06-05T{h:02d}:00:00Z" for h in range(6)]
+    btc = [100.0, 101.0, 0.0, 103.0, 104.0, 105.0]  # zero at hour 2
+    hon = [50.0, 51.0, "n/a", 53.0, 54.0, 55.0]  # unparseable at hour 2
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "bars": {
+                    "BTC": [_bar(t, c) for t, c in zip(hours, btc, strict=True)],
+                    "HON": [_bar(t, c) for t, c in zip(hours, hon, strict=True)],
+                }
+            },
+        )
+
+    returns = _source(handler).hourly_returns(["BTC", "HON"], window_hours=5)
+    for col in (returns[:, 0], returns[:, 1]):
+        assert np.isnan(col[1])  # was -1.0 (bad/0 close ÷ prev)
+        assert np.isnan(col[2])  # was +inf (next ÷ bad/0 close)
+        assert np.isfinite(col[[0, 3, 4]]).all()
+    assert returns[0, 0] == pytest.approx(0.01)
+    assert returns[3, 1] == pytest.approx(54.0 / 53.0 - 1.0)
 
 
 def test_missing_history_raises():
@@ -69,9 +101,66 @@ def test_spot_prices():
     assert spot == {"BTC": 65180.4, "IONQ": 36.2}
 
 
+def test_spot_prices_retry_transient_disconnect():
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+        return httpx.Response(
+            200,
+            json={"prices": {"BTC": {"price": 65180.4, "t": "2026-06-05T10:00:00Z"}}},
+        )
+
+    assert _source(handler).spot_prices(["BTC"]) == {"BTC": 65180.4}
+    assert calls == 2
+
+
+def test_spot_snapshot_uses_last_good_cache_when_fetch_fails():
+    fail = False
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if fail:
+            raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+        return httpx.Response(
+            200,
+            json={"prices": {"BTC": {"price": 65180.4, "t": "2026-06-05T10:00:00Z"}}},
+        )
+
+    source = _source(handler)
+    fresh = source.spot_snapshot(["BTC"])
+    assert fresh.stale is False
+    assert fresh.prices == {"BTC": 65180.4}
+
+    fail = True
+    stale = source.spot_snapshot(["BTC"])
+    assert stale.stale is True
+    assert stale.prices == {"BTC": 65180.4}
+
+
 def test_http_error_wraps_into_assets_api_error():
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(503)
 
     with pytest.raises(AssetsApiError, match="request failed"):
+        _source(handler).spot_prices(["BTC"])
+
+
+def test_null_bars_payload_raises_clean_error():
+    # A malformed payload with "bars": null must degrade to AssetsApiError, not an
+    # AttributeError from calling .get on None (body.get("bars", {}) returns None here).
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"bars": None})
+
+    with pytest.raises(AssetsApiError):
+        _source(handler).hourly_returns(["BTC"], window_hours=2)
+
+
+def test_null_prices_payload_raises_clean_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"prices": None})
+
+    with pytest.raises(AssetsApiError):
         _source(handler).spot_prices(["BTC"])

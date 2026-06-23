@@ -1,21 +1,30 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Index from './routes/Index';
-import KioskSignUp from './routes/Kiosk/SignUp';
-import KioskWelcome from './routes/Kiosk/Welcome';
-import PhoneProfile from './routes/Phone/Profile';
-import BoothTV from './routes/TV/BoothTV';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Routes are code-split so each surface ships its own chunk — the QR-opened
+// phone profile no longer downloads the kiosk QR generator or the TV states.
+const Index = lazy(() => import('./routes/Index'));
+const KioskSignUp = lazy(() => import('./routes/Kiosk/SignUp'));
+const KioskWelcome = lazy(() => import('./routes/Kiosk/Welcome'));
+const PhoneProfile = lazy(() => import('./routes/Phone/Profile'));
+const BoothTV = lazy(() => import('./routes/TV/BoothTV'));
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/kiosk" element={<KioskSignUp />} />
-        <Route path="/kiosk/welcome" element={<KioskWelcome />} />
-        <Route path="/p/:agentId" element={<PhoneProfile />} />
-        <Route path="/tv" element={<BoothTV />} />
-        <Route path="*" element={<div style={{ padding: 40 }}>404 — surface not found</div>} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Suspense fallback={<div className="route-fallback" aria-busy="true" />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/kiosk" element={<KioskSignUp />} />
+            <Route path="/kiosk/welcome" element={<KioskWelcome />} />
+            <Route path="/p/:agentId" element={<PhoneProfile />} />
+            <Route path="/tv" element={<BoothTV />} />
+            <Route path="*" element={<div style={{ padding: 40 }}>404 — surface not found</div>} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

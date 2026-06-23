@@ -1,155 +1,141 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { renderGlyph, strHash, pickStyle } from '../utils/glyph';
 
-type Surface = {
-  title: string;
-  blurb: string;
-  formFactor: string;
-  links: { label: string; to: string; note?: string }[];
-};
+// The production landing surface, in the design-doc theme (masthead + serif
+// hero + meta strip). It routes cleanly into every booth surface: the kiosk,
+// the phone profile of the agent created this session, and the TV in all its
+// states (auto-rotate plus each forced state, including the new-agent interrupt).
 
-const SURFACES: Surface[] = [
-  {
-    title: 'Kiosk',
-    blurb: 'The booth laptop attendees walk up to. Name an agent, tune five sliders, launch.',
-    formFactor: 'Laptop · landscape',
-    links: [
-      { label: 'Sign-up', to: '/kiosk', note: 'Entry point — fills sliders and submits' },
-      { label: 'Welcome (post-launch)', to: '/kiosk/welcome?agent=a06', note: 'Confirmation + QR (using demo agent a06)' },
-    ],
-  },
-  {
-    title: 'Phone',
-    blurb: 'Personal profile each player gets via QR. Live P&L, retune sliders mid-conference.',
-    formFactor: 'Phone · portrait',
-    links: [
-      { label: 'Profile · Lattice Theory', to: '/p/a06', note: 'Demo agent — drag the sliders to trigger a re-route' },
-      { label: 'Profile · Hilbert Spaceship', to: '/p/a01', note: 'Top of leaderboard' },
-    ],
-  },
-  {
-    title: 'Booth TV',
-    blurb: 'Big-screen rotator behind the booth. Welcome splash, leaderboard, top-10 spotlight.',
-    formFactor: '1920×1080 · landscape',
-    links: [
-      { label: 'Auto-rotate (A→B→C, D interrupts)', to: '/tv', note: 'Default cinematic rotation' },
-      { label: 'Force state A · Welcome splash', to: '/tv?state=A' },
-      { label: 'Force state B · Leaderboard', to: '/tv?state=B' },
-      { label: 'Force state C · Top-10 spotlight', to: '/tv?state=C' },
-      { label: 'Force state D · New-agent interrupt', to: '/tv?state=D' },
-    ],
-  },
-];
+type SurfaceLink = { label: string; to: string; note?: string; external?: boolean };
+type Surface = { num: string; id: string; title: string; formFactor: string; blurb: string; links: SurfaceLink[] };
 
-const linkStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
-  padding: '10px 12px',
-  borderRadius: 8,
-  border: '1px solid #e4e4e7',
-  textDecoration: 'none',
-  color: '#18181b',
-  background: 'white',
-  transition: 'border-color 120ms, background 120ms',
-};
+function latestCreatedAgentId(): string | null {
+  try {
+    return localStorage.getItem('quip:lastAgentId');
+  } catch {
+    return null;
+  }
+}
 
-const cardStyle: React.CSSProperties = {
-  background: 'white',
-  border: '1px solid #e4e4e7',
-  borderRadius: 12,
-  padding: 24,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
+function buildSurfaces(latestAgentId: string | null): Surface[] {
+  const welcome: SurfaceLink = latestAgentId
+    ? { label: 'Welcome · latest created agent', to: `/kiosk/welcome?agent=${latestAgentId}`, note: 'Completion screen for the agent created this session.' }
+    : { label: 'Welcome · create an agent first', to: '/kiosk', note: 'Create an agent to enable the latest-agent welcome link.' };
+  const profile: SurfaceLink = latestAgentId
+    ? { label: 'Phone profile · latest created agent', to: `/p/${latestAgentId}`, note: 'The profile shown when an agent is created — P&L, retune, edit basket.' }
+    : { label: 'Phone profile · create an agent first', to: '/kiosk', note: 'Create an agent to open its /p/{agent_id} profile.' };
 
-const kickerStyle: React.CSSProperties = {
-  fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-  fontSize: 11,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: '#71717a',
-};
+  return [
+    {
+      num: '01', id: 'kiosk', title: 'Booth kiosk', formFactor: 'Laptop / iPad · landscape',
+      blurb: 'The booth screen attendees walk up to. Name an agent, pick a watchlist, tune three sliders, launch.',
+      links: [{ label: 'Sign-up', to: '/kiosk', note: 'Entry point — fills sliders and submits.' }, welcome],
+    },
+    {
+      num: '02', id: 'phone', title: 'Phone profile', formFactor: 'Phone · portrait',
+      blurb: 'The personal profile each player gets via QR — live P&L that moves with the market, retune mid-conference.',
+      links: [profile],
+    },
+    {
+      num: '03', id: 'tv', title: 'Booth TV', formFactor: '1920×1080 · landscape',
+      blurb: 'The big-screen rotator behind the booth: welcome splash, leaderboard, top-10 spotlight, and a new-agent interrupt.',
+      links: [
+        { label: 'Auto-rotate · A → B → C (D interrupts)', to: '/tv', note: 'Default cinematic rotation.' },
+        { label: 'Force state A · Welcome splash', to: '/tv?state=A' },
+        { label: 'Force state B · Leaderboard', to: '/tv?state=B' },
+        { label: 'Force state C · Top-10 spotlight', to: '/tv?state=C' },
+        { label: 'Force state D · New-agent interrupt', to: '/tv?state=D' },
+      ],
+    },
+    {
+      num: '04', id: 'doc', title: 'Design doc', formFactor: 'Reference',
+      blurb: 'End-to-end project summary: attendee flow, screen mockups, big-screen rotation, slider→QUBO mapping, architecture.',
+      links: [{ label: 'Open the design doc', to: '/design-doc.html', external: true, note: 'Full project summary in one page.' }],
+    },
+  ];
+}
 
 export default function Index() {
+  const surfaces = buildSurfaces(latestCreatedAgentId());
+  const glyphRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!glyphRef.current) return;
+    const seed = strHash('Quip Network · QTW 2026 Trading Competition');
+    // 'mixed' palette (coral + yellow + cyan + purple) matches the design-doc
+    // hero — more alive than the seed's monochrome coral, all brand colors.
+    renderGlyph(glyphRef.current, Object.assign({ seed, cell: 5 }, pickStyle(seed), { palette: 'mixed' }));
+  }, []);
+
+  const renderLink = (link: SurfaceLink) => {
+    const inner = (
+      <>
+        <span className="surf-link-label">{link.label}</span>
+        <span className="surf-link-to">{link.to}</span>
+        {link.note && <span className="surf-link-note">{link.note}</span>}
+      </>
+    );
+    return link.external ? (
+      <a key={link.to + link.label} className="surf-link" href={link.to}>{inner}</a>
+    ) : (
+      <Link key={link.to + link.label} className="surf-link" to={link.to}>{inner}</Link>
+    );
+  };
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', padding: '48px 24px 80px' }}>
-      <div style={{ maxWidth: 980, margin: '0 auto' }}>
-        <header style={{ marginBottom: 40 }}>
-          <div style={kickerStyle}>Quantum Tech World 2026 · MVP preview</div>
-          <h1 style={{ fontSize: 36, fontWeight: 700, margin: '8px 0 12px', letterSpacing: '-0.02em' }}>
-            Quip Network · QTW 2026 Trading Competition
-          </h1>
-          <p style={{ fontSize: 17, lineHeight: 1.55, color: '#52525b', maxWidth: 720, margin: 0 }}>
-            A booth activation where attendees name an agent, set five strategy sliders, and watch
-            their portfolio compete in real time — every retune is routed through the Quip Network.
-            This page lists every surface in the MVP so you can preview any of them in isolation.
+    <>
+      <a className="skip-link" href="#main">Skip to content</a>
+      <nav className="doc-nav" aria-label="Surfaces">
+        <div className="doc-nav-inner">
+          <a href="#top" className="doc-nav-brand"><span className="grad">QTW Trading Competition</span></a>
+          <ul className="doc-nav-list">
+            {surfaces.map(s => (
+              <li key={s.id}><a href={`#${s.id}`}><span className="num">{s.num}</span>{s.title}</a></li>
+            ))}
+          </ul>
+        </div>
+      </nav>
+
+      <div className="page landing-enter" id="top">
+        <header className="hero">
+          <div className="kicker">Quantum.Tech World 2026 · Trading Competition</div>
+          <div className="hero-title-row">
+            <h1>The Quip Network<br /><span className="grad">Trading Competition</span></h1>
+            <canvas ref={glyphRef} width={160} height={160} aria-label="Quip generative glyph"></canvas>
+          </div>
+          <p className="lede">
+            A booth activation where attendees name an agent, pick a watchlist from the 28-asset
+            universe, and tune three strategy sliders. Quip Network routes every re-optimization
+            across quantum and classical solvers; a leaderboard tracks P&amp;L across the conference.
           </p>
+
+          <div className="hero-facts">
+            <div><span>Format</span><strong>Booth kiosk + phone profile</strong></div>
+            <div><span>Dates</span><strong>Jun 25–26, 2026 · continuous</strong></div>
+            <div><span>Prize tier</span><strong>Top 10 win</strong></div>
+          </div>
         </header>
 
-        <section style={{ marginBottom: 40 }}>
-          <div style={kickerStyle}>Design doc</div>
-          <h2 style={{ fontSize: 22, fontWeight: 600, margin: '6px 0 12px' }}>Full project summary</h2>
-          <a
-            href="/design-doc.html"
-            style={{
-              ...cardStyle,
-              textDecoration: 'none',
-              color: '#18181b',
-              display: 'block',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 600, marginBottom: 4 }}>Open the design doc</div>
-                <div style={{ fontSize: 14, color: '#52525b', lineHeight: 1.5 }}>
-                  End-to-end project summary: reference activation, attendee flow, all screen mockups,
-                  big-screen rotation, scope, slider→QUBO mapping, architecture, glyph playground, and open TBDs.
-                </div>
-              </div>
-              <div style={{ fontSize: 18, color: '#71717a', flexShrink: 0 }}>→</div>
+        <main id="main">
+        {surfaces.map(s => (
+          <section id={s.id} key={s.id}>
+            <div className="kicker">{s.num} · {s.title}</div>
+            <div className="surf-head">
+              <h2>{s.title}</h2>
+              <span className="surf-form">{s.formFactor}</span>
             </div>
-          </a>
-        </section>
+            <p className="surf-blurb">{s.blurb}</p>
+            <div className="surf-links">{s.links.map(renderLink)}</div>
+          </section>
+        ))}
+        </main>
 
-        <section style={{ marginBottom: 40 }}>
-          <div style={kickerStyle}>Live MVP · React app</div>
-          <h2 style={{ fontSize: 22, fontWeight: 600, margin: '6px 0 16px' }}>Surfaces</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
-            {SURFACES.map(surface => (
-              <div key={surface.title} style={cardStyle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 600, margin: 0 }}>{surface.title}</h3>
-                  <span style={{ fontSize: 12, color: '#71717a', fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
-                    {surface.formFactor}
-                  </span>
-                </div>
-                <p style={{ fontSize: 14.5, color: '#52525b', margin: 0, lineHeight: 1.55 }}>{surface.blurb}</p>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {surface.links.map(link => (
-                    <Link key={link.to + link.label} to={link.to} style={linkStyle}>
-                      <span style={{ fontSize: 14.5, fontWeight: 500 }}>{link.label}</span>
-                      <span style={{ fontSize: 12, color: '#71717a', fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>
-                        {link.to}
-                      </span>
-                      {link.note && (
-                        <span style={{ fontSize: 12.5, color: '#52525b', marginTop: 2 }}>{link.note}</span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <footer style={{ borderTop: '1px solid #e4e4e7', paddingTop: 20, fontSize: 13, color: '#71717a' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <span>Source: <a href="https://gitlab.com/quip.network/qtw-tradinggame" style={{ color: '#52525b' }}>gitlab.com/quip.network/qtw-tradinggame</a></span>
-            <span>Mock data only — no real trading.</span>
-          </div>
+        <footer className="surf-foot">
+          <span>Source · <a href="https://gitlab.com/quip.network/qtw-tradinggame">gitlab.com/quip.network/qtw-tradinggame</a></span>
+          <span>Mock data only — no real trading.</span>
         </footer>
       </div>
-    </div>
+    </>
   );
 }

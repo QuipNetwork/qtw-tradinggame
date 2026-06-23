@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 
-from ...financial.types import PortfolioProblem
+from ...financial.types import PortfolioProblem, correlation_matrix
 from ..types import QuboMatrix, Solution, SolverFailed
 
 
@@ -32,7 +32,17 @@ class GurobiProvider:
         model = gp.Model("portfolio", env=env)
         model.setParam("TimeLimit", deadline_s)
 
-        w = model.addVars(N, lb=problem.w_min, ub=problem.w_max, name="w")
+        if problem.is_cardinality:
+            # True cardinality + semi-continuous MIQP (the gold-standard benchmark
+            # the QUBO solvers approximate): binary selectors, linked weights.
+            w = model.addVars(N, lb=0.0, ub=problem.w_max, name="w")
+            y = model.addVars(N, vtype=GRB.BINARY, name="y")
+            for i in range(N):
+                model.addConstr(w[i] <= problem.w_max * y[i])  # y=0 ⇒ w=0
+                model.addConstr(w[i] >= problem.w_min * y[i])  # y=1 ⇒ w≥w_min
+            model.addConstr(gp.quicksum(y[i] for i in range(N)) == problem.cardinality_k)
+        else:
+            w = model.addVars(N, lb=problem.w_min, ub=problem.w_max, name="w")
         model.addConstr(gp.quicksum(w[i] for i in range(N)) == 1.0)
 
         risk = gp.quicksum(
@@ -41,7 +51,18 @@ class GurobiProvider:
             for j in range(N)
         )
         ret = gp.quicksum(problem.mu[i] * w[i] for i in range(N))
-        model.setObjective(risk - ret, GRB.MINIMIZE)
+        objective = risk - ret
+        # Diversification / frustration reward β·Σ_{i<j} ρ_ij·y_i·y_j (cardinality only).
+        # Binary products make the objective indefinite → enable nonconvex MIQP.
+        if problem.is_cardinality and problem.frustration_beta:
+            rho = correlation_matrix(problem.Sigma)
+            objective = objective + gp.quicksum(
+                problem.frustration_beta * float(rho[i, j]) * y[i] * y[j]
+                for i in range(N)
+                for j in range(i + 1, N)
+            )
+            model.params.NonConvex = 2
+        model.setObjective(objective, GRB.MINIMIZE)
 
         t0 = time.perf_counter()
         model.optimize()

@@ -1,9 +1,7 @@
 """The 28-asset tradable universe — single source of truth for ticker metadata.
 
-Mirrors mvp/src/api/assets.ts (14 crypto + 14 stocks). NOTE: assets-api's
-registry (assets.yaml) still lists 25 — NVDA, MSFT, AMZN need to be added
-there before live-data baskets containing them will price. SPCX (private) has
-no provider — it needs a synthesized series in assets-api.
+Mirrors mvp/src/api/assets.ts and assets-api's assets.yaml: 14 crypto + 14
+stocks, all enabled in the live assets-api registry.
 """
 
 from __future__ import annotations

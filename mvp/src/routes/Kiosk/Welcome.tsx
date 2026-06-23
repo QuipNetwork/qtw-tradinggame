@@ -1,36 +1,75 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams, Navigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK, getAgentToken } from '../../api';
 import type { PortfolioEntry } from '../../api';
-import { renderGlyph, renderFakeQR, strHash, pickStyle } from '../../utils/glyph';
+import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
+import { renderQR } from '../../utils/qr';
+import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams } from '../../utils/strategy';
+import { useAgentLive } from '../../hooks/useAgentLive';
+import StatusScreen from '../../components/StatusScreen';
+import TickValue from '../../components/TickValue';
+import { WHOLE_USD, fmtUsd } from '../../utils/format';
 import KioskStage from './Stage';
+import ResetControl from './ResetControl';
 
 const BANKROLL = 10000;
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const agentId = params.get('agent');
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
+  const { update: live } = useAgentLive(agentId ?? undefined);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'auth' | 'error'>('loading');
+  const [retryNonce, setRetryNonce] = useState(0);
   const glyphRef = useRef<HTMLCanvasElement>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!agentId) return;
+    let cancelled = false;
+    setLoadState('loading');
     (async () => {
-      const a = await getAgent(agentId);
-      setAgent(a);
+      try {
+        const token = getAgentToken(agentId);
+        if (!IS_MOCK && !token) {
+          if (!cancelled) setLoadState('auth');
+          return;
+        }
+        const a = await getAgent(agentId);
+        if (cancelled) return;
+        if (!a) { setLoadState('notfound'); return; }
+        const storedQrUrl = readStoredQrUrl(agentId);
+        const secureQrUrl = storedQrUrl ?? (token ? `${window.location.origin}/p/${agentId}#t=${encodeURIComponent(token)}` : null);
+        if (!IS_MOCK && !secureQrUrl) {
+          setLoadState('auth');
+          return;
+        }
+        setAgent(a);
+        setQrUrl(secureQrUrl ?? `${window.location.origin}/p/${agentId}`);
 
-      const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
-      if (cachedRaw) {
-        try { setResult(JSON.parse(cachedRaw)); return; } catch { /* fall through */ }
+        const cachedRaw = readSessionItem('quip:lastResult:' + agentId);
+        if (cachedRaw) {
+          try {
+            setResult(JSON.parse(cachedRaw) as RoutingResult);
+            setLoadState('ready');
+            return;
+          } catch { /* fall through to a fresh solve */ }
+        }
+        const r = await requestOptimization(agentId);
+        if (cancelled) return;
+        setResult(r);
+        setLoadState('ready');
+      } catch (err) {
+        if (!cancelled) setLoadState(isAuthError(err) ? 'auth' : 'error');
       }
-      const r = await requestOptimization(agentId);
-      setResult(r);
     })();
-  }, [agentId]);
+    return () => { cancelled = true; };
+  }, [agentId, retryNonce]);
 
   useEffect(() => {
     if (!agent || !glyphRef.current) return;
@@ -43,35 +82,96 @@ export default function KioskWelcome() {
     }, style));
   }, [agent]);
 
+  // Depend on loadState too: the QR canvas only mounts once we're 'ready', so
+  // without this the effect runs during the loading screen (ref still null) and
+  // never re-fires → a blank QR.
   useEffect(() => {
-    if (!agent || !qrRef.current) return;
-    renderFakeQR(qrRef.current, 'qtw.quip.network/p/' + agent.name + (agent.handle ?? ''));
-  }, [agent]);
+    if (!agentId || loadState !== 'ready' || !qrRef.current) return;
+    if (!qrUrl) return;
+    renderQR(qrRef.current, qrUrl).catch(() => {});
+  }, [agentId, qrUrl, loadState]);
+
+  // Kiosk back-guard: neutralize the browser Back gesture so an accidental
+  // swipe/tap can't drop the attendee out of their completion screen before
+  // they've scanned. The attendant advances deliberately via "New entry".
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+    const onPop = () => window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   if (!agentId) return <Navigate to="/kiosk" replace />;
-  if (!agent) return null;
+  if (loadState === 'notfound') {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" title="We couldn't find that agent"
+            message="The link may be stale or the agent was reset. Start a new entry to play."
+            action={{ label: 'New entry →', href: '/kiosk' }} />
+        </div>
+      </KioskStage>
+    );
+  }
+  if (loadState === 'error') {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" title="Couldn't reach Quip Network"
+            message="We couldn't load this agent. Check the backend connection and try again."
+            action={{ label: 'Retry', onClick: () => setRetryNonce(n => n + 1) }} />
+        </div>
+      </KioskStage>
+    );
+  }
+  if (loadState === 'auth') {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" title="Secure profile link missing"
+            message="Start a new entry so the kiosk can generate a QR link with its access token."
+            action={{ label: 'New entry →', href: '/kiosk' }} />
+        </div>
+      </KioskStage>
+    );
+  }
+  if (!agent) {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" busy title="Routing through Quip…"
+            message="Solving your first portfolio across the quantum and classical providers." />
+        </div>
+      </KioskStage>
+    );
+  }
 
-  const portfolio = result?.portfolio ?? [];
+  const portfolio: PortfolioEntry[] = (live?.holdings?.length
+    ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd }))
+    : result?.portfolio ?? [])
+    // Drop any ticker the frontend doesn't know so the icon/color/class lookups
+    // below can't throw on a basket that's drifted from the backend universe.
+    .filter(e => ASSET_BY_TICKER[e.ticker]);
   // Holdings stay weight-sorted, but split into crypto / stocks so each class
   // reads as its own group (the combined allocation bar above keeps the whole).
   const cryptoHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'crypto');
   const stockHoldings = portfolio.filter(e => ASSET_BY_TICKER[e.ticker].class === 'stock');
   const dense = portfolio.length > 12;
+  // Re-keying the dollar value on change replays its flash, so each holding
+  // visibly ticks as its price moves.
   const allocRow = (entry: PortfolioEntry) => (
     <div className="v4m-alloc-row" key={entry.ticker}>
       <img className="v4m-alloc-icon" src={assetIconSrc(entry.ticker)} alt="" />
       <span className="v4m-alloc-name">{entry.ticker}</span>
-      <span className="v4m-alloc-pct">{entry.pct.toFixed(1)}%</span>
-      <span className="v4m-alloc-usd">${entry.usd.toLocaleString()}</span>
+      <span className="v4m-alloc-pct">{Math.round(entry.pct)}%</span>
+      <TickValue className="v4m-alloc-usd" value={Math.round(entry.usd)} text={fmtUsd(entry.usd)} />
     </div>
   );
   const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');
 
-  const isQpu = result?.providerType === 'QPU';
   const solveTime = result?.solveTime ?? 0.42;
-  const classicalTime = result ? Math.max(solveTime * result.vsClassical, solveTime + 0.1) : 5.88;
-  const qBarPct = isQpu ? Math.max(4, (solveTime / classicalTime) * 100) : 100;
-  const cBarPct = isQpu ? 100 : Math.max(4, (classicalTime / solveTime) * 100);
+  const raceRows = solverRaceRows(result);
+  const raceComparison = solverRaceComparison(result);
 
   return (
     <KioskStage>
@@ -79,25 +179,24 @@ export default function KioskWelcome() {
 
       <div className="v4m-nav">
         <div className="v4m-mark">
-          <svg className="quip-wm"><use href="#quip-wm" /></svg>
+          <svg className="quip-wm" role="img" aria-label="Quip Network"><use href="#quip-wm" /></svg>
           <div className="v4m-nav-divider"></div>
-          <span className="v4m-eyebrow">Quantum Tech World 2026 · Trading Competition</span>
+          <span className="v4m-eyebrow">Quantum.Tech World 2026 · Trading Competition</span>
         </div>
-        <span className="v4m-pill">Live · Sign-up</span>
+        <span className="v4m-pill">{IS_MOCK ? 'Demo' : 'Live'} · Sign-up</span>
       </div>
 
       <div className="v4m-hero">
-        <h1>Welcome to <span className="it">the competition.</span></h1>
+        <h1>Welcome to the <span className="it">quantum</span> trading competition.</h1>
+        <ResetControl onConfirm={() => navigate('/kiosk', { replace: true })} />
       </div>
 
-      <div className="v4m-body">
+      <main className="v4m-body">
 
         <section className="v4m-main">
-          <div style={{ marginBottom: 4 }}>
-            <span className="v4m-section-eyebrow cyan-dot cyan">Routed via Quip Network · Solved Just Now</span>
-          </div>
+          <div className="v4m-routed-banner">Routed via <span className="accent">Quip Network</span></div>
 
-          <span className="v4m-route-tag">{result?.providerType ?? 'QPU'}</span>
+          <span className={`v4m-route-tag${(result?.providerType ?? 'QPU') === 'CPU' ? ' classical' : ''}`}>Solved via {result?.providerType ?? 'QPU'}</span>
           <div className="v4m-main-hero">
             {/* Last word of the provider name gets the italic accent:
                 "D-Wave Advantage" → D-Wave <it>Advantage.</it>; "Atlas-9" → <it>Atlas-9.</it> */}
@@ -112,22 +211,25 @@ export default function KioskWelcome() {
               <span className="v4m-stat-lbl">Solve Time</span>
             </div>
             <div>
-              <div className="v4m-stat-mid">{result?.vsClassical ?? 14}×</div>
-              <span className="v4m-stat-lbl">Vs Classical</span>
+              <div className="v4m-stat-mid">{raceComparison.value}</div>
+              <span className="v4m-stat-lbl">{raceComparison.label}</span>
             </div>
           </div>
 
           <div className="v4m-race">
-            <div className="v4m-race-row">
-              <span className="v4m-race-label q">{(result?.provider ?? 'D-Wave').split(' ')[0]} · {result?.providerType ?? 'QPU'}</span>
-              <div className="v4m-race-bar"><div className="v4m-race-fill q" style={{ width: `${qBarPct}%` }}></div></div>
-              <span className="v4m-race-time">{(isQpu ? solveTime : classicalTime).toFixed(2)}s</span>
-            </div>
-            <div className="v4m-race-row">
-              <span className="v4m-race-label">Classical baseline</span>
-              <div className="v4m-race-bar"><div className="v4m-race-fill" style={{ width: `${cBarPct}%` }}></div></div>
-              <span className="v4m-race-time">{(isQpu ? classicalTime : solveTime).toFixed(2)}s</span>
-            </div>
+            {raceRows.map(row => (
+              <div className={`v4m-race-row${row.isWinner ? ' winner' : ''}${row.feasible ? '' : ' muted'}`} key={`${row.provider}-${row.status}`}>
+                  <span className={`v4m-race-label${row.isWinner ? ' q' : ''}`}>
+                    <span className="v4m-race-l1">
+                      {row.isWinner && <span className="v4m-race-star" aria-label="winner">★</span>}
+                      {row.provider.split(' ')[0]}
+                    </span>
+                    <span className="v4m-race-l2">{row.provider.split(' ').slice(1).join(' ')} {row.providerType}</span>
+                  </span>
+                <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
+                <span className="v4m-race-time">{row.timeLabel}</span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -140,7 +242,7 @@ export default function KioskWelcome() {
             </div>
             <div className="v4m-agent-bankroll">
               <div className="v4m-agent-bankroll-lbl">Bankroll</div>
-              <div className="v4m-agent-bankroll-num">${BANKROLL.toLocaleString()}</div>
+              <div className="v4m-agent-bankroll-num">${WHOLE_USD.format(BANKROLL)}</div>
             </div>
           </div>
 
@@ -153,34 +255,36 @@ export default function KioskWelcome() {
 
           {/* Portfolio — full width; holdings flow into two columns */}
           <div className="v4m-portfolio-block">
-            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}</span>
+            <span className="v4m-section-eyebrow">Your portfolio · {portfolio.length} holding{portfolio.length === 1 ? '' : 's'}{live?.stale ? ' · Last close' : ''}</span>
             <div className="v4m-alloc-stack" style={{ marginTop: 10 }}>
               {portfolio.map(entry => (
-                <span key={entry.ticker} style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
+                <span key={entry.ticker} className="v4m-alloc-seg" style={{ width: `${entry.pct}%`, background: assetColor(entry.ticker) }}></span>
               ))}
             </div>
-            {/* Grouped by class, weight-sorted within each. >12 holdings switches
-                to the dense three-column grid so even a full 28-asset basket fits. */}
-            {cryptoHoldings.length > 0 && (
-              <>
-                <div className="v4m-alloc-subhead">Crypto · {cryptoHoldings.length}</div>
-                <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
-                  {cryptoHoldings.map(allocRow)}
-                </div>
-              </>
-            )}
-            {stockHoldings.length > 0 && (
-              <>
-                <div className="v4m-alloc-subhead">Stocks · {stockHoldings.length}</div>
-                <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
-                  {stockHoldings.map(allocRow)}
-                </div>
-              </>
-            )}
+            <div className="v4m-holdings-scroll">
+              {/* Grouped by class, weight-sorted within each. >12 holdings switches
+                  to the dense three-column grid so even a full 28-asset basket fits. */}
+              {cryptoHoldings.length > 0 && (
+                <>
+                  <div className="v4m-alloc-subhead">Crypto · {cryptoHoldings.length}</div>
+                  <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
+                    {cryptoHoldings.map(allocRow)}
+                  </div>
+                </>
+              )}
+              {stockHoldings.length > 0 && (
+                <>
+                  <div className="v4m-alloc-subhead">Stocks · {stockHoldings.length}</div>
+                  <div className={`v4m-alloc-grid${dense ? ' dense' : ''}`}>
+                    {stockHoldings.map(allocRow)}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="v4m-agent-qr-row">
-            <canvas ref={qrRef} className="v4m-agent-qr" width={160} height={160}></canvas>
+            <canvas ref={qrRef} className="v4m-agent-qr" width={160} height={160} aria-hidden="true"></canvas>
             <div className="v4m-agent-qr-text">
               <div className="v4m-agent-qr-cap">Scan to open your profile.</div>
               <div className="v4m-agent-qr-sub">Live P&amp;L · Retune anytime</div>
@@ -189,8 +293,30 @@ export default function KioskWelcome() {
 
         </aside>
 
-      </div>
+      </main>
     </div>
     </KioskStage>
   );
+}
+
+function readSessionItem(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredQrUrl(agentId: string): string | null {
+  return readSessionItem('quip:qrUrl:' + agentId);
+}
+
+function isAuthError(error: unknown): boolean {
+  return backendStatus(error) === 401 || backendStatus(error) === 403;
+}
+
+function backendStatus(error: unknown): number | null {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === 'number' ? status : null;
 }

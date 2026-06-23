@@ -7,10 +7,21 @@ import type {
   AgentUpdate,
   AssetTicker,
   LeaderboardEntry,
+  OptimizePatch,
   PortfolioEntry,
   RoutingResult,
+  RoutingStats,
+  SolverResult,
+  SubmitAgentResponse,
+  SubscribeOptions,
+  TvEvent,
+  ValuationHistoryPoint,
 } from './types';
 import { ASSET_BY_TICKER } from './assets';
+import { rebalanceEveryHours } from '../utils/strategy';
+import { deriveUnits, driftSpot, markToMarket, SIM_BASE_SPOT, type Spot } from '../utils/mtm';
+
+const BANKROLL = 10000;
 
 const STORAGE_PREFIX = 'quip:agents:';
 
@@ -66,11 +77,12 @@ function delay<T>(value: T, ms = 250 + Math.random() * 350): Promise<T> {
   return new Promise(resolve => setTimeout(() => resolve(value), ms));
 }
 
-export async function submitAgent(config: AgentConfig): Promise<{ agentId: string; qrUrl: string }> {
+export async function submitAgent(config: AgentConfig): Promise<SubmitAgentResponse> {
   const agentId = uuid();
-  const qrUrl = `${window.location.origin}/p/${agentId}`;
+  const token = `mock-${agentId}`;  // mock has no real auth; mirror the real QR shape
+  const qrUrl = `${window.location.origin}/p/${agentId}#t=${token}`;
   localStorage.setItem(STORAGE_PREFIX + agentId, JSON.stringify({ ...config, agentId, createdAt: Date.now() }));
-  return delay({ agentId, qrUrl });
+  return delay({ agentId, qrUrl, token });
 }
 
 export async function getAgent(agentId: string): Promise<AgentConfig | null> {
@@ -90,7 +102,13 @@ export async function updateAgent(agentId: string, patch: Partial<AgentConfig>):
   return delay(next);
 }
 
-export async function requestOptimization(agentId: string): Promise<RoutingResult> {
+export async function requestOptimization(
+  agentId: string,
+  patch: OptimizePatch = {},
+): Promise<RoutingResult> {
+  if (patch.sliders || patch.assets) {
+    await updateAgent(agentId, patch);
+  }
   const agent = await getAgent(agentId);
   const portfolio = portfolioFor(
     agentId,
@@ -98,45 +116,278 @@ export async function requestOptimization(agentId: string): Promise<RoutingResul
     agent?.sliders.maxPositionSize ?? 50,
     agent?.sliders.riskPreference ?? 50,
   );
+  const intervalHours = rebalanceEveryHours(agent?.sliders.rebalanceFrequency ?? 50);
+  // intervalHours is null when the cadence is Off — no scheduled rebalance.
+  const nextRebalanceAt =
+    intervalHours == null ? null : new Date(Date.now() + intervalHours * 60 * 60 * 1000).toISOString();
   const isQuantum = Math.random() < 0.8;
   if (isQuantum) {
     const qpu = 0.25 + Math.random() * 0.6;          // 0.25–0.85s
     const classical = 3.5 + Math.random() * 4.5;     // 3.5–8s
+    const solverResults: SolverResult[] = [
+      {
+        provider: 'D-Wave Advantage',
+        providerType: 'QPU' as const,
+        status: 'winner',
+        feasible: true,
+        solveTime: qpu,
+        raceTime: qpu + 0.08,
+      },
+      {
+        provider: 'Simulated Annealing',
+        providerType: 'CPU' as const,
+        status: 'feasible',
+        feasible: true,
+        solveTime: classical,
+        raceTime: classical,
+      },
+    ];
     return delay({
       provider: 'D-Wave Advantage',
       providerType: 'QPU' as const,
       solveTime: qpu,
       vsClassical: Math.round((classical / qpu) * 10) / 10,
       portfolio,
+      solverResults,
+      nextRebalanceAt,
+      rebalanceIntervalHours: intervalHours,
     });
   }
   const c = CLASSICAL_PROVIDERS[Math.floor(Math.random() * CLASSICAL_PROVIDERS.length)];
   const cpu = 1.6 + Math.random() * 1.0;
   const qpu = Math.max(0.4, cpu - 0.4 - Math.random() * 0.3);
+  const solverResults: SolverResult[] = [
+    {
+      provider: c.name,
+      providerType: 'CPU' as const,
+      status: 'winner',
+      feasible: true,
+      solveTime: cpu,
+      raceTime: cpu,
+    },
+    {
+      provider: 'D-Wave Advantage',
+      providerType: 'QPU' as const,
+      status: 'infeasible',
+      feasible: false,
+      solveTime: qpu,
+      raceTime: qpu + 0.35,
+    },
+  ];
   return delay({
     provider: c.name,
     providerType: 'CPU' as const,
     solveTime: cpu,
     vsClassical: Math.round((qpu / cpu) * 10) / 10,
     portfolio,
+    solverResults,
+    nextRebalanceAt,
+    rebalanceIntervalHours: intervalHours,
   });
 }
 
-export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
-  return delay(TOP_10);
+// Live leaderboard simulation: each poll nudges every agent's total by a small
+// random walk (slight upward bias), re-sorts, and reassigns ranks — so the TV
+// board visibly moves and occasionally reshuffles, mirroring the backend MTM.
+let boardState: LeaderboardEntry[] | null = null;
+
+function tickBoard(): LeaderboardEntry[] {
+  if (!boardState) boardState = TOP_10.map(entry => ({ ...entry }));
+  for (const entry of boardState) {
+    const drift = (Math.random() - 0.48) * 14;       // slight upward bias
+    const total = Math.max(9200, entry.total + drift);
+    entry.total = total;
+    entry.plUSD = Math.round(total - 10000);
+    entry.plPct = Math.round((entry.plUSD / 10000) * 10000) / 100;
+    if (Math.random() < 0.05) entry.jobsSolved += 1;
+  }
+  boardState.sort((a, b) => b.total - a.total);
+  boardState.forEach((entry, i) => { entry.rank = i + 1; });
+  return boardState.map(entry => ({ ...entry }));
 }
 
-export function subscribeAgent(agentId: string, callback: (update: AgentUpdate) => void): () => void {
-  const baseTotal = (TOP_10.find(a => a.agentId === agentId)?.total) ?? 10000;
-  let total = baseTotal;
-  const interval = setInterval(() => {
-    const drift = (Math.random() - 0.45) * 8;       // slight upward bias
-    total = Math.max(9000, Math.min(15000, total + drift));
-    const plUSD = Math.round((total - 10000));
-    const plPct = Math.round((plUSD / 10000) * 10000) / 100;
-    callback({ plUSD, plPct, total: Math.round(total) });
-  }, 3000);
-  return () => clearInterval(interval);
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  return delay(tickBoard(), 120);
+}
+
+// Live routing-stats simulation: a solve lands now and then; the QPU wins most.
+const routingState = { total: 10, qpuWins: 8, cpuWins: 2 };
+
+export async function getRoutingStats(): Promise<RoutingStats> {
+  if (Math.random() < 0.35) {
+    routingState.total += 1;
+    if (Math.random() < 0.8) routingState.qpuWins += 1;
+    else routingState.cpuWins += 1;
+  }
+  const { total, qpuWins, cpuWins } = routingState;
+  const qpuPct = Math.round((qpuWins / total) * 100);
+  const cpuPct = 100 - qpuPct;
+  // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU.
+  const now = Date.now();
+  const recent = Array.from({ length: 16 }, (_, i) => {
+    const qpu = i % 6 !== 2;                       // ~1 in 6 is a CPU win
+    const winSec = qpu ? 0.1 + Math.random() * 0.25 : 1.6 + Math.random();
+    const vsSec = qpu
+      ? 3.5 + Math.random() * 3.5
+      : Math.max(0.4, winSec - 0.5 - Math.random() * 0.3);
+    return {
+      provider: qpu ? 'dwave' : 'sa',
+      providerType: (qpu ? 'QPU' : 'CPU') as 'QPU' | 'CPU',
+      solveTime: Math.round(winSec * 100) / 100,
+      vsTime: Math.round(vsSec * 100) / 100,
+      solvedAt: new Date(now - i * 47_000).toISOString(),
+    };
+  });
+  return delay({
+    total,
+    qpuWins,
+    cpuWins,
+    qpuPct,
+    cpuPct,
+    providers: [
+      { provider: 'dwave', providerType: 'QPU', count: qpuWins, pct: qpuPct },
+      { provider: 'sa', providerType: 'CPU', count: cpuWins, pct: cpuPct },
+    ],
+    recent,
+  });
+}
+
+export async function getValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  const agent = TOP_10.find(row => row.agentId === agentId);
+  if (!agent) {
+    return delay([
+      {
+        total: 10000,
+        plUSD: 0,
+        plPct: 0,
+        asOf: new Date().toISOString(),
+        stale: false,
+      },
+    ], 120);
+  }
+  const finalTotal = agent?.total ?? 10000;
+  const count = Math.max(2, Math.min(limit, 32));
+  const seed = [...agentId].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const startedAt = Date.now() - (count - 1) * 60_000;
+  const points = Array.from({ length: count }, (_, i) => {
+    const t = count === 1 ? 1 : i / (count - 1);
+    const wiggle = Math.sin(seed + i * 1.7) * 22 * (1 - Math.abs(t - 0.5));
+    const total = 10000 + (finalTotal - 10000) * t + wiggle;
+    const plUSD = total - 10000;
+    return {
+      total,
+      plUSD,
+      plPct: plUSD / 100,
+      asOf: new Date(startedAt + i * 60_000).toISOString(),
+      stale: false,
+    };
+  });
+  return delay(points, 120);
+}
+
+// Seeded per-agent/ticker offset so each demo agent opens with a distinct,
+// stable starting P&L (units are derived at the flat base; the live spot then
+// opens already nudged). Deterministic — the same agent renders the same open.
+function seededOffset(agentId: string, ticker: string): number {
+  let h = 2166136261;
+  const s = `${agentId}:${ticker}`;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const unit = ((h >>> 0) % 1000) / 1000;   // [0, 1)
+  return (unit * 2 - 1) * 0.03;             // ±3% opening drift
+}
+
+// Mock live feed — mirrors the backend mark-to-market loop. Builds the agent's
+// portfolio (the same allocation the optimize call returns), fixes token units,
+// then drifts each spot by a small vol-scaled random walk every tick and emits
+// the full holdings array so the allocation bar, per-holding rows, total, and
+// sparkline all move offline exactly as they would against the live backend.
+export function subscribeAgent(
+  agentId: string,
+  callback: (update: AgentUpdate) => void,
+  options: SubscribeOptions = {},
+): () => void {
+  options.onStatus?.('connecting');
+  let cancelled = false;
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  (async () => {
+    const agent = await getAgent(agentId);
+    if (cancelled) return;
+    const portfolio = portfolioFor(
+      agentId,
+      agent?.assets,
+      agent?.sliders.maxPositionSize ?? 50,
+      agent?.sliders.riskPreference ?? 50,
+    );
+    const baseSpot: Spot = {};
+    for (const entry of portfolio) baseSpot[entry.ticker] = SIM_BASE_SPOT;
+    const units = deriveUnits(
+      portfolio.map(entry => ({ ticker: entry.ticker, usd: entry.usd })),
+      baseSpot,
+    );
+    const spot: Spot = {};
+    const vol: Record<string, number> = {};
+    for (const entry of portfolio) {
+      spot[entry.ticker] = SIM_BASE_SPOT * (1 + seededOffset(agentId, entry.ticker));
+      vol[entry.ticker] = ASSET_BY_TICKER[entry.ticker]?.vol ?? 0.3;
+    }
+
+    const emit = () => {
+      const m = markToMarket(units, spot, BANKROLL);
+      callback({
+        plUSD: m.plUSD,
+        plPct: m.plPct,
+        total: m.total,
+        asOf: new Date().toISOString(),
+        stale: false,
+        holdings: m.holdings,
+      });
+    };
+
+    options.onStatus?.('live');
+    emit();
+    timer = setInterval(() => {
+      if (cancelled) return;
+      for (const ticker of Object.keys(spot)) {
+        spot[ticker] = driftSpot(spot[ticker], vol[ticker], Math.random);
+      }
+      emit();
+    }, 1500);
+  })();
+
+  return () => {
+    cancelled = true;
+    if (timer) clearInterval(timer);
+    options.onStatus?.('closed');
+  };
+}
+
+// Synthetic booth-wide TV events. Emits a new-agent "interrupt" on a timer so
+// the State D welcome is demonstrable offline — the real backend publishes the
+// same shape on /tv/events when an agent's first solve lands (orchestration/job.py).
+const DEMO_NEW_AGENTS = ['Coherent Carla', 'Tunneling Theo', 'Qubit Quokka', 'Bra-Ket Bo', 'Eigen Ada', 'Annealing Ana'];
+
+export function subscribeTvEvents(
+  callback: (event: TvEvent) => void,
+  options: SubscribeOptions = {},
+): () => void {
+  options.onStatus?.('live');
+  let i = 0;
+  const timer = setInterval(() => {
+    const name = DEMO_NEW_AGENTS[i % DEMO_NEW_AGENTS.length];
+    i += 1;
+    callback({ type: 'new-agent', agentId: `demo-${i}`, name });
+  }, 25_000);
+  return () => {
+    clearInterval(timer);
+    options.onStatus?.('closed');
+  };
 }
 
 // Builds the optimizer's "answer" from the agent's selected basket. EVERY
@@ -175,7 +426,7 @@ function portfolioFor(agentId: string, assets?: AssetTicker[], maxPositionSize =
     ? 0.99 - s * 0.19    // 28 assets: top ≈ 3.6% (Tiny) … ≈ 20% (Heavy)
     : 0.95 - s * 0.30;   // small baskets: near-equal … strongly concentrated
   const raw = ordered.map((_, i) => Math.pow(decay, i));
-  let total = raw.reduce((a, b) => a + b, 0);
+  const total = raw.reduce((a, b) => a + b, 0);
   let w = raw.map(v => v / total);
 
   // Apply the per-asset cap (relative to basket size — see strategy.ts

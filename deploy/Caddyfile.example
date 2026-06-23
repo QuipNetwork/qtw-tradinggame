@@ -1,0 +1,28 @@
+# Copy to /etc/caddy/Caddyfile on the DigitalOcean droplet, then reload Caddy.
+# Caddy automatically provisions and renews TLS certificates for the hostname.
+
+qtw.backend.quip.network {
+	encode zstd gzip
+
+	# Reject oversized request bodies before they're buffered (the API only takes
+	# small JSON; this caps a memory/CPU DoS on the single worker).
+	request_body {
+		max_size 64KB
+	}
+
+	# Security headers. HSTS (Caddy terminates TLS), no MIME sniffing, deny framing,
+	# trim the referrer, and don't advertise the server.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Overwrite X-Real-IP with the real peer so the backend's rate limiter can't be
+	# fooled by a client-supplied X-Forwarded-For. The app reads X-Real-IP first.
+	reverse_proxy 127.0.0.1:8000 {
+		header_up X-Real-IP {http.request.remote.host}
+	}
+}

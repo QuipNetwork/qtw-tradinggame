@@ -21,6 +21,4 @@ export type GlyphOpts = {
 
 export const strHash: (s: string) => number = Glyph.strHash;
 export const pickStyle: (seed: number, opts?: Partial<GlyphOpts>) => Partial<GlyphOpts> = Glyph.pickStyle;
-export const styleFromSliders: (seed: number, p1: number, p2: number, p3: number, p4: number, p5: number) => Partial<GlyphOpts> = Glyph.styleFromSliders;
 export const renderGlyph: (canvas: HTMLCanvasElement, opts: GlyphOpts) => void = Glyph.renderGlyph;
-export const renderFakeQR: (canvas: HTMLCanvasElement, seedStr: string) => void = Glyph.renderFakeQR;

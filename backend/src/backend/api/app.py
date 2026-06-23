@@ -1,11 +1,13 @@
 """FastAPI application factory.
 
 Wires the HTTP + WS routers, CORS for the MVP origins, and a lifespan that runs
-the MTM scheduler for the life of the server. Run locally with:
+both background loops: mark-to-market valuation and scheduled rebalances. Run
+locally with:
 
     uvicorn backend.api.app:app --reload --workers 1
 
-(``--workers 1`` while persistence is in-memory — see TODO.md.)
+Use one worker for the first production deployment because the event bus and
+schedulers are process-local.
 """
 
 from __future__ import annotations
@@ -20,8 +22,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .. import config
 from ..events.bus import get_bus
-from ..orchestration.scheduler import run_mtm_loop
+from ..orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
 from . import routes, ws
+from .ratelimit import SignupRateLimiter
 
 log = logging.getLogger(__name__)
 
@@ -46,24 +49,90 @@ def _check_market_source() -> None:
             )
 
 
+def _check_required_config() -> None:
+    """Refuse to boot in-memory for a real deploy (APP_ENV=production/booth) —
+    a restart would wipe every agent/job/valuation. All local/dev runs (local,
+    local-dev, local-smoke-*, …) keep the in-memory default."""
+    if config.APP_ENV.strip().lower() in config.DB_REQUIRED_ENVS and not config.DATABASE_URL:
+        raise RuntimeError(
+            f"APP_ENV={config.APP_ENV!r} requires DATABASE_URL "
+            "(refusing in-memory persistence for a real deploy — data would be lost "
+            "on restart). Set DATABASE_URL, or use a local APP_ENV for in-memory."
+        )
+
+
+def _configure_email_provider() -> None:
+    """Register SMTP when configured; otherwise reset to the no-op provider."""
+    from ..notifications.email import NoopEmailProvider, SmtpEmailProvider, set_email_provider
+
+    if not config.SMTP_ENABLED:
+        set_email_provider(NoopEmailProvider())
+        log.info("email provider: noop")
+        return
+
+    required = {
+        "SMTP_HOST": config.SMTP_HOST,
+        "SMTP_USERNAME": config.SMTP_USERNAME,
+        "SMTP_PASSWORD": config.SMTP_PASSWORD,
+        "SMTP_FROM": config.SMTP_FROM,
+    }
+    missing = [name for name, value in required.items() if not value]
+    if missing:
+        raise RuntimeError(f"SMTP_ENABLED requires {', '.join(missing)}")
+
+    set_email_provider(
+        SmtpEmailProvider(
+            host=config.SMTP_HOST,
+            port=config.SMTP_PORT,
+            username=config.SMTP_USERNAME,
+            password=config.SMTP_PASSWORD,
+            sender=config.SMTP_FROM,
+            timeout_s=config.SMTP_TIMEOUT_S,
+        )
+    )
+    log.info(
+        "email provider: smtp host=%s port=%s username=%s",
+        config.SMTP_HOST,
+        config.SMTP_PORT,
+        config.SMTP_USERNAME,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    _check_required_config()
+    _configure_email_provider()
     _check_market_source()
     stop = asyncio.Event()
-    task = asyncio.create_task(run_mtm_loop(get_bus(), stop))
+    bus = get_bus()
+    tasks = [
+        asyncio.create_task(run_mtm_loop(bus, stop)),
+        asyncio.create_task(run_scheduled_rebalance_loop(bus, stop)),
+    ]
     try:
         yield
     finally:
         stop.set()
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="QTW 2026 Trading Game", lifespan=lifespan)
+    # No public API explorer on a real deploy (production/booth); keep it locally.
+    docs_on = config.APP_ENV.strip().lower() not in config.DB_REQUIRED_ENVS
+    app = FastAPI(
+        title="QTW 2026 Trading Game",
+        lifespan=lifespan,
+        docs_url="/docs" if docs_on else None,
+        redoc_url="/redoc" if docs_on else None,
+        openapi_url="/openapi.json" if docs_on else None,
+    )
+    app.state.signup_limiter = SignupRateLimiter()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(config.CORS_ORIGINS),

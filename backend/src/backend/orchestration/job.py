@@ -12,19 +12,27 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .. import config
-from ..api.schemas import RoutingResult, SliderValues
-from ..financial.basket import validate_basket
+from ..api.schemas import RoutingResult, SliderValues, SolverResult
+from ..financial.basket import get_asset, validate_basket
 from ..financial.estimators.covariance import covariance
 from ..financial.estimators.expected_return import expected_return
 from ..financial.pnl import mark_to_market
 from ..financial.prices.base import MarketDataSource
 from ..financial.prices.source import get_source
 from ..financial.qubo_decoder import weights_to_portfolio
+from ..financial.qubo_encoder import resolve_frustration_beta
 from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
-from ..solvers.router import race
+from ..persistence.qpu_budget import (
+    QpuBudgetExceeded,
+    QpuBudgetSource,
+    QpuBudgetStore,
+    get_qpu_budget_store,
+)
+from ..solvers.providers import dwave
+from ..solvers.router import SolverRun, race
 from ..solvers.types import ProviderProvenance, Solution
 
 _PROVIDER_LABELS = {
@@ -56,6 +64,8 @@ def run_optimization(
     agents: AgentStore | None = None,
     jobs: JobStore | None = None,
     market: MarketDataSource | None = None,
+    qpu_budget: QpuBudgetStore | None = None,
+    source: QpuBudgetSource = "manual",
     deadline_s: float | None = None,
 ) -> OptimizeOutcome:
     """Run one job. Raises KeyError for unknown agents, ValueError for a bad
@@ -63,32 +73,42 @@ def run_optimization(
     agents = agents if agents is not None else get_agent_store()
     jobs = jobs if jobs is not None else get_job_store()
     market = market if market is not None else get_source()
+    qpu_budget = qpu_budget if qpu_budget is not None else get_qpu_budget_store()
 
     agent = agents.get(agent_id)
     if agent is None:
         raise KeyError(f"unknown agent {agent_id!r}")
 
-    if sliders is not None:
-        agents.update_sliders(agent_id, sliders)
-    if assets is not None:
-        agents.update_assets(agent_id, validate_basket(assets))
-    agent = agents.get(agent_id)
-
-    tickers = validate_basket(agent.assets)
-    params = map_sliders(agent.sliders, len(tickers))
+    candidate_sliders = sliders if sliders is not None else agent.sliders
+    tickers = validate_basket(assets if assets is not None else agent.assets)
+    params = map_sliders(candidate_sliders, len(tickers))
+    include_qpu = dwave.is_configured()
+    if include_qpu:
+        status = qpu_budget.status(agent_id)
+        if status.used >= status.limit:
+            raise QpuBudgetExceeded(status)
 
     # Σ over the fixed 720h window, μ over the fixed lookback within it.
     returns = market.hourly_returns(tickers, config.SIGMA_WINDOW_HOURS)
+    classes = [get_asset(t).asset_class for t in tickers]
     problem = PortfolioProblem(
         mu=expected_return(returns, config.MU_WINDOW_HOURS),
-        Sigma=covariance(returns),
+        Sigma=covariance(returns, classes),
         gamma=params.gamma,
         w_max=params.w_max,
         w_min=params.w_min,
         asset_tickers=tickers,
+        cardinality_k=params.cardinality_k,  # None in convex mode
+        n_units_M=params.n_units_M,
+        u_min_units=params.u_min_units,
     )
+    # β is config'd as a fraction of the objective scale (select encoding) → effective absolute β.
+    problem.frustration_beta = resolve_frustration_beta(problem)
 
-    race_result = race(problem, deadline_s=deadline_s)
+    qpu_budget_status = (
+        qpu_budget.reserve(agent_id, source=source) if include_qpu else qpu_budget.status(agent_id)
+    )
+    race_result = race(problem, deadline_s=deadline_s, include_qpu=include_qpu)
     winner = race_result.winner
 
     # Liquidate everything at spot, reallocate the full value by the winner's
@@ -106,12 +126,18 @@ def run_optimization(
         if w > 0.0
     }
 
+    if sliders is not None:
+        agents.update_sliders(agent_id, sliders)
+    if assets is not None:
+        agents.update_assets(agent_id, tickers)
+
     agents.apply_solve(
         agent_id,
         holdings_units=holdings_units,
         total=portfolio_value,
         provider_type=winner.provider_role,
     )
+    scheduled_agent = agents.get(agent_id)
     provenance = ProviderProvenance(
         provider=winner.provider,
         provider_role=winner.provider_role,
@@ -128,12 +154,38 @@ def run_optimization(
         solve_time=winner.solve_time_s,
         vs_classical=race_result.vs_classical,
         portfolio=weights_to_portfolio(winner.weights, tickers, portfolio_value),
+        solver_results=[
+            _solver_run_result(run, winner_provider=winner.provider)
+            for run in race_result.solver_runs
+        ],
         kind="first" if is_first else "retune",
         job_id=job.id,
         solved_at=job.solved_at,
+        next_rebalance_at=scheduled_agent.next_rebalance_at if scheduled_agent else None,
+        rebalance_interval_hours=(
+            scheduled_agent.rebalance_interval_hours if scheduled_agent else None
+        ),
+        qpu_budget=qpu_budget_status,
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id=agent_id,
+        sliders=(scheduled_agent.sliders if scheduled_agent else candidate_sliders).model_dump(
+            by_alias=True
+        ),
+        assets=tickers,
+        portfolio=[entry.model_dump() for entry in result.portfolio],
+        holdings_units=holdings_units,
+        solver_results=[_solver_run_summary(run) for run in race_result.solver_runs],
+        winner_provider=winner.provider,
     )
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
+    update.next_rebalance_at = scheduled_agent.next_rebalance_at if scheduled_agent else None
+    update.rebalance_interval_hours = (
+        scheduled_agent.rebalance_interval_hours if scheduled_agent else None
+    )
+    update.qpu_budget = qpu_budget_status
     events = [Event(channel=f"agent:{agent_id}", payload=update.model_dump(by_alias=True))]
     if is_first:
         events.append(
@@ -153,3 +205,31 @@ def run_optimization(
         solver_results=race_result.all_results,
         winner_provider=winner.provider,
     )
+
+
+def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
+    return SolverResult(
+        provider=_PROVIDER_LABELS.get(run.provider, run.provider),
+        providerType=run.provider_role,
+        status="winner" if run.provider == winner_provider else run.status,
+        feasible=run.feasible,
+        solveTime=run.solve_time_s,
+        raceTime=run.race_time_s,
+        objective=run.objective,
+        bestObjective=run.best_objective,
+        error=run.error,
+    )
+
+
+def _solver_run_summary(run: SolverRun) -> dict:
+    return {
+        "provider": run.provider,
+        "providerRole": run.provider_role,
+        "status": run.status,
+        "feasible": run.feasible,
+        "solveTime": run.solve_time_s,
+        "raceTime": run.race_time_s,
+        "objective": run.objective,
+        "bestObjective": run.best_objective,
+        "error": run.error,
+    }

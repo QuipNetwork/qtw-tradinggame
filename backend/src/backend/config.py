@@ -8,14 +8,22 @@ from __future__ import annotations
 
 import os
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # -----------------------------------------------------------------------------
 # Bankroll and basket
 # -----------------------------------------------------------------------------
 
 BANKROLL_USD: float = 10_000.0
-# Smallest basket the strategy meaningfully optimizes over; the kiosk's Select
-# button should mirror this gate.
-MIN_BASKET_SIZE: int = 3
+# Smallest basket accepted by the booth UI/API. The K slider then sub-selects a
+# smaller support from this watchlist.
+MIN_BASKET_SIZE: int = 15
 
 # -----------------------------------------------------------------------------
 # Estimation windows (hours)
@@ -26,6 +34,37 @@ MIN_BASKET_SIZE: int = 3
 SIGMA_WINDOW_HOURS: int = 720
 # Return lookback τ feeding μ — fixed, not user-facing. 7 days of hourly bars.
 MU_WINDOW_HOURS: int = 168
+
+# -----------------------------------------------------------------------------
+# Estimation from ragged real data (μ, Σ)
+# -----------------------------------------------------------------------------
+
+# We never fabricate returns: closed-hour and not-yet-listed gaps are missing,
+# not zero, and a stock's overnight jump is excluded (no consecutive-hour pair
+# spans it). So assets carry unequal observation counts — crypto ~720/30d,
+# stocks ~140, a freshly-listed name far fewer — and Σ is built from pairwise
+# overlaps, which can be ragged or indefinite. These knobs keep μ/Σ robust;
+# none are user-facing.
+
+# Minimum real returns for a trusted mean/variance. Below it, μ falls back to 0
+# (hold for diversification, don't chase a mean from a handful of points) and
+# the variance to its class-median floor (so a thin asset can't read as calm).
+MIN_RETURN_OBS: int = 24
+# Minimum overlapping returns for a covariance cell; below it cov(i,j) = 0
+# (treat the pair as uncorrelated rather than trust a few-sample estimate).
+MIN_COV_PAIRS: int = 20
+# Shrinkage toward the diagonal, Σ ← (1−δ)Σ + δ·diag(Σ): damps noisy off-diagonal
+# correlations. A stability step, NOT a PSD guarantee (see COV_EIG_FLOOR_REL).
+COV_SHRINKAGE: float = 0.2
+# Implied-correlation cap: few-sample overlaps can imply |corr| > 1 against the
+# full-window variances; clip covariances so |corr| ≤ this before shrinkage.
+COV_MAX_ABS_CORR: float = 0.99
+# PSD repair after shrinkage: floor eigenvalues at this fraction of the mean
+# variance so the matrix the solvers see is always positive semidefinite.
+COV_EIG_FLOOR_REL: float = 1e-4
+# Last-resort hourly variance when a whole class has too little data to floor
+# against (degenerate baskets only).
+COV_DEFAULT_VAR: float = 1e-4
 
 # -----------------------------------------------------------------------------
 # Slider → param ranges (single source of truth, used by slider_map)
@@ -45,26 +84,30 @@ W_MAX_CEILING: float = 0.5
 MIN_POSITION_FRACTION: float = 0.25
 
 # Rebalance-frequency slider tiers → scheduled re-optimization cadence (hours).
-# Hourly is the hard cap: quantum jobs cost real money (mirrors strategy.ts).
-REBALANCE_TIERS_HOURS: tuple[int, ...] = (24, 8, 4, 2, 1)
+# None = Off; 0.5 = 30m. The QPU token bucket remains the admission guard.
+REBALANCE_TIERS_HOURS: tuple[float | None, ...] = (None, 12.0, 8.0, 4.0, 2.0, 1.0, 0.5)
 
 # -----------------------------------------------------------------------------
 # QUBO encoding hyperparameters
 # -----------------------------------------------------------------------------
 
-# Bits per asset across [w_min, w_max]. Large baskets drop to 3 bits: with b=4
-# the budget couplings span a 64× range, and past ~60 variables the QPU's
-# auto-scaling pushes the low-bit couplings below coupler precision — the chip
-# can't feel them and Σw drifts. Fewer bits = coarser grid (normalization
-# absorbs it) but a landscape the hardware can actually represent.
+# Bits per asset across [w_min, w_max]. Large baskets drop to 2 bits: QPU feasibility
+# is governed by variable count, not bit depth, so halving the variables claws back
+# feasible reads (b=3 is dominated by b=2 → skip it). Coarser grid (4 levels) is
+# absorbed by simplex normalization. Sweep numbers in CLAUDE.md.
 BIT_PRECISION: int = 4
-BIT_PRECISION_LARGE: int = 3
+BIT_PRECISION_LARGE: int = 2
 QUBO_PREFERRED_MAX_VARS: int = 60  # use BIT_PRECISION while n·b stays within this
-# λ_sum = mult × max objective coefficient. Large enough that SA's worst-case
-# budget violation stays under half a grid step (≈ 1/(2·Δ·u_top) ≈ 460 for the
-# full-universe basket), small enough that the objective isn't crushed below QPU
-# precision after coupler auto-scaling.
-PENALTY_MULT_BUDGET: float = 500.0
+# Penalty:objective PEAK-COEFFICIENT ratio: max|A_budget| = mult × max|A_obj|
+# (encoder normalizes λ_sum by u_max², so this ratio is invariant to basket size,
+# bit depth, and w_max). Under the old un-normalized λ_sum = mult × max|A_obj|,
+# the *effective* ratio was mult·u_max² and swung from ~0.15 (low w_max) to ~39
+# (w_max=0.5) for a 25-asset basket — the low end is where Σw drifted. 12.0 sits
+# in the empirically-working band (~10–40, mid max-position slider), high enough
+# to hold the budget across all configs, low enough to keep the objective above
+# QPU coupler precision. NOTE: re-verify on hardware (`qtw verify-dwave`) and
+# re-tune within ~10–40 if large-basket feasibility regresses.
+PENALTY_MULT_BUDGET: float = 12.0
 
 # A QUBO solver's weights live on a discrete grid (and the QPU adds analog
 # noise), so Σw=1 is only approximate. Decoded sums within this tolerance of 1
@@ -72,6 +115,62 @@ PENALTY_MULT_BUDGET: float = 500.0
 # stays as the backstop (a >10% rescale pushes weights past w_min/w_max + ε,
 # so genuinely bad reads still fail).
 QUBO_NORMALIZE_TOL: float = 0.10
+
+# -----------------------------------------------------------------------------
+# Optimization mode — which problem the race solves
+# -----------------------------------------------------------------------------
+
+# "cardinality" (default): cardinality-constrained, semi-continuous MIQP — the
+# optimizer sub-selects exactly K of the player's basket and weights them on an
+# integer-unit grid (genuinely non-convex; the QPU has structure to exploit).
+# "convex": the original mean-variance box-QP fallback (every basket asset held).
+OPTIMIZATION_MODE: str = os.environ.get("OPTIMIZATION_MODE", "cardinality").lower()
+
+# cardinality integer-unit grid: weights live on M units, w_i = u_i/M, so the budget
+# Σu=M is exactly representable (no normalize crutch). The layout costs n·(1+b)
+# variables with b = log2(M)−1 (u_min=1, grid [1/M, 0.5]). M is NOT fixed — it's the
+# smallest power of two that fits K (M ≥ K units for K held), clamped to [MIN, MAX]:
+# small K → small M → fewer vars → QPU-feasible. See qubo_encoder.units_for_cardinality.
+CARDINALITY_MIN_UNITS: int = 8  # floor (b=2, 4 weight levels) — granularity vs feasibility
+CARDINALITY_MAX_UNITS: int = 32  # cap (b=4) — M ≥ K so this also caps K at 32 ≥ universe
+CARDINALITY_U_MIN: int = 1
+# Size-aware grid budget. Like the convex QUBO_PREFERRED_MAX_VARS, the grid M is raised
+# toward a FINER resolution (more weight levels ≈ closer to continuous) for SMALL baskets
+# that stay embeddable, and kept COARSE (b=2) for large baskets so the dense QUBO still
+# embeds. Pick the largest M with vars = N·log2(M) ≤ this (then floor at M ≥ K). At 72:
+# b=4 (16 levels) up to ~14 assets, b=3 to ~18, b=2 above. See units_for_grid.
+CARDINALITY_PREFERRED_MAX_VARS: int = 72
+# Cardinality / linking penalty peak-coefficient ratios, normalized like
+# PENALTY_MULT_BUDGET (which the budget term reuses). See encode_penalized.
+CARDINALITY_PENALTY_MULT_CARD: float = 12.0
+CARDINALITY_PENALTY_MULT_LINK: float = 12.0
+# Diversification / "frustration" reward (β). Adds β·Σ_{i<j} ρ_ij·x_i x_j to the objective —
+# penalizes co-selecting correlated assets, making the SELECTION landscape rugged (competing
+# pairwise pulls → many local minima) so D-Wave can out-search SA on portfolio quality. For the
+# SELECT encoding this value is a FRACTION of the per-problem objective scale (resolve_frustration_beta
+# scales it per basket, so the relative pressure is basket-invariant); it applies only to the select
+# encoding. 0 = off. This is the PEAK fraction, reached at LARGE baskets — β is RAMPED by basket size
+# (below): OOS backtests show its benefit grows with N and it hurts tiny baskets
+# (qpu-experiment-synthesis-2026-06-22.md §7/§9). See also qpu-c2-beta-findings.md.
+CARDINALITY_FRUSTRATION_BETA: float = float(os.environ.get("CARDINALITY_FRUSTRATION_BETA", 0.4))
+# N-aware β ramp: 0 below N_MIN (small baskets — β over-penalizes, hurts OOS), rising linearly to the
+# full CARDINALITY_FRUSTRATION_BETA at/above N_FULL. N_FULL = the booth universe (28), so a full booth
+# basket reaches FULL β (rugged landscape → D-Wave wins the race on portfolio quality; verified on
+# real data — see qpu-experiment-synthesis §QPU race) while smaller player baskets ramp down toward
+# plain MV (OOS-safe). When the universe expands past 28 (deferred), raise N_FULL so the larger
+# baskets aren't over-rugged. At N=28 this now lands at the full 0.4 (was ≈0.23 with N_FULL=40).
+CARDINALITY_BETA_N_MIN: int = int(os.environ.get("CARDINALITY_BETA_N_MIN", 12))
+CARDINALITY_BETA_N_FULL: int = int(os.environ.get("CARDINALITY_BETA_N_FULL", 28))
+
+# cardinality QUBO encoding:
+#   "select" (C2, DEFAULT): penalty-free SELECTION-ONLY QUBO (one bit/asset, objective + β only).
+#     The greedy projector enforces exactly-K and a convex QP (financial.weighting) sets the
+#     weights — both classical — so EVERY read is feasible and D-Wave is no longer handicapped.
+#     With CARDINALITY_FRUSTRATION_BETA > 0 (rugged landscape) D-Wave beats SA on portfolio quality.
+#     See qpu-c2-beta-findings.md.
+#   "penalized" (legacy): integer-units selection QUBO with budget+cardinality+linking penalties
+#     (weights solved on the QPU; ~10% feasible at scale → the QPU is handicapped).
+CARDINALITY_ENCODING: str = os.environ.get("CARDINALITY_ENCODING", "select").lower()
 
 # -----------------------------------------------------------------------------
 # Feasibility tolerances (V0 quality bar)
@@ -89,32 +188,124 @@ EPS_BOX: float = 1e-3  # wᵢ ≤ w_max + EPS_BOX
 # SA (CPU) vs D-Wave (QPU). GUROBI_IN_RACE=0 to preview the production field.
 GUROBI_IN_RACE: bool = os.environ.get("GUROBI_IN_RACE", "1").lower() not in ("0", "false")
 
+# How the race picks the WINNER:
+#   "objective" (default): the best feasible PORTFOLIO (lowest objective), tie-broken by speed
+#     within RACE_WINNER_OBJECTIVE_TOL — equal-quality solvers fall back to fastest, but a
+#     materially better portfolio wins regardless of speed (so the booth shows "the quantum
+#     computer found the best portfolio", with time reported alongside).
+#   "speed": legacy fastest-feasible.
+RACE_WINNER_BY: str = os.environ.get("RACE_WINNER_BY", "objective").lower()
+# Relative tolerance for the objective tie-break: solvers within this fraction of the best
+# objective are a quality tie and ranked by speed (β=0 → both optimal → faster wins; a β>0
+# quality gap of ~1%+ → the better portfolio wins).
+RACE_WINNER_OBJECTIVE_TOL: float = float(os.environ.get("RACE_WINNER_OBJECTIVE_TOL", 0.005))
+
 # -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------
 
-# All three knobs are env-overridable for tuning sweeps, e.g.
+# All knobs are env-overridable for tuning sweeps, e.g.
 #   DWAVE_CHAIN_STRENGTH_PREFACTOR=4 qtw verify-dwave
-DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # parity with SA
-DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 100))
+DWAVE_NUM_READS: int = int(os.environ.get("DWAVE_NUM_READS", 500))  # fallback / verify-dwave
+# Anneal time. The 2026-06-20 real-data sweep showed BOTH feasibility and objective
+# quality are flat across 20–500µs; longer anneal slightly REDUCES feasibility and costs
+# 2–3× more QPU access time. So use the short end — faster, no quality cost.
+DWAVE_ANNEAL_TIME_US: int = int(os.environ.get("DWAVE_ANNEAL_TIME_US", 20))
+
+# num_reads scaled to QUBO size, FLOORED at 500 to match SA's baseline (apples-to-apples
+# at both ends — D-Wave and SA draw the same minimum). Large baskets get more reads to
+# catch a rare feasible sample (feasible-reads scale ~linearly); capped at 1000. One QPU
+# job, so wall-clock stays cheap. Tiers: (max_vars_inclusive, num_reads), first match.
+DWAVE_READS_BY_VARS: tuple[tuple[int, int], ...] = (
+    (48, 500),
+    (72, 600),
+    (10**9, 1000),
+)
+# Spin-reversal transforms (gauge averaging, ~1.35× feasibility via ICE cancellation).
+# DISABLED in the race: the only API is the client-side composite, which runs each gauge
+# as a separate cloud job → blows the wall-clock deadline. Plumbing (srt_for_vars,
+# _get_srt_sampler) kept for offline use. Tiers: (max_vars, n_transforms).
+DWAVE_SRT_BY_VARS: tuple[tuple[int, int], ...] = ((10**9, 0),)
 # Chain strength = uniform torque compensation × this prefactor. Raise if
 # verify-dwave reports chain breaks above ~5% (long chains need stronger bonds).
 # ×3 from hardware sweeps: ×2 leaves ~17% chain breaks at 75+ vars; ×3 gives
 # 0.4% there with margin to spare at small baskets.
 DWAVE_CHAIN_STRENGTH_PREFACTOR: float = float(os.environ.get("DWAVE_CHAIN_STRENGTH_PREFACTOR", 3.0))
+# Optional solver topology constraint ("pegasus" | "zephyr"); empty → Leap's default
+# (lets the more-connected Advantage2/Zephyr be selected as it matures). A knob for
+# experiments, not a hard pin.
+DWAVE_SOLVER_TOPOLOGY: str = os.environ.get("DWAVE_SOLVER_TOPOLOGY", "")
+
+# Per-agent QPU admission budget. Limits optimization attempts that include
+# D-Wave in the race; CPU-only runs are unaffected. QPU access is ~0.13–0.3 s per
+# solve, so one hour of QPU time covers booth retunes comfortably (~12k–27k solves)
+# — this cap is the per-agent retune cooldown / anti-spam knob, NOT a booth-wide
+# budget gate. Set to 8 / 10 min (a retune ≈ every 75 s) now that the cost is known.
+QPU_BUDGET_MAX_ATTEMPTS: int = int(os.environ.get("QPU_BUDGET_MAX_ATTEMPTS", 8))
+QPU_BUDGET_WINDOW_S: int = int(os.environ.get("QPU_BUDGET_WINDOW_S", 600))
+
+# Anti-abuse rate limit on agent creation (POST /agents). In-memory, keyed by client
+# IP (X-Forwarded-For) + a booth-wide hourly ceiling — bounds a scripted flood of
+# fresh agents (each grants a new QPU budget). Single-worker deploy → process-local.
+SIGNUP_RATE_PER_IP: int = int(os.environ.get("SIGNUP_RATE_PER_IP", 10))
+SIGNUP_RATE_WINDOW_S: int = int(os.environ.get("SIGNUP_RATE_WINDOW_S", 600))
+SIGNUP_RATE_GLOBAL_PER_HOUR: int = int(os.environ.get("SIGNUP_RATE_GLOBAL_PER_HOUR", 300))
 
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------
 
-SOLVER_DEADLINE_S: float = 2.0  # per-solver wall-clock budget
-RACE_OVERALL_DEADLINE_S: float = 3.0  # outer cap on the parallel race
+SOLVER_DEADLINE_S: float = 10.0  # per-solver wall-clock budget (also Gurobi TimeLimit)
+RACE_OVERALL_DEADLINE_S: float = 10.0  # outer cap on the parallel race (the binding deadline)
+# Headroom raised to 10s: SA now matches D-Wave's read budget (up to 1000 reads) on large
+# baskets, and D-Wave wall-clock includes cloud queue+round-trip.
 
 # -----------------------------------------------------------------------------
-# MTM tick cadence (seconds)
+# MTM tick cadence (seconds). Match assets-api's default SPOT_INTERVAL=10s so
+# the backend usually publishes after the spot cache can actually change.
 # -----------------------------------------------------------------------------
 
-MTM_TICK_S: float = 3.0
+MTM_TICK_S: float = float(os.environ.get("MTM_TICK_S", 10.0))
+REBALANCE_CHECK_TICK_S: float = 15.0
+REBALANCE_RETRY_BACKOFF_S: float = 60.0
+VALUATION_SNAPSHOT_INTERVAL_S: float = float(os.environ.get("VALUATION_SNAPSHOT_INTERVAL_S", 60.0))
+
+# -----------------------------------------------------------------------------
+# Persistence
+# -----------------------------------------------------------------------------
+
+# Unset -> in-memory stores (tests/offline/local default). Set -> SQL-backed
+# stores, typically Supabase Postgres in production.
+DATABASE_URL: str | None = os.environ.get("DATABASE_URL")
+# Marks rows created by local/dev/booth runs so a single Supabase project can be
+# cleaned up safely after local testing.
+APP_ENV: str = os.environ.get("APP_ENV", "local")
+# Only the real deploy values require DATABASE_URL — the app refuses to start
+# in-memory there (data would vanish on restart). Every other value (local,
+# local-dev, local-container, local-smoke-*, …) may run in-memory. See
+# api/app.py:_check_required_config and docs/DEPLOY.md.
+DB_REQUIRED_ENVS: frozenset[str] = frozenset({"production", "booth"})
+
+# Cap on concurrent optimization solves (one process-wide gate; single-worker
+# deploy). Bounds worker threads + assets-api / QPU pressure under a retune burst.
+SOLVE_CONCURRENCY: int = int(os.environ.get("SOLVE_CONCURRENCY", 4))
+
+# -----------------------------------------------------------------------------
+# Email / Proton SMTP
+# -----------------------------------------------------------------------------
+
+# SMTP credentials are backend-only deployment secrets. In production they live
+# in `/opt/qtw/backend.env`, never in Netlify/browser env.
+SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
+SMTP_PORT: int = int(os.environ.get("SMTP_PORT", 587))
+SMTP_USERNAME: str = os.environ.get("SMTP_USERNAME", "")
+SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM: str = os.environ.get(
+    "SMTP_FROM",
+    f"Quip Network <{SMTP_USERNAME}>" if SMTP_USERNAME else "",
+)
+SMTP_TIMEOUT_S: float = float(os.environ.get("SMTP_TIMEOUT_S", 10.0))
+SMTP_ENABLED: bool = _env_bool("SMTP_ENABLED", False)
 
 # -----------------------------------------------------------------------------
 # Market data source
@@ -123,8 +314,14 @@ MTM_TICK_S: float = 3.0
 # "assets-api" → the assets-api price-indexing service (REST, SQLite-backed);
 # "synthetic" → deterministic stand-in (no network — tests and offline demos).
 MARKET_DATA_SOURCE: str = os.environ.get("MARKET_DATA_SOURCE", "assets-api")
-ASSETS_API_BASE_URL: str = os.environ.get("ASSETS_API_BASE_URL", "http://127.0.0.1:8080")
+# Live deployment (28-asset registry). Override with a local Docker address
+# (http://127.0.0.1:8080) for offline work, or MARKET_DATA_SOURCE=synthetic.
+ASSETS_API_BASE_URL: str = os.environ.get(
+    "ASSETS_API_BASE_URL", "https://asset-tracker.quip.network"
+)
 ASSETS_API_TIMEOUT_S: float = 10.0
+ASSETS_API_RETRIES: int = int(os.environ.get("ASSETS_API_RETRIES", 2))
+ASSETS_API_RETRY_BACKOFF_S: float = float(os.environ.get("ASSETS_API_RETRY_BACKOFF_S", 0.25))
 SYNTHETIC_SEED: int = 20260625  # booth day — deterministic synthetic history
 
 # -----------------------------------------------------------------------------
@@ -134,7 +331,9 @@ SYNTHETIC_SEED: int = 20260625  # booth day — deterministic synthetic history
 # Origins allowed by CORS. The deployed MVP plus local dev.
 CORS_ORIGINS: tuple[str, ...] = (
     "https://qtw-tradinggame.netlify.app",
+    "https://qtw.quip.network",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 )
-QR_BASE_URL: str = "https://qtw-tradinggame.netlify.app"  # /p/{agentId} deep link base
+QR_BASE_URL: str = os.environ.get("QR_BASE_URL", "https://qtw.quip.network")
+MTM_ERROR_LOG_INTERVAL_S: float = float(os.environ.get("MTM_ERROR_LOG_INTERVAL_S", 30.0))

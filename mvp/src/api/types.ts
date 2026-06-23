@@ -1,16 +1,19 @@
 // API contract for the Quip Network QTW 2026 trading-competition MVP.
 // Engineers wire a real backend by implementing these signatures (see api/index.ts).
 
-// Three strategy sliders, all native to the portfolio-allocation problem the
-// solver actually runs (the optimizer allocates — it doesn't execute trades):
-// rebalanceFrequency = how often the agent dispatches a re-optimization job;
+// Strategy controls for the portfolio-allocation problem the solver runs (the
+// optimizer allocates — it doesn't execute trades):
+// rebalanceFrequency = how often the agent dispatches a re-optimization job
+//                      (discrete tiers: Daily / 8h / 4h / 2h / Hourly);
 // riskPreference     = risk-aversion term in the objective;
-// maxPositionSize    = per-asset weight cap.
-// (Holding style and diversification were dropped — the basket expresses those.)
+// maxPositionSize    = per-asset weight cap;
+// holdCount          = Method 3: how many of the basket the optimizer holds (K).
+//                      UI sends round(N/3) by default; backend accepts explicit K.
 export type SliderValues = {
-  rebalanceFrequency: number;  // 0–100
+  rebalanceFrequency: number;  // 0–100 (snaps to 7 cadence tiers: Off … 30m)
   riskPreference: number;      // 0–100
   maxPositionSize: number;     // 0–100
+  holdCount?: number;          // 3..basketSize-1 from the UI; the cardinality K (Method 3)
 };
 
 export type AgentConfig = {
@@ -18,12 +21,37 @@ export type AgentConfig = {
   handle?: string;              // display handle, auto-derived from the player name
   email?: string;               // required at sign-up; optional here for seeded demo agents
   reachOut?: string[];          // optional, multi-select — "Would you like someone from our team to reach out to you?" (verbatim Luma event options). Captures consent + intent + segment in one; "No thanks" = opt out.
-  updatesOptIn?: boolean;       // "Sign me up for updates from Quip Network" — general newsletter opt-in, separate from the direct reach-out request
+  updatesOptIn?: boolean;       // "Email me my portfolio results" — opt-in to performance update emails
+  updateFrequency?: 'daily' | 'hourly';  // cadence for the result emails (only meaningful when updatesOptIn); default 'daily'
   sliders: SliderValues;
   assets?: AssetTicker[];       // the player's selected basket (subset of the 28-asset universe)
+  lastSolvedAt?: string | null;
+  nextRebalanceAt?: string | null;
+  rebalanceIntervalHours?: number | null;
+  qpuBudget?: QpuBudgetStatus | null;
+};
+
+export type SubmitAgentResponse = {
+  agentId: string;
+  qrUrl: string;
+  bankroll?: number;
+  token: string;  // capability token — returned once; client stores it, sends as Bearer
+};
+
+export type OptimizePatch = {
+  sliders?: SliderValues;
+  assets?: AssetTicker[];
 };
 
 export type ProviderType = 'QPU' | 'CPU';
+
+export type QpuBudgetStatus = {
+  used: number;
+  limit: number;
+  windowSeconds: number;
+  retryAfterSeconds: number;
+  nextAvailableAt?: string | null;
+};
 
 export type AssetClass = 'crypto' | 'stock';
 
@@ -52,19 +80,48 @@ export type PortfolioEntry = {
   usd: number;     // dollar allocation
 };
 
+export type HoldingUpdate = {
+  ticker: AssetTicker;
+  units: number;
+  spot: number;
+  usd: number;
+  pct: number;
+};
+
+export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout';
+
+export type SolverResult = {
+  provider: string;
+  providerType: ProviderType;
+  status: SolverStatus;
+  feasible: boolean;
+  solveTime: number | null;
+  raceTime: number | null;      // audit/debug only; UI ranks by solveTime
+  objective?: number | null;
+  bestObjective?: boolean;      // quality leader (lowest objective); may differ from winner
+  error?: string | null;
+};
+
 export type RoutingResult = {
   provider: string;             // e.g. 'D-Wave Advantage' or 'Helios-12'
   providerType: ProviderType;
   solveTime: number;            // seconds, e.g. 0.42
-  vsClassical: number;          // multiplier, e.g. 14 (means 14× faster than classical)
+  vsClassical: number;          // legacy multiplier; UI uses solverResults
   portfolio: PortfolioEntry[];
+  solverResults?: SolverResult[];
+  kind?: 'first' | 'retune';
+  jobId?: string | null;
+  solvedAt?: string | null;
+  nextRebalanceAt?: string | null;
+  rebalanceIntervalHours?: number | null;
+  qpuBudget?: QpuBudgetStatus | null;
 };
 
 export type LeaderboardEntry = {
   rank: number;
   agentId: string;
   name: string;
-  handle: string;
+  handle: string | null;
   total: number;                // $11,402
   plUSD: number;                // +142
   plPct: number;                // +1.42
@@ -72,8 +129,66 @@ export type LeaderboardEntry = {
   primaryProvider: ProviderType;
 };
 
+export type ValuationHistoryPoint = {
+  total: number;
+  plUSD: number;
+  plPct: number;
+  asOf?: string | null;
+  stale?: boolean;
+};
+
+export type RoutingProviderStat = {
+  provider: string;
+  providerType: ProviderType;
+  count: number;
+  pct: number;
+};
+
+// One solved routing for the TV "recent routings" feed (newest first).
+export type RecentRouting = {
+  provider: string;             // raw key: 'dwave' | 'sa' | 'gurobi'
+  providerType: ProviderType;   // 'QPU' | 'CPU'
+  solveTime: number;            // winner seconds
+  vsTime: number | null;        // runner-up seconds (null if unavailable)
+  solvedAt: string;             // ISO-8601 UTC
+};
+
+export type RoutingStats = {
+  total: number;
+  qpuWins: number;
+  cpuWins: number;
+  qpuPct: number;
+  cpuPct: number;
+  providers: RoutingProviderStat[];
+  recent: RecentRouting[];
+};
+
 export type AgentUpdate = {
   plUSD: number;
   plPct: number;
   total: number;
+  asOf?: string | null;
+  stale?: boolean;
+  holdings?: HoldingUpdate[];
+  nextRebalanceAt?: string | null;
+  rebalanceIntervalHours?: number | null;
+  qpuBudget?: QpuBudgetStatus | null;
+};
+
+// Live-subscription connection lifecycle, surfaced so the UI can show a
+// Live / Reconnecting / Last-close status. Driven by ReconnectingSocket (real)
+// or set directly by the mock simulator.
+export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'closed';
+
+export type SubscribeOptions = {
+  onStatus?: (status: ConnectionStatus) => void;
+};
+
+// Booth-wide TV events (WS /tv/events): a new agent's first solve triggers the
+// State D welcome interrupt. Mirrors the payload published in orchestration/job.py.
+export type TvEvent = {
+  type: 'new-agent';
+  agentId: string;
+  name: string;
+  handle?: string | null;
 };

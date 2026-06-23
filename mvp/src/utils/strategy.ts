@@ -4,27 +4,49 @@
 
 import type { SliderValues } from '../api';
 
+// Slider value labels. Row 0 (rebalance) is bucketed by REBALANCE_TIERS via the
+// labelFor() special-case below, not by these strings — kept here only so the
+// row indices (0 = rebalance, 1 = risk, 2 = max-position) stay aligned.
 export const SLIDER_LABELS: ReadonlyArray<ReadonlyArray<string>> = [
-  ['Daily', 'Every 8h', 'Every 4h', 'Every 2h', 'Hourly'],
+  ['Off', '12h', '8h', '4h', '2h', '1h', '30m'],
   ['Conservative', 'Defensive', 'Balanced', 'Aggressive', 'Speculative'],
   ['Tiny', 'Small', 'Medium', 'Large', 'Heavy'],
 ];
 
-// Rebalance cadence tiers (PLACEHOLDER, owned by the backend): quantum jobs
-// cost real money, so the most aggressive setting is capped at one scheduled
-// job per hour. Over the 2-day activation (~10 booth hours/day) that is at
-// most ~20 scheduled jobs per agent, plus any manual retunes from the phone.
+// Rebalance cadence tiers. `Off` = no scheduled rebalance (the initial allocation
+// rides untouched, hours = null); `30m` is the most aggressive tier.
+// NOTE — backend reconciliation owed: the solver budget documents *Hourly* as a
+// hard cap because QPU solves cost real money (token bucket, see CLAUDE.md and
+// the qpu-budget-design note). `Off` and the sub-hourly `30m` are frontend tiers
+// the kiosk/phone now offer; when the real backend is wired (mvp/src/api is on
+// mocks today) the scheduler must reconcile 30m + Off with that QPU budget.
 export const REBALANCE_TIERS = [
-  { label: 'Daily',    hours: 24 },
-  { label: 'Every 8h', hours: 8 },
-  { label: 'Every 4h', hours: 4 },
-  { label: 'Every 2h', hours: 2 },
-  { label: 'Hourly',   hours: 1 },   // hard cap
+  { label: 'Off', hours: null },
+  { label: '12h', hours: 12 },
+  { label: '8h',  hours: 8 },
+  { label: '4h',  hours: 4 },
+  { label: '2h',  hours: 2 },
+  { label: '1h',  hours: 1 },
+  { label: '30m', hours: 0.5 },
 ] as const;
 
-export function rebalanceEveryHours(value: number): number {
-  const i = Math.min(REBALANCE_TIERS.length - 1, Math.floor(value / 20));
-  return REBALANCE_TIERS[i].hours;
+// Tier index (0..len-1) for a 0–100 rebalance slider value, and its inverse.
+// Single source of the bucketing so the slider, the cadence labels and the
+// hours mapping can't drift apart. value→index rounds onto the nearest of the
+// N evenly-spaced tier stops (Off=0 … 30m=100).
+export function rebalanceTierIndex(value: number): number {
+  const last = REBALANCE_TIERS.length - 1;
+  return Math.max(0, Math.min(last, Math.round((value / 100) * last)));
+}
+
+export function rebalanceTierValue(index: number): number {
+  const last = REBALANCE_TIERS.length - 1;
+  return Math.round((Math.max(0, Math.min(last, index)) / last) * 100);
+}
+
+// Hours between scheduled rebalances for a slider value, or null when Off.
+export function rebalanceEveryHours(value: number): number | null {
+  return REBALANCE_TIERS[rebalanceTierIndex(value)].hours;
 }
 
 // Max position size is RELATIVE to the basket: an absolute cap below 1/n
@@ -39,27 +61,32 @@ export function maxPositionCapPct(basketSize: number, value: number): number {
   return Math.round(cap * 100);
 }
 
+// Hold-count K guardrails (mirror the backend slider_map.py / qubo_encoder).
+// K is how many of the N selected assets the optimizer actually holds. K = N is
+// degenerate — there's no subset to choose, so SA, D-Wave and Gurobi all return
+// the same portfolio (no race, no quantum story). The meaningful regime — where
+// selection matters, diversification helps out-of-sample and the QPU beats
+// classical — is K ≈ N/3, which the backend's N-aware β now targets too.
+//   - Backend clamps K to [3, min(N, 32)]. The slider caps one BELOW N so there
+//     is always ≥1 asset to exclude (a real selection): max = min(N − 1, 32).
+//   - A fresh agent defaults to round(N/3) (≥3), not hold-all.
+export function holdCountMax(basketSize: number): number {
+  return Math.max(3, Math.min(basketSize - 1, 32));
+}
+export function holdCountDefault(basketSize: number): number {
+  return Math.min(Math.max(3, Math.round(basketSize / 3)), holdCountMax(basketSize));
+}
+export function clampHoldCount(k: number, basketSize: number): number {
+  return Math.max(3, Math.min(k, holdCountMax(basketSize)));
+}
+
 export function labelFor(idx: number, val: number): string {
+  // Rebalance (row 0) buckets onto the 7 cadence tiers; the other rows keep
+  // their 5-step quintile bucketing.
+  if (idx === 0) return REBALANCE_TIERS[rebalanceTierIndex(val)].label;
   const labels = SLIDER_LABELS[idx];
   const i = Math.min(labels.length - 1, Math.floor(val / 20));
   return labels[i];
-}
-
-// Returns [w1, w2, w3, w4, reserve]. The first four sum to (1 - reserve).
-// p* are 0..1 (i.e. slider/100): p1 = rebalance frequency, p2 = risk,
-// p3 = max position size. Risk concentrates the top holdings, the position
-// cap bounds them, and cautious low-frequency agents hold more cash.
-export function computeWeights(p1: number, p2: number, p3: number): number[] {
-  const cap = 0.12 + p3 * 0.38;              // per-asset cap: 12%–50%
-  const concentration = p2 * 0.6;
-  const top    = Math.min(0.30 + concentration * 0.40, cap);
-  const second = top * 0.72;
-  const third  = top * 0.50;
-  const fourth = top * 0.30;
-  const sum = top + second + third + fourth;
-  const reserve = Math.max(0.05, Math.min(0.25, 0.12 - p1 * 0.06 + (1 - p2) * 0.10));
-  const scale = (1 - reserve) / sum;
-  return [top * scale, second * scale, third * scale, fourth * scale, reserve];
 }
 
 export function slidersToArray(s: SliderValues): [number, number, number] {

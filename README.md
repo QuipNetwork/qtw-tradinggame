@@ -1,12 +1,12 @@
 # Quip Network · QTW 2026 Trading Competition
 
-Booth activation for **Quantum Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune five strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
+Booth activation for **Quantum.Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
 
 ## Start here
 
 | What | Where |
 |---|---|
-| **Live MVP preview** (every surface, one-click) | https://qtw-tradinggame.netlify.app |
+| **Live MVP preview** (every surface, one-click) | https://qtw.quip.network |
 | **Design doc** (full project summary) | [`design-doc.html`](./design-doc.html) — open in browser, or visit `/design-doc.html` on the deployed site |
 | **MVP source** | [`mvp/`](./mvp) — Vite + React + TypeScript |
 
@@ -17,6 +17,9 @@ The MVP index page at `/` lists every surface (kiosk, phone, booth TV states) wi
 ```
 design-doc.html        Full project summary (open in any browser)
 mvp/                   Vite + React + TypeScript app — the live MVP
+backend/               FastAPI backend, solver race, persistence, Docker image
+docs/                  Deployment runbook, backend dataflow, TODO, research notes
+deploy/                Droplet deploy script and Caddy proxy example
 reference-files/       Base @ Consensys Miami screenshots (referenced by design doc)
 shared-design/         CSS + canvas glyph algorithms shared between MVP and doc
 ```
@@ -34,7 +37,13 @@ See [`backend/README.md`](./backend/README.md) for the Python backend (solver ra
 
 ## Deploy
 
-`netlify.toml` is wired up. Every push to `main` triggers an auto-build at https://qtw-tradinggame.netlify.app.
+Frontend: `netlify.toml` is wired up. Every push to `main` triggers an auto-build
+for the Netlify deployment surfaced at https://qtw.quip.network.
+
+Backend: `.gitlab-ci.yml` can test, build, and push the FastAPI Docker image,
+with a manual deploy job for a DigitalOcean droplet. See
+[`docs/DEPLOY.md`](./docs/DEPLOY.md) for the consolidated operator runbook,
+runtime environment reference, Supabase notes, and Proton SMTP setup.
 
 ## Engineering handoff
 

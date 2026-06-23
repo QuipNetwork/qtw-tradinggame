@@ -2738,7 +2738,10 @@
   .dir-quipsite .qs-row.top1 .rank,
   .dir-quipsite .qs-row.top2 .rank,
   .dir-quipsite .qs-row.top3 .rank { display: inline-flex; align-items: center; gap: 0.5cqw; }
-  .dir-quipsite .qs-row .rank .medal { font-size: 2.8cqh; line-height: 1; flex-shrink: 0; }
+  /* Fixed-width rank number so the medal always starts at the same x across rows
+     even though rank 1's number is larger — keeps the medals on a vertical line. */
+  .dir-quipsite .qs-row .rank .rank-num { display: inline-block; width: 3cqw; text-align: left; }
+  .dir-quipsite .qs-row .rank .medal { font-size: 2.6cqh; line-height: 1; flex-shrink: 0; }
   .dir-quipsite .qs-row.top1,
   .dir-quipsite .qs-row.top2,
   .dir-quipsite .qs-row.top3 { background: #ffffff; }
@@ -2765,13 +2768,17 @@
   .v3-panel-body { padding: 1.4cqh 1.4cqw; flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .v3-qc { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0.6cqh; }
   .v3-qc .num-row { display: flex; align-items: baseline; gap: 1cqw; }
-  .v3-qc .num-q { font-family: Georgia, serif; font-style: italic; font-size: 14cqh; line-height: 0.85; letter-spacing: -0.04em; color: #18181b; }
-  .v3-qc .num-q .pct { font-size: 0.55em; }
-  .v3-qc .num-c { font-family: Georgia, serif; font-style: italic; font-size: 6cqh; line-height: 0.85; color: #71717b; margin-left: auto; }
-  .v3-qc .num-c .pct { font-size: 0.55em; }
+  /* Win-rate numbers: the leader grows + darkens, the trailer shrinks + greys,
+     a tie keeps both equal. Sizing is driven by .lead/.trail/.even, NOT by
+     QPU-vs-CPU — we don't assume the quantum side wins. */
+  .v3-qc .num-q, .v3-qc .num-c { font-family: Georgia, serif; font-style: italic; line-height: 0.85; letter-spacing: -0.04em; color: #71717b; }
+  .v3-qc .num-c { margin-left: auto; }
+  .v3-qc .num-q.lead, .v3-qc .num-c.lead { font-size: 14cqh; color: #18181b; }
+  .v3-qc .num-q.trail, .v3-qc .num-c.trail { font-size: 6cqh; color: #71717b; }
+  .v3-qc .num-q.even, .v3-qc .num-c.even { font-size: 9cqh; color: #18181b; }
+  .v3-qc .num-q .pct, .v3-qc .num-c .pct { font-size: 0.55em; }
   .v3-qc .names { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0.4cqh; }
-  .v3-qc .names .n-q { font-family: Georgia, serif; font-style: italic; font-size: 1.7cqh; color: #18181b; }
-  .v3-qc .names .n-c { font-family: Georgia, serif; font-style: italic; font-size: 1.4cqh; color: #71717b; }
+  .v3-qc .names .n-q, .v3-qc .names .n-c { font-family: Georgia, serif; font-style: italic; font-size: 1.6cqh; color: #52525b; }
   .v3-qc .ms-bar { height: 1cqh; display: flex; background: #dbdbde; border-radius: 999px; overflow: hidden; margin-top: 0.6cqh; }
   .v3-qc .ms-bar .q { width: 88%; background: #ff6467; }
   .v3-qc .ms-bar .c { width: 12%; background: #71717b; }
@@ -2782,7 +2789,7 @@
 
   /* v4 main layout */
   .dir-quipsite.v4 { display: grid; grid-template-rows: auto auto 1fr auto; }
-  .dir-quipsite.v4 .qs-body-v4 { display: grid; grid-template-columns: 1fr 22cqw; grid-template-rows: auto 1fr; column-gap: 1.6cqw; row-gap: 0; padding: 0 2.4cqw 1cqh; min-height: 0; }
+  .dir-quipsite.v4 .qs-body-v4 { display: grid; grid-template-columns: 1fr 25.5cqw; grid-template-rows: auto 1fr; column-gap: 1.6cqw; row-gap: 0; padding: 0 2.4cqw 1cqh; min-height: 0; }
   .dir-quipsite.v4 .qs-hero-left { grid-column: 1; grid-row: 1; padding: 2.4cqh 0 1.4cqh; display: flex; justify-content: space-between; align-items: end; gap: 2cqw; }
   .dir-quipsite.v4 .qs-hero-left .left h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; font-size: 5.6cqh; line-height: 1; letter-spacing: -0.025em; color: #18181b; }
   .dir-quipsite.v4 .qs-hero-left .left h1 .it { font-style: italic; font-weight: 400; letter-spacing: -0.04em; }
@@ -2805,8 +2812,7 @@
   .dir-quipsite.v4 .v3-panel-body { padding: 2cqh 2cqw; }
   .dir-quipsite.v4 .v3-panel-foot { padding: 1.4cqh 2cqw; font-size: 1.85cqh; letter-spacing: 0.12em; }
   .dir-quipsite.v4 .v3-qc { gap: 1cqh; }
-  .dir-quipsite.v4 .v3-qc .names .n-q { font-size: 2.3cqh; }
-  .dir-quipsite.v4 .v3-qc .names .n-c { font-size: 1.9cqh; }
+  .dir-quipsite.v4 .v3-qc .names .n-q, .dir-quipsite.v4 .v3-qc .names .n-c { font-size: 2.1cqh; }
   .dir-quipsite.v4 .v3-qc .ms-bar { height: 1.2cqh; margin-top: 1cqh; }
   .dir-quipsite.v4 .v3-plist { gap: 1.4cqh; }
   .dir-quipsite.v4 .v3-plist .pr { gap: 1.2cqw; }
@@ -2860,6 +2866,29 @@
   .v4-pr.c .type { background: #52525b; }
   .v4-pr .nm { font-family: Georgia, serif; font-style: italic; font-size: 2.6cqh; line-height: 1; color: #18181b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .v4-pr .pct { font-family: 'JetBrains Mono', monospace; font-size: 2.4cqh; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; }
+
+  /* Aggregate footnote — makes the QPU-vs-CPU split read as all-time, not the
+     recent strip below it. */
+  .v3-qc-foot { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.3cqh; letter-spacing: 0.1em; text-transform: uppercase; color: #a1a1aa; margin-top: 0.8cqh; }
+
+  /* Recent routings feed (TV rail) — newest first; each line tells the story:
+     winning solver (pill), its solve time, then how much faster it was than the
+     runner-up (with the runner-up's time). */
+  .v4-feed { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 1cqh; }
+  .v4-feed-legend { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.2cqh; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #a1a1aa; }
+  .v4-feed-rows { display: flex; flex-direction: column; min-height: 0; }
+  /* Two readable lines per routing (TV-legible): line 1 the winner + its time,
+     line 2 the margin over the runner-up. Fewer rows, but clear from across a
+     room. */
+  .v4-feed-row { display: flex; flex-direction: column; gap: 0.4cqh; padding: 0.75cqh 0; white-space: nowrap; }
+  .v4-feed-row + .v4-feed-row { border-top: 1px solid #f1f1f3; }
+  .v4-feed-row .line1 { display: flex; align-items: center; gap: 1.4cqw; }
+  .v4-feed-row .type { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 1.7cqh; font-weight: 700; letter-spacing: 0.12em; color: white; padding: 0.55cqh 1.1cqw; border-radius: 999px; text-transform: uppercase; line-height: 1; background: #52525b; }
+  .v4-feed-row.q .type { background: #0891B2; box-shadow: 0 0 1cqh rgba(8,145,178,0.35); }
+  .v4-feed-row .win-t { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 2.8cqh; font-weight: 600; color: #18181b; font-variant-numeric: tabular-nums; }
+  .v4-feed-row .line2 { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 2cqh; color: #71717b; font-variant-numeric: tabular-nums; }
+  .v4-feed-row .line2 .alt { color: #18181b; }
+  .v4-feed-empty { font-family: Georgia, serif; font-style: italic; font-size: 2.2cqh; color: #a1a1aa; }
 
   /* v4 overrides on bigscreen to disable legacy effects that bleed in */
   .bigscreen.dir-quipsite::before,
@@ -3559,6 +3588,7 @@
 
   /* ─── Shared v4-mock primitives ─── */
   .qs-v4-mock {
+    position: relative;
     background: #fafafa;
     color: #18181b;
     font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
@@ -3629,6 +3659,97 @@
     text-transform: uppercase;
     color: #18181b;
   }
+  /* Attendant-facing kiosk reset. Secondary member of the CTA family (same cyan
+     + Inter), but outlined so it stays subordinate to the primary "Create your
+     agent" action. Sits at the right edge of the hero row. */
+  .qs-v4-mock .v4m-reset {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    color: #0891B2;
+    background: white;
+    border: 1px solid #0891B2;
+    padding: 9px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .qs-v4-mock .v4m-reset:hover { background: #0891B2; color: white; }
+  .qs-v4-mock .v4m-reset .ico { font-size: 0.95rem; line-height: 1; }
+
+  /* Confirm dialog — absolute inside the (scaled) kiosk canvas, not fixed, so it
+     tracks the Stage transform. */
+  .qs-v4-mock .v4m-confirm-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: rgba(9, 9, 11, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .qs-v4-mock .v4m-confirm-card {
+    background: white;
+    border: 1px solid #dbdbde;
+    padding: 28px 30px 24px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(9, 9, 11, 0.3);
+  }
+  .qs-v4-mock .v4m-confirm-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 500;
+    font-size: 1.5rem;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #18181b;
+  }
+  .qs-v4-mock .v4m-confirm-title .it { font-style: italic; }
+  .qs-v4-mock .v4m-confirm-sub {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.86rem;
+    line-height: 1.4;
+    color: #52525c;
+    margin: 10px 0 22px;
+  }
+  .qs-v4-mock .v4m-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .qs-v4-mock .v4m-confirm-cancel {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #52525c;
+    background: white;
+    border: 1px solid #d4d4d8;
+    padding: 9px 18px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .qs-v4-mock .v4m-confirm-cancel:hover { background: #f4f4f5; }
+  .qs-v4-mock .v4m-confirm-go {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: white;
+    background: #0891B2;
+    border: 1px solid #0891B2;
+    padding: 9px 18px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.12s ease;
+  }
+  .qs-v4-mock .v4m-confirm-go:hover { background: #0E7490; }
+  .qs-v4-mock .v4m-confirm-go .ico { font-size: 0.95rem; line-height: 1; }
   .qs-v4-mock .v4m-hero {
     padding: 20px 22px 16px;
     display: flex;
@@ -4067,7 +4188,7 @@
   .kiosk-v4 .v4m-pick-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
+    gap: 5px;
   }
   /* Asset tiles are shared between the kiosk selector and the phone basket
      editor so they look identical on every surface. */
@@ -4276,6 +4397,22 @@
     text-transform: uppercase;
     color: #a1a1aa;
     margin-left: 6px;
+  }
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label .lead {
+    display: block;
+    margin-top: 9px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-style: normal;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: #71717b;
+  }
+  .kiosk-v4 .v4m-field.v4m-field-checklist > label .req {
+    font-style: normal;
+    font-weight: 700;
+    color: #ef4444;
+    margin-left: 3px;
   }
   .kiosk-v4 .v4m-checklist {
     display: flex;
@@ -4506,9 +4643,17 @@
     color: #a1a1aa;
     margin-top: 10px;
   }
+  /* Single flex row: the launch hint sits inline to the LEFT of the button so it
+     never adds a row below the CTA (which pushed the watchlist into a scroll). */
   .kiosk-v4 .v4m-cta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
     padding: 0 22px 14px;
   }
+  .kiosk-v4 .v4m-cta-bar .v4m-cta { width: auto; flex: 0 0 auto; min-width: 300px; }
+  .kiosk-v4 .v4m-cta-bar .v4m-cta-sub { order: -1; flex: 1; margin: 0; text-align: left; }
   .kiosk-v4 .v4m-cta {
     display: block;
     width: 100%;
@@ -4536,6 +4681,8 @@
     color: #71717b;
     margin-top: 8px;
   }
+  /* All requirements met — positive cyan state instead of a muted blocking hint. */
+  .kiosk-v4 .v4m-cta-sub.ok { color: #0891B2; }
   .kiosk-v4 .v4m-basket {
     border-top: 1px solid #dbdbde;
     padding: 12px 22px;
@@ -4627,8 +4774,8 @@
   .kiosk-v4.app-fit .v4m-main-col { gap: 12px; }
   .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 10px 14px; }
   .kiosk-v4.app-fit .v4m-selector-actions { padding: 6px 0; }
-  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 5px 0 3px; }
-  .kiosk-v4.app-fit .v4m-tile { min-height: 72px; padding: 5px 5px 7px; }
+  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 2px 0 1px; }
+  .kiosk-v4.app-fit .v4m-tile { min-height: 64px; padding: 4px 5px 6px; }
   .kiosk-v4.app-fit .v4m-tile .v4m-tile-name { font-size: 0.6rem; }
   .kiosk-v4.app-fit .v4m-sliders-head { margin-bottom: 6px; }
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
@@ -4656,10 +4803,106 @@
   .kiosk-v4.app-fit .v4m-preview-mystery-caption { display: none; }
   .kiosk-v4.app-fit .v4m-cta-bar { padding: 0 18px 10px; }
   .kiosk-v4.app-fit .v4m-cta { padding: 12px 16px; font-size: 0.88rem; }
-  .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 6px; }
+  .kiosk-v4.app-fit .v4m-cta-sub { margin-top: 0; }
+
+  /* Email-frequency segmented toggle — revealed under the "Email me my portfolio
+     results" opt-in. Aligned under the checkbox label; cyan = selected. */
+  .kiosk-v4 .v4m-freq { display: flex; gap: 6px; margin: 6px 0 0 27px; }
+  .kiosk-v4 .v4m-freq-opt { font-family: 'Inter', system-ui, sans-serif; font-size: 0.78rem; font-weight: 600; color: #52525b; background: white; border: 1px solid #d4d4d8; padding: 5px 14px; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease; }
+  .kiosk-v4 .v4m-freq-opt:hover { border-color: #a1a1aa; }
+  .kiosk-v4 .v4m-freq-opt.on { background: #0891B2; border-color: #0891B2; color: white; }
+  .kiosk-v4.app-fit .v4m-freq { margin-top: 5px; }
+  .kiosk-v4.app-fit .v4m-freq-opt { padding: 4px 12px; font-size: 0.74rem; }
+
+  /* "Number to hold" (K) is the third strategy slider; before a basket exists it
+     renders disabled so the 3-slider layout never jumps. */
+  .qs-v4-mock .v4m-slider.disabled { opacity: 0.45; }
+  .qs-v4-mock .v4m-slider.disabled input[type=range] { cursor: default; }
+
+  /* Rebalance cadence — 5 discrete tiers as a COMPACT INLINE row (label + chips on
+     one line) below the three sliders, so the card stays short and the watchlist
+     above doesn't scroll. Shared by kiosk + phone (both use .qs-v4-mock). */
+  .qs-v4-mock .v4m-cadence {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0 2px; border-top: 1px solid #ececef;
+  }
+  .qs-v4-mock .v4m-cadence-label {
+    flex: 0 0 auto;
+    font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+    font-size: 1rem; letter-spacing: -0.01em; color: #18181b;
+  }
+  .qs-v4-mock .v4m-cad-row { flex: 1; display: flex; gap: 5px; }
+  .qs-v4-mock .v4m-cad-chip {
+    flex: 1; min-width: 0; padding: 6px 2px; text-align: center;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 0.66rem; font-weight: 600;
+    color: #52525b; background: white; border: 1px solid #d4d4d8; cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  }
+  .qs-v4-mock .v4m-cad-chip:hover { border-color: #a1a1aa; }
+  .qs-v4-mock .v4m-cad-chip.on { background: #0891B2; border-color: #0891B2; color: white; }
+
+  /* ─── Rebalance cadence slider (RebalanceSlider.tsx) — segmented heat bar:
+     gray at low cadence, flickering app-cyan "pixels" at high cadence, with a
+     detached "Off" dot in the left whitespace. Shared by kiosk + phone. ─── */
+  /* Label sits inline on the slider's line (shorter bar); no value readout. */
+  .qs-v4-mock .rbx {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding-top: 8px; border-top: 1px solid #ececef; margin-top: 6px;
+  }
+  .qs-v4-mock .rbx-label {
+    flex: none; padding-top: 5px;
+    font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+    font-size: 1rem; letter-spacing: -0.01em; color: #18181b;
+  }
+  .qs-v4-mock .rbx-body { flex: 1; min-width: 0; }
+  /* Thin heat-bar that matches the other strategy sliders — no container box,
+     a 6px track warming gray→cyan, tier nodes in round white cutouts. */
+  .qs-v4-mock .rbx-well { position: relative; background: transparent; padding: 7px 16px; }
+  .qs-v4-mock .rbx-bar { position: relative; height: 16px; }
+  .qs-v4-mock .rbx-track {
+    position: absolute; top: 50%; right: 0; height: 6px; transform: translateY(-50%);
+    background: #e4e4e7; border-radius: 999px;
+  }
+  .qs-v4-mock .rbx-fill {
+    position: absolute; top: 50%; right: 0; height: 6px; transform: translateY(-50%); border-radius: 999px;
+    background: linear-gradient(90deg, #c7c7cf 0%, #c7c7cf 34%, #7fc9d8 60%, #22d3ee 86%, #4BE0FF 100%);
+    clip-path: inset(0 100% 0 0 round 999px); transition: clip-path 0.16s ease;
+  }
+  /* Each tier node sits in a round white cutout (white ring); the selected node
+     grows and gains a thin ring in its tier color. */
+  .qs-v4-mock .rbx-node {
+    position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%;
+    transform: translate(-50%, -50%); background: #cfcfd6; z-index: 3;
+    box-shadow: 0 0 0 3px #fff;
+    transition: background 0.15s ease, width 0.15s ease, height 0.15s ease;
+  }
+  .qs-v4-mock .rbx-node.sel {
+    width: 13px; height: 13px; z-index: 5;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px currentColor;
+  }
+  .qs-v4-mock .rbx-node.lone { z-index: 6; }
+  .qs-v4-mock .rbx-range {
+    position: absolute; inset: -10px 0; width: 100%; height: calc(100% + 20px);
+    margin: 0; opacity: 0; cursor: pointer; z-index: 7;
+  }
+  .qs-v4-mock .rbx-glow {
+    position: absolute; top: 50%; width: 56px; height: 24px; transform: translate(-50%, -50%);
+    pointer-events: none; transition: opacity 0.2s ease, left 0.16s ease; z-index: 2;
+    background: radial-gradient(50% 60% at 50% 50%, currentColor, transparent 70%);
+  }
+  .qs-v4-mock .rbx-labels { position: relative; height: 18px; margin: 10px 16px 0; }
+  .qs-v4-mock .rbx-lab {
+    position: absolute; transform: translateX(-50%); white-space: nowrap; cursor: pointer;
+    font-family: 'Inter', system-ui, sans-serif; font-size: 0.66rem; font-weight: 600;
+    color: #a1a1aa; transition: color 0.15s ease;
+  }
+  .qs-v4-mock .rbx-lab.sel { font-weight: 700; }
+  .qs-v4-mock .rbx-hint {
+    font-family: 'Inter', system-ui, sans-serif; font-size: 0.72rem; color: #71717a; margin-top: 8px;
+  }
 
   /* ─── App mode for the strategy-return screen — compact chrome so a
-     full 25-holding portfolio + QR fit the 1024×768 stage. ─── */
+     full 28-holding portfolio + QR fit the 1024×768 stage. ─── */
   .kiosk-welcome-v4.app-fit {
     height: 100%;
     min-height: 0;
@@ -4689,17 +4932,28 @@
     margin-bottom: 10px;
   }
   .kiosk-welcome-v4.app-fit .v4m-alloc-stack {
+    flex-basis: 12px;
     height: 12px;
+    min-height: 12px;
+    margin: 8px 0 4px !important;
   }
   /* Grouped portfolio (Crypto/Stocks) adds two sub-headers; compress the
-     sub-headers and dense rows so a full 25-asset basket still clears the QR. */
+     sub-headers and dense rows so a full 28-asset basket still clears the QR. */
   .kiosk-welcome-v4.app-fit .v4m-alloc-subhead {
     margin: 5px 0 3px;
     font-size: 0.56rem;
   }
   .kiosk-welcome-v4.app-fit .v4m-alloc-subhead:first-of-type { margin-top: 2px; }
-  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-row { padding: 4.5px 0; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-row { padding: 3.5px 0; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-name,
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-pct { font-size: 0.72rem; }
+  .kiosk-welcome-v4.app-fit .v4m-alloc-grid.dense .v4m-alloc-usd { font-size: 0.64rem; }
   .kiosk-welcome-v4.app-fit .v4m-agent-qr-row {
+    flex: 0 0 auto;
     padding-top: 12px;
     margin-top: auto;   /* QR row anchors to the card bottom */
   }
@@ -4790,7 +5044,10 @@
   }
   .kiosk-welcome-v4 .v4m-body {
     display: grid;
-    grid-template-columns: 3fr 2fr;       /* agent panel 60% / solver outcome 40% */
+    grid-template-columns: 2fr 1fr;       /* portfolio two-thirds / solver outcome one-third */
+    grid-template-rows: minmax(0, 1fr);   /* bound the row so panels never grow past
+                                             the stage — holdings stay contained and
+                                             can never overlap the QR below them */
     gap: 22px;
     padding: 4px 22px 18px;
     align-items: stretch;
@@ -4807,6 +5064,7 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
+    min-height: 0;
   }
   .kiosk-welcome-v4 .v4m-agent-header {
     display: grid;
@@ -4815,6 +5073,7 @@
     gap: 16px;
     padding-bottom: 16px;
     border-bottom: 1px solid #ececef;
+    flex: 0 0 auto;
   }
   .kiosk-welcome-v4 .v4m-agent-glyph {
     width: 84px; height: 84px;
@@ -4885,6 +5144,7 @@
     gap: 16px;
     padding-top: 16px;
     border-top: 1px solid #ececef;
+    flex: 0 0 auto;
   }
   .kiosk-welcome-v4 .v4m-agent-qr {
     width: 88px; height: 88px;
@@ -4914,6 +5174,7 @@
     padding: 2px 0 12px;
     border-bottom: 1px solid #ececef;
     margin-bottom: 14px;
+    flex: 0 0 auto;
   }
   .kiosk-welcome-v4 .v4m-strat-cell {
     display: flex;
@@ -4936,7 +5197,15 @@
   .kiosk-welcome-v4 .v4m-portfolio-block {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
+  }
+  .kiosk-welcome-v4 .v4m-holdings-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;   /* safety net: if a basket ever can't fit, holdings scroll
+                           inside their own area instead of overlapping the QR */
   }
   /* Class sub-header inside the portfolio (Crypto / Stocks), above each grid. */
   .kiosk-welcome-v4 .v4m-alloc-subhead {
@@ -4962,7 +5231,7 @@
   .kiosk-welcome-v4 .v4m-alloc-grid .v4m-alloc-row:nth-child(-n+2) {
     border-top: none;
   }
-  /* Dense variant (>12 holdings, up to the full 25): three columns —
+  /* Dense variant (>12 holdings, up to the full 28): three columns —
      the whole universe fits the canvas while staying comfortably legible. */
   .kiosk-welcome-v4 .v4m-alloc-grid.dense {
     grid-template-columns: 1fr 1fr 1fr;
@@ -5024,10 +5293,21 @@
     margin: 8px 0 4px;
   }
   /* QPU/CPU type chip above the provider name on the kiosk welcome */
+  /* Prominent "Routed via Quip Network" headline (no status dot). */
+  .kiosk-welcome-v4 .v4m-main .v4m-routed-banner {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #71717b;
+    line-height: 1.2;
+  }
+  .kiosk-welcome-v4 .v4m-main .v4m-routed-banner .accent { color: #0891B2; }
   .kiosk-welcome-v4 .v4m-main .v4m-route-tag {
     display: inline-block;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -5050,7 +5330,7 @@
   .kiosk-welcome-v4 .v4m-stat-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 18px;
+    gap: 32px;
     margin: 16px 0 16px;
     align-items: baseline;
   }
@@ -5086,21 +5366,36 @@
   }
   .kiosk-welcome-v4 .v4m-race-row {
     display: grid;
-    grid-template-columns: 130px 1fr 60px;
+    grid-template-columns: 138px 1fr 56px;
     align-items: center;
-    gap: 12px;
-    padding: 6px 0;
+    gap: 10px;
+    padding: 9px 0;
+  }
+  .kiosk-welcome-v4 .v4m-race-row.muted {
+    opacity: 0.58;
   }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    line-height: 1.15;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: #71717b;
+    color: #52525b;
   }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-l1 { line-height: 1; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-star { color: #F59E0B; font-size: 1.5rem; letter-spacing: 0; margin-right: 5px; line-height: 0; vertical-align: middle; }
+  .kiosk-welcome-v4 .v4m-race-row .v4m-race-detail {
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    color: #a1a1aa;
+  }
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-bar {
-    height: 8px;
+    height: 10px;
     background: #ececef;
     border-radius: 999px;
     overflow: hidden;
@@ -5116,7 +5411,7 @@
   .kiosk-welcome-v4 .v4m-race-row .v4m-race-time {
     font-family: Georgia, 'Times New Roman', serif;
     font-style: italic;
-    font-size: 1rem;
+    font-size: 1.15rem;
     letter-spacing: -0.01em;
     color: #18181b;
     text-align: right;
@@ -5125,7 +5420,9 @@
   /* Allocation stack */
   .kiosk-welcome-v4 .v4m-alloc-stack {
     display: flex;
+    flex: 0 0 10px;
     height: 10px;
+    min-height: 10px;
     border-radius: 999px;
     overflow: hidden;
     background: #ececef;
@@ -5426,6 +5723,7 @@
     font-variant-numeric: tabular-nums;
   }
   .phone-v4 .v4m-pl .v4m-pl-change.down { color: #ff6467; }
+  .phone-v4 .v4m-pl .v4m-pl-change.flat { color: #71717b; }
   .phone-v4 .v4m-pl svg.v4m-spark { width: 80px; height: 36px; color: #0A832E; }
 
   /* Phone "mega" card — single bordered card, hairline interior */
@@ -5468,6 +5766,17 @@
     cursor: pointer;
   }
   .phone-v4 .v4m-cta:hover { background: #0E7490; }
+  .phone-v4 .v4m-cta:disabled,
+  .phone-v4 .v4m-cta.cooldown,
+  .phone-v4 .v4m-cta.cooldown:hover {
+    background: #d4d4d8;
+    color: #3f3f46;
+    cursor: not-allowed;
+  }
+  .phone-v4 .v4m-cta.cooldown .v4m-cta-arrow,
+  .phone-v4 .v4m-cta:disabled .v4m-cta-arrow {
+    color: #71717b;
+  }
   .phone-v4 .v4m-cta .v4m-cta-arrow { font-family: Georgia, serif; font-style: italic; font-size: 1.05rem; }
 
   /* Phone-frame outer mock override — keep the existing .mockup-frame.phone
@@ -5484,7 +5793,15 @@
     gap: 8px;
     padding: 4px 0;
   }
+  .phone-v4 .v4m-race-row.muted {
+    opacity: 0.58;
+  }
   .phone-v4 .v4m-race-row .v4m-race-label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    line-height: 1.12;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.58rem;
     letter-spacing: 0.16em;
@@ -5492,6 +5809,11 @@
     color: #71717b;
   }
   .phone-v4 .v4m-race-row .v4m-race-label.q { color: #0891B2; font-weight: 600; }
+  .phone-v4 .v4m-race-row .v4m-race-detail {
+    font-size: 0.48rem;
+    letter-spacing: 0.12em;
+    color: #71717b;
+  }
   .phone-v4 .v4m-race-row .v4m-race-bar {
     height: 6px;
     background: #ececef;
@@ -5513,6 +5835,32 @@
     letter-spacing: -0.01em;
     color: #18181b;
     text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .phone-v4 .v4m-rebalance-card {
+    border: 1px solid #d7d7dc;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+  }
+  .phone-v4 .v4m-rebalance-sub {
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #71717b;
+  }
+  .phone-v4 .v4m-rebalance-time {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #0891B2;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
 
@@ -5551,6 +5899,14 @@
     justify-content: center;
     padding: 2cqh 0;
   }
+  /* Fewer than 10 agents: top-align with natural row heights instead of
+     stretching rows to fill the height (which spreads a short board out). */
+  .bigscreen.dir-quipsite.v4.state-a .qs-table-area.top-align {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .dir-quipsite.v4 .qs-table-area.top-align .qs-table { flex: 0 0 auto; height: auto; width: 100%; }
+  .dir-quipsite .qs-table-area.top-align .qs-row { flex: 0 0 auto; }
   .bigscreen.dir-quipsite.v4.state-a .welcome-stage {
     display: flex;
     flex-direction: column;
@@ -6172,3 +6528,193 @@
     }
   }
 
+  /* ════════════════════════════════════════════════════════════════════
+     APPENDED 2026-06-20 — production frontend wiring + dynamic live data.
+     Additive only; no edits to rules above. (1) the landing surfaces list
+     (reuses the design-doc theme already defined above: .doc-nav / .hero /
+     .hero-facts / .grad / .kicker / section / .grid-*), and (2) the
+     live/dynamic layer shared by the phone profile + kiosk welcome.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* ── (1) Landing surfaces (routes/Index.tsx) — design-doc light theme ── */
+  .surf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .surf-head h2 { margin-bottom: 0; }
+  .surf-form {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--zinc-500);
+  }
+  .surf-blurb { color: var(--zinc-600); max-width: 64ch; margin: 8px 0 22px; }
+  .surf-links { display: grid; gap: 10px; }
+  .surf-link {
+    display: grid; gap: 2px; padding: 14px 16px;
+    border: 1px solid var(--zinc-200); border-radius: var(--r-md);
+    background: white; text-decoration: none; color: var(--zinc-950);
+    transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  }
+  .surf-link:hover { border-color: var(--coral); background: var(--coral-soft); transform: translateX(2px); color: var(--zinc-950); }
+  .surf-link-label { font-size: 0.98rem; font-weight: 500; }
+  .surf-link-to { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.76rem; color: var(--zinc-500); }
+  .surf-link-note { font-size: 0.84rem; color: var(--zinc-600); margin-top: 2px; }
+  .surf-foot {
+    display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between;
+    padding: 28px 0 64px; font-size: 0.8rem; color: var(--zinc-500);
+  }
+  .surf-foot a { color: var(--zinc-600); }
+
+  /* ── (2) Live / dynamic layer — phone profile + kiosk welcome ──
+     The global prefers-reduced-motion block above already neutralizes every
+     animation/transition here, so no per-rule guard is needed. */
+
+  /* Sparkline head dot eases to the newest point (cx/cy are animatable geometry). */
+  .qs-v4-mock .v4m-spark-dot { transition: cx 0.6s ease, cy 0.6s ease; }
+
+  /* Allocation bar segments glide as weights drift with price. */
+  .qs-v4-mock .v4m-alloc-seg { transition: width 0.6s ease; }
+
+  /* Per-holding value tick — a brief signal-tint flash, replayed by re-keying
+     the element when its dollar value changes. Reads on dark + light surfaces. */
+  .qs-v4-mock .v4m-flash { animation: v4m-value-tick 0.9s ease; border-radius: 3px; }
+  @keyframes v4m-value-tick {
+    0% { background: rgba(75, 224, 255, 0.30); }
+    100% { background: transparent; }
+  }
+
+  /* ── (3) Crash / loading / status surfaces (ErrorBoundary, StatusScreen) ── */
+  .app-crash {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--ink); color: var(--zinc-200); padding: 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .app-crash-card { max-width: 420px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .app-crash-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.66rem;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--signal);
+  }
+  .app-crash-card h1 { font-family: Georgia, serif; font-size: 1.6rem; color: #fff; margin: 0; }
+  .app-crash-card p { color: var(--zinc-400); margin: 0; }
+  .app-crash-card button {
+    margin-top: 6px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.8rem;
+    padding: 9px 18px; border-radius: var(--r-md); border: 1px solid var(--signal);
+    background: transparent; color: var(--signal); cursor: pointer;
+  }
+  .app-crash-card button:hover { background: rgba(75, 224, 255, 0.12); }
+
+  .route-fallback { min-height: 100vh; }
+
+  /* Per-surface loading / not-found / error panel (StatusScreen). Inherits color
+     from `.dark`/`.light` so it reads inside both the phone frame and kiosk stage. */
+  .surface-status {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; height: 100%; min-height: 240px; text-align: center; padding: 40px 28px;
+  }
+  .surface-status.dark { color: var(--zinc-200); }
+  .surface-status.light { color: var(--zinc-900); }
+  .surface-status-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.64rem;
+    letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55;
+  }
+  .surface-status-title { font-family: Georgia, 'Times New Roman', serif; font-size: 1.35rem; letter-spacing: -0.01em; }
+  .surface-status-msg { font-size: 0.9rem; opacity: 0.6; max-width: 34ch; margin: 0; line-height: 1.5; }
+  .surface-status-action {
+    margin-top: 8px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.78rem;
+    padding: 9px 16px; border: 1px solid currentColor; border-radius: var(--r-md);
+    background: transparent; color: inherit; cursor: pointer; text-decoration: none; opacity: 0.85;
+  }
+  .surface-status-action:hover { opacity: 1; }
+
+  /* ── (4) Accessibility — visible keyboard focus, SR utility, safe contrast ── */
+  /* #0891B2 clears 3:1 on both white and the dark surfaces, so one ring works
+     everywhere. :focus-visible keeps mouse clicks ring-free. */
+  :focus-visible { outline: 2px solid #0891B2; outline-offset: 2px; border-radius: 2px; }
+  .qs-v4-mock .v4m-input:focus-visible,
+  .qs-v4-mock select.v4m-select:focus-visible,
+  .qs-v4-mock .range-overlay:focus-visible { outline: 2px solid #0891B2; outline-offset: 1px; }
+
+  /* Visually-hidden text for screen-reader-only live announcements. */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+
+  /* The faint zinc-400 hint text fails AA (2.56:1) on white — bump to zinc-500.
+     (The brand cyan/coral accents are left to a dedicated design pass.) */
+  .qs-v4-mock .v4m-field-hint { color: var(--zinc-500); }
+
+  /* Skip-to-content link — hidden until keyboard-focused (landing). */
+  .skip-link {
+    position: absolute; left: 8px; top: -44px; z-index: 100;
+    background: var(--zinc-950); color: #fff; padding: 8px 14px;
+    border-radius: var(--r-md); text-decoration: none; font-size: 0.85rem;
+    transition: top 120ms ease;
+  }
+  .skip-link:focus { top: 8px; }
+
+  /* ── (5) TV — live cross-fade between rotation states + value tick-flash ── */
+  .tv-stage-fade { height: 100%; animation: tv-fade-in 0.5s ease; }
+  @keyframes tv-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  /* A leaderboard total briefly highlights when it changes (re-keyed on change),
+     so the board reads as live. Subtle — only the total cell, not the %. */
+  .bigscreen .tv-tick { animation: tv-cell-tick 0.8s ease; border-radius: 3px; }
+  @keyframes tv-cell-tick {
+    0%, 100% { background: transparent; }
+    30% { background: rgba(75, 224, 255, 0.16); }
+  }
+
+  /* ── (6) Loading skeleton for StatusScreen busy state ── */
+  .surface-skeleton {
+    display: flex; flex-direction: column; gap: 9px;
+    width: min(240px, 70%); margin-top: 16px;
+  }
+  .surface-skeleton span {
+    height: 12px; border-radius: 6px; opacity: 0.14;
+    background: linear-gradient(90deg, currentColor 0%, transparent 45%, currentColor 85%);
+    background-size: 220% 100%;
+    animation: surface-shimmer 1.5s ease-in-out infinite;
+  }
+  .surface-skeleton span:nth-child(2) { width: 82%; }
+  .surface-skeleton span:nth-child(3) { width: 56%; }
+  @keyframes surface-shimmer {
+    0% { background-position: 220% 0; }
+    100% { background-position: -220% 0; }
+  }
+
+  /* ── (7) Phone profile — compact live holdings strip ── */
+  .qs-v4-mock .v4m-holds .v4m-alloc-stack { display: flex; height: 7px; border-radius: 4px; overflow: hidden; }
+  .qs-v4-mock .v4m-holds .v4m-alloc-stack > span { display: block; height: 100%; }
+  .qs-v4-mock .v4m-holds-list { display: flex; flex-direction: column; gap: 3px; margin-top: 9px; }
+  .qs-v4-mock .v4m-holds-row {
+    display: grid; grid-template-columns: 16px 1fr auto auto; align-items: center; gap: 8px;
+    font-size: 0.78rem;
+  }
+  .qs-v4-mock .v4m-holds-icon { width: 16px; height: 16px; border-radius: 4px; }
+  .qs-v4-mock .v4m-holds-ticker { font-weight: 600; color: #e4e4e7; }
+  .qs-v4-mock .v4m-holds-pct {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.72rem; color: #71717b; text-align: right;
+  }
+  .qs-v4-mock .v4m-holds-usd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; color: #a1a1aa; text-align: right; min-width: 58px;
+  }
+  .qs-v4-mock .v4m-holds-more {
+    font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.7rem; color: #71717b; margin-top: 3px;
+  }
+
+  /* ── (8) Phone tap targets (phone only — the fixed kiosk layout is untouched) ── */
+  /* Bigger back button on the basket screen. */
+  .phone-v4 .v4m-basket-back { width: 40px; height: 40px; }
+  /* Taller invisible drag zone on the phone sliders (padding grows the touch
+     area; the negative margin cancels it so layout/visuals are unchanged). */
+  .phone-v4 .v4m-slider .v4m-slider-shell { padding: 14px 0; margin: -14px 0; }
+
+  /* ── (9) Directional value tick — green up / red down, like a live board ──
+     (TickValue component). Replaces the neutral cyan flash on moving money. The
+     global prefers-reduced-motion block neutralizes these animations. */
+  .tickv { border-radius: 3px; }
+  .qs-v4-mock .tickv.up, .bigscreen .tickv.up { animation: tickv-up 0.9s ease; }
+  .qs-v4-mock .tickv.down, .bigscreen .tickv.down { animation: tickv-down 0.9s ease; }
+  @keyframes tickv-up { 0%, 100% { background: transparent; } 28% { background: rgba(16, 185, 129, 0.26); } }
+  @keyframes tickv-down { 0%, 100% { background: transparent; } 28% { background: rgba(239, 68, 68, 0.24); } }
+
+  /* ── (10) Landing entrance — subtle fade-up on load (reuses fade-up; scoped so
+     design-doc.html's .page is untouched). Reduced-motion neutralizes it. ── */
+  .landing-enter { animation: fade-up 0.45s ease both; }
