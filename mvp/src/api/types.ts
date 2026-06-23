@@ -8,12 +8,12 @@
 // riskPreference     = risk-aversion term in the objective;
 // maxPositionSize    = per-asset weight cap;
 // holdCount          = Method 3: how many of the basket the optimizer holds (K).
-//                      Absolute count in [3, basket size]; omitted ⇒ hold all.
+//                      UI sends round(N/3) by default; backend accepts explicit K.
 export type SliderValues = {
   rebalanceFrequency: number;  // 0–100 (snaps to 7 cadence tiers: Off … 30m)
   riskPreference: number;      // 0–100
   maxPositionSize: number;     // 0–100
-  holdCount?: number;          // 3..basketSize; the cardinality K (Method 3)
+  holdCount?: number;          // 3..basketSize-1 from the UI; the cardinality K (Method 3)
 };
 
 export type AgentConfig = {

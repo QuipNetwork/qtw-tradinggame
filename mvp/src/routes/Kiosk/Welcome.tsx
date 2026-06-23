@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK } from '../../api';
+import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK, getAgentToken } from '../../api';
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
@@ -24,7 +24,7 @@ export default function KioskWelcome() {
   const [result, setResult] = useState<RoutingResult | null>(null);
   const { update: live } = useAgentLive(agentId ?? undefined);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'error'>('loading');
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'auth' | 'error'>('loading');
   const [retryNonce, setRetryNonce] = useState(0);
   const glyphRef = useRef<HTMLCanvasElement>(null);
   const qrRef = useRef<HTMLCanvasElement>(null);
@@ -35,13 +35,24 @@ export default function KioskWelcome() {
     setLoadState('loading');
     (async () => {
       try {
+        const token = getAgentToken(agentId);
+        if (!IS_MOCK && !token) {
+          if (!cancelled) setLoadState('auth');
+          return;
+        }
         const a = await getAgent(agentId);
         if (cancelled) return;
         if (!a) { setLoadState('notfound'); return; }
+        const storedQrUrl = readStoredQrUrl(agentId);
+        const secureQrUrl = storedQrUrl ?? (token ? `${window.location.origin}/p/${agentId}#t=${encodeURIComponent(token)}` : null);
+        if (!IS_MOCK && !secureQrUrl) {
+          setLoadState('auth');
+          return;
+        }
         setAgent(a);
-        setQrUrl(sessionStorage.getItem('quip:qrUrl:' + agentId));
+        setQrUrl(secureQrUrl ?? `${window.location.origin}/p/${agentId}`);
 
-        const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
+        const cachedRaw = readSessionItem('quip:lastResult:' + agentId);
         if (cachedRaw) {
           try {
             setResult(JSON.parse(cachedRaw) as RoutingResult);
@@ -53,8 +64,8 @@ export default function KioskWelcome() {
         if (cancelled) return;
         setResult(r);
         setLoadState('ready');
-      } catch {
-        if (!cancelled) setLoadState('error');
+      } catch (err) {
+        if (!cancelled) setLoadState(isAuthError(err) ? 'auth' : 'error');
       }
     })();
     return () => { cancelled = true; };
@@ -76,8 +87,8 @@ export default function KioskWelcome() {
   // never re-fires → a blank QR.
   useEffect(() => {
     if (!agentId || loadState !== 'ready' || !qrRef.current) return;
-    const value = qrUrl ?? `${window.location.origin}/p/${agentId}`;
-    renderQR(qrRef.current, value).catch(() => {});
+    if (!qrUrl) return;
+    renderQR(qrRef.current, qrUrl).catch(() => {});
   }, [agentId, qrUrl, loadState]);
 
   // Kiosk back-guard: neutralize the browser Back gesture so an accidental
@@ -109,6 +120,17 @@ export default function KioskWelcome() {
           <StatusScreen tone="light" title="Couldn't reach Quip Network"
             message="We couldn't load this agent. Check the backend connection and try again."
             action={{ label: 'Retry', onClick: () => setRetryNonce(n => n + 1) }} />
+        </div>
+      </KioskStage>
+    );
+  }
+  if (loadState === 'auth') {
+    return (
+      <KioskStage>
+        <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
+          <StatusScreen tone="light" title="Secure profile link missing"
+            message="Start a new entry so the kiosk can generate a QR link with its access token."
+            action={{ label: 'New entry →', href: '/kiosk' }} />
         </div>
       </KioskStage>
     );
@@ -275,4 +297,26 @@ export default function KioskWelcome() {
     </div>
     </KioskStage>
   );
+}
+
+function readSessionItem(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredQrUrl(agentId: string): string | null {
+  return readSessionItem('quip:qrUrl:' + agentId);
+}
+
+function isAuthError(error: unknown): boolean {
+  return backendStatus(error) === 401 || backendStatus(error) === 403;
+}
+
+function backendStatus(error: unknown): number | null {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === 'number' ? status : null;
 }

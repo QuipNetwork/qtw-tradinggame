@@ -22,9 +22,8 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string; initial: numb
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// The watchlist needs at least this many assets so the optimizer can meaningfully
-// sub-select (hold at least 3 of them — see the "Number to hold" K slider).
-const MIN_ASSETS = 5;
+// Mirror backend MIN_BASKET_SIZE: a broad watchlist keeps K-selection meaningful.
+const MIN_ASSETS = 15;
 
 // "Would you like someone from our team to reach out to you?" — verbatim from
 // the Luma event registration so kiosk leads and event sign-ups share one
@@ -75,7 +74,7 @@ export default function KioskSignUp() {
   }
   const [sliders, setSliders] = useState<number[]>(SLIDER_DEFS.map(s => s.initial));
   // Method 3 cardinality: how many of the basket the optimizer holds (K).
-  // null ⇒ hold all; clamped to [2, basket size] at launch.
+  // null ⇒ frontend/backend default of round(N/3); clamped below N at launch.
   const [holdCount, setHoldCount] = useState<number | null>(null);
   // Start with an empty basket — the player actively picks their assets.
   const [selected, setSelected] = useState<Set<AssetTicker>>(new Set());
@@ -162,11 +161,19 @@ export default function KioskSignUp() {
       // can't strand the attendee here or let a re-press create a duplicate
       // agent. The first solve is best-effort caching; the welcome screen
       // re-solves on its own if it's missing.
-      localStorage.setItem('quip:lastAgentId', agentId);
-      sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      try {
+        localStorage.setItem('quip:lastAgentId', agentId);
+        sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+      } catch {
+        // Locked-down kiosk browsers may block storage; token.ts keeps an in-memory token.
+      }
       try {
         const result = await requestOptimization(agentId);
-        sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
+        try {
+          sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
+        } catch {
+          // The welcome screen can re-solve if the best-effort cache cannot be written.
+        }
       } catch {
         // Leave it to the welcome screen to solve and surface any error.
       }
@@ -351,10 +358,11 @@ export default function KioskSignUp() {
                   )
                 )}
                 {/* Number to hold (K) — the third slider; a count tied to the basket
-                    (the optimizer sub-selects the best K). Disabled until ≥2 picked. */}
+                    (the optimizer sub-selects the best K). Disabled until the
+                    basket reaches the backend minimum. */}
                 {(() => {
                   const n = selected.size;
-                  const ready = n >= 3;
+                  const ready = n >= MIN_ASSETS;
                   const maxK = holdCountMax(n);
                   const k = ready ? clampHoldCount(holdCount ?? holdCountDefault(n), n) : 3;
                   const pct = ready ? (maxK > 3 ? ((k - 3) / (maxK - 3)) * 100 : 100) : 0;
@@ -376,14 +384,17 @@ export default function KioskSignUp() {
                           step={1}
                           value={k}
                           aria-label="Number to hold"
-                          aria-valuetext={ready ? `${k} of ${n}` : 'Pick a watchlist first'}
+                          aria-valuetext={ready ? `holds ${k} of ${n}${k >= maxK ? ', maximum' : ''}` : 'Pick a watchlist first'}
                           disabled={!ready}
                           onChange={e => setHoldCount(parseInt(e.target.value, 10))}
                         />
                       </div>
                       <div className="v4m-slider-bottom">
+                        {/* Guardrail copy: the optimizer SELECTS the best K of the N picked (that's the
+                            quantum-vs-classical race). K is capped at N−1 so there's always a real choice
+                            to make — '· max' marks that ceiling. Default is ≈N/3. */}
                         <span className="v4m-slider-val">
-                          {ready ? `${k} of ${n}` : 'pick a watchlist first'}
+                          {ready ? `holds best ${k} of ${n}${k >= maxK ? ' · max' : ''}` : 'pick a watchlist first'}
                         </span>
                       </div>
                     </div>

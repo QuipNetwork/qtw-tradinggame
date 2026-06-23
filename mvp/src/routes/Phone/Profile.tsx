@@ -9,7 +9,7 @@ import type {
   AssetInfo,
   QpuBudgetStatus,
 } from '../../api';
-import { getAgent, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import { getAgent, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, getAgentToken, IS_MOCK, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
@@ -26,8 +26,9 @@ const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'maxPositionSize',    label: 'Max position size' },
 ];
 
-// A basket needs at least this many assets (mirrors the kiosk sign-up rule).
-const MIN_ASSETS = 3;
+// Mirror backend MIN_BASKET_SIZE: a broad watchlist keeps K-selection meaningful.
+const MIN_ASSETS = 15;
+type LoadState = 'loading' | 'ready' | 'notfound' | 'auth' | 'error';
 type RankInfo = { rank: number | null; total: number };
 
 function formatRebalanceCountdown(nextRebalanceAt?: string | null, nowMs: number = Date.now()): string {
@@ -95,6 +96,12 @@ function qpuCooldownFromError(error: unknown): { message: string; targetMs: numb
   };
 }
 
+function backendStatus(error: unknown): number | null {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === 'number' ? status : null;
+}
+
 function rankInfoFor(agentId: string, leaderboard: LeaderboardEntry[]): RankInfo {
   const row = leaderboard.find(entry => entry.agentId === agentId);
   return {
@@ -144,7 +151,7 @@ export default function PhoneProfile() {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [qpuCooldownUntilMs, setQpuCooldownUntilMs] = useState<number | null>(null);
   const [rankInfo, setRankInfo] = useState<RankInfo | null>(null);
-  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'error'>('loading');
+  const [loadState, setLoadState] = useState<LoadState>('loading');
   const [retryNonce, setRetryNonce] = useState(0);
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
@@ -154,6 +161,10 @@ export default function PhoneProfile() {
     setLoadState('loading');
     (async () => {
       try {
+        if (!IS_MOCK && !getAgentToken(agentId)) {
+          if (!cancelled) setLoadState('auth');
+          return;
+        }
         const a = await getAgent(agentId);
         if (cancelled) return;
         if (!a) { setLoadState('notfound'); return; }
@@ -174,8 +185,11 @@ export default function PhoneProfile() {
           } catch { /* ignore a corrupt cache entry */ }
         }
         setLoadState('ready');
-      } catch {
-        if (!cancelled) setLoadState('error');
+      } catch (err) {
+        if (!cancelled) {
+          const status = backendStatus(err);
+          setLoadState(status === 401 || status === 403 ? 'auth' : 'error');
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -253,6 +267,7 @@ export default function PhoneProfile() {
 
   if (!agentId) return phoneFrame(<StatusScreen tone="dark" title="Missing agent" message="This link has no agent id." action={{ label: 'Open kiosk', href: '/kiosk' }} />);
   if (loadState === 'notfound') return phoneFrame(<StatusScreen tone="dark" title="Profile not found" message="The link may be stale or the agent was reset." action={{ label: 'Open kiosk', href: '/kiosk' }} />);
+  if (loadState === 'auth') return phoneFrame(<StatusScreen tone="dark" title="Scan your QR link again" message="This profile needs the secure QR link from the kiosk." action={{ label: 'Open kiosk', href: '/kiosk' }} />);
   if (loadState === 'error') return phoneFrame(<StatusScreen tone="dark" title="Can't reach Quip Network" message="We couldn't load your profile. Check your connection and try again." action={{ label: 'Retry', onClick: () => setRetryNonce(n => n + 1) }} />);
   if (!agent || !sliders) return phoneFrame(<StatusScreen tone="dark" busy title="Loading your profile…" />);
 
@@ -574,7 +589,7 @@ export default function PhoneProfile() {
               {/* Number to hold (K) — the third slider; a count tied to the basket. */}
               {(() => {
                 const n = basket.size;
-                const ready = n >= 3;
+                const ready = n >= MIN_ASSETS;
                 const maxK = holdCountMax(n);
                 const k = ready ? clampHoldCount(holdCount ?? holdCountDefault(n), n) : 3;
                 const pct = ready ? (maxK > 3 ? ((k - 3) / (maxK - 3)) * 100 : 100) : 0;
@@ -582,8 +597,10 @@ export default function PhoneProfile() {
                   <div className={`v4m-slider${ready ? '' : ' disabled'}`} key="holdCount">
                     <div className="v4m-slider-top">
                       <span className="v4m-slider-label">Number to hold</span>
+                      {/* Guardrail copy: optimizer holds the best K of N; capped at N−1 (· max) so
+                          there's always a selection to make — the quantum-vs-classical race. */}
                       <span className="v4m-slider-val">
-                        {ready ? `${k} of ${n}` : 'edit basket'}
+                        {ready ? `best ${k}/${n}${k >= maxK ? ' · max' : ''}` : 'edit basket'}
                       </span>
                     </div>
                     <div className="v4m-slider-shell">
@@ -595,7 +612,7 @@ export default function PhoneProfile() {
                         type="range" className="range-overlay"
                         min={3} max={maxK} step={1} value={k}
                         aria-label="Number to hold"
-                        aria-valuetext={ready ? `${k} of ${n}` : 'Edit basket first'}
+                        aria-valuetext={ready ? `holds ${k} of ${n}${k >= maxK ? ', maximum' : ''}` : 'Edit basket first'}
                         disabled={!ready}
                         onChange={e => setHoldCount(parseInt(e.target.value, 10))}
                       />

@@ -56,7 +56,7 @@ publish dir.
 Production frontend env:
 
 ```bash
-VITE_API_BASE=https://api.qtw.quip.network
+VITE_API_BASE=https://qtw.backend.quip.network
 ```
 
 Only set `VITE_WS_BASE` if websocket traffic uses a different host than
