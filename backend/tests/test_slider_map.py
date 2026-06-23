@@ -114,7 +114,8 @@ def test_basket_below_minimum_raises():
 
     with pytest.raises(ValueError, match="at least"):
         validate_basket(["BTC", "ETH"])
-    assert validate_basket(["BTC", "ETH", "IONQ"]) == ["BTC", "ETH", "IONQ"]
+    valid_min_basket = list(TICKERS[: config.MIN_BASKET_SIZE])
+    assert validate_basket(valid_min_basket) == valid_min_basket
     assert len(validate_basket(None)) == len(TICKERS)
 
 

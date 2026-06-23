@@ -69,7 +69,24 @@ def test_run_optimization_consumes_qpu_budget_when_dwave_configured(monkeypatch)
                 riskPreference=50,
                 maxPositionSize=50,
             ),
-            assets=["BTC", "ETH", "SOL"],
+            # ≥ MIN_BASKET_SIZE (15) so validate_basket passes; fake_race ignores the basket.
+            assets=[
+                "BTC",
+                "ETH",
+                "BNB",
+                "SOL",
+                "XRP",
+                "USDT",
+                "USDC",
+                "DOGE",
+                "HYPE",
+                "ZEC",
+                "ALGO",
+                "FIL",
+                "RENDER",
+                "STRK",
+                "IONQ",
+            ],
         ),
         bankroll=10_000.0,
     )
@@ -79,7 +96,8 @@ def test_run_optimization_consumes_qpu_budget_when_dwave_configured(monkeypatch)
     def fake_race(problem, deadline_s=None, *, include_qpu=True):
         assert include_qpu is True
         winner = Solution(
-            weights=np.array([0.4, 0.3, 0.3]),
+            # match the basket length (job.py zips tickers↔weights strict=True); equal weight sums to 1
+            weights=np.full(problem.N, 1.0 / problem.N),
             objective=0.0,
             solve_time_s=0.1,
             provider="dwave",

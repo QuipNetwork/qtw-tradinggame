@@ -24,10 +24,20 @@ def test_holdcount_bounds():
 
 def test_agent_config_string_and_list_bounds():
     AgentConfig(name="Quanta", sliders=_sliders(), assets=["BTC", "ETH"])  # ok
+    config = AgentConfig(name="Quanta", email="PLAYER+test@example.com", sliders=_sliders())
+    assert config.email == "PLAYER+test@example.com"
     with pytest.raises(ValidationError):
         AgentConfig(name="x" * 81, sliders=_sliders())  # name too long
     with pytest.raises(ValidationError):
         AgentConfig(name="ok", email="x" * 255, sliders=_sliders())  # email too long
+    with pytest.raises(ValidationError):
+        AgentConfig(name="ok", email="bad@example.com\nBcc:evil@example.com", sliders=_sliders())
+    with pytest.raises(ValidationError):
+        AgentConfig(name="ok", email="not-an-email", sliders=_sliders())
+    with pytest.raises(ValidationError):
+        AgentConfig(name="ok", email="player@example", sliders=_sliders())
+    with pytest.raises(ValidationError):
+        AgentConfig(name="ok", email="Ada <player@example.com>", sliders=_sliders())
     with pytest.raises(ValidationError):
         AgentConfig(name="ok", sliders=_sliders(), assets=["BTC"] * 65)  # too many assets
     with pytest.raises(ValidationError):

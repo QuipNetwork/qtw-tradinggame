@@ -8,14 +8,22 @@ from __future__ import annotations
 
 import os
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 # -----------------------------------------------------------------------------
 # Bankroll and basket
 # -----------------------------------------------------------------------------
 
 BANKROLL_USD: float = 10_000.0
-# Smallest basket the strategy meaningfully optimizes over; the kiosk's Select
-# button should mirror this gate.
-MIN_BASKET_SIZE: int = 3
+# Smallest basket accepted by the booth UI/API. The K slider then sub-selects a
+# smaller support from this watchlist.
+MIN_BASKET_SIZE: int = 15
 
 # -----------------------------------------------------------------------------
 # Estimation windows (hours)
@@ -146,17 +154,13 @@ CARDINALITY_PENALTY_MULT_LINK: float = 12.0
 # (qpu-experiment-synthesis-2026-06-22.md §7/§9). See also qpu-c2-beta-findings.md.
 CARDINALITY_FRUSTRATION_BETA: float = float(os.environ.get("CARDINALITY_FRUSTRATION_BETA", 0.4))
 # N-aware β ramp: 0 below N_MIN (small baskets — β over-penalizes, hurts OOS), rising linearly to the
-# full CARDINALITY_FRUSTRATION_BETA at/above N_FULL. At the 28-asset universe this lands ≈0.23.
+# full CARDINALITY_FRUSTRATION_BETA at/above N_FULL. N_FULL = the booth universe (28), so a full booth
+# basket reaches FULL β (rugged landscape → D-Wave wins the race on portfolio quality; verified on
+# real data — see qpu-experiment-synthesis §QPU race) while smaller player baskets ramp down toward
+# plain MV (OOS-safe). When the universe expands past 28 (deferred), raise N_FULL so the larger
+# baskets aren't over-rugged. At N=28 this now lands at the full 0.4 (was ≈0.23 with N_FULL=40).
 CARDINALITY_BETA_N_MIN: int = int(os.environ.get("CARDINALITY_BETA_N_MIN", 12))
-CARDINALITY_BETA_N_FULL: int = int(os.environ.get("CARDINALITY_BETA_N_FULL", 40))
-# α — convex blend of the SELECT objective toward μ-free max-diversification (MaxDiv):
-#   selection minimizes  (1−α)·[mean-variance surrogate]  +  (α·scale + β)·Σ_{i<j} ρ_ij
-#   α = 0 → today's mean-variance (+ additive β);  α = 1 → pure MaxDiv (μ dropped entirely).
-# DISTINCT from β: β adds decorrelation on TOP of full μ-driven MV (keeps the estimation-error-prone
-# μ term); α DOWN-WEIGHTS μ as it adds decorrelation, so α=1 is μ-free. Theory (DeMiguel 2009): μ
-# estimation error is what sinks MV out-of-sample, so down-weighting μ (α) should beat merely adding
-# β. Both make the landscape rugged (ρ-dominated); the comparison is OOS quality. 0 = off (no change).
-SELECT_OBJECTIVE_ALPHA: float = float(os.environ.get("SELECT_OBJECTIVE_ALPHA", 0.0))
+CARDINALITY_BETA_N_FULL: int = int(os.environ.get("CARDINALITY_BETA_N_FULL", 28))
 
 # cardinality QUBO encoding:
 #   "select" (C2, DEFAULT): penalty-free SELECTION-ONLY QUBO (one bit/asset, objective + β only).
@@ -279,12 +283,29 @@ APP_ENV: str = os.environ.get("APP_ENV", "local")
 # Only the real deploy values require DATABASE_URL — the app refuses to start
 # in-memory there (data would vanish on restart). Every other value (local,
 # local-dev, local-container, local-smoke-*, …) may run in-memory. See
-# api/app.py:_check_required_config and docs/ENVIRONMENT.md.
+# api/app.py:_check_required_config and docs/DEPLOY.md.
 DB_REQUIRED_ENVS: frozenset[str] = frozenset({"production", "booth"})
 
 # Cap on concurrent optimization solves (one process-wide gate; single-worker
 # deploy). Bounds worker threads + assets-api / QPU pressure under a retune burst.
 SOLVE_CONCURRENCY: int = int(os.environ.get("SOLVE_CONCURRENCY", 4))
+
+# -----------------------------------------------------------------------------
+# Email / Proton SMTP
+# -----------------------------------------------------------------------------
+
+# SMTP credentials are backend-only deployment secrets. In production they live
+# in `/opt/qtw/backend.env`, never in Netlify/browser env.
+SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
+SMTP_PORT: int = int(os.environ.get("SMTP_PORT", 587))
+SMTP_USERNAME: str = os.environ.get("SMTP_USERNAME", "")
+SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM: str = os.environ.get(
+    "SMTP_FROM",
+    f"Quip Network <{SMTP_USERNAME}>" if SMTP_USERNAME else "",
+)
+SMTP_TIMEOUT_S: float = float(os.environ.get("SMTP_TIMEOUT_S", 10.0))
+SMTP_ENABLED: bool = _env_bool("SMTP_ENABLED", False)
 
 # -----------------------------------------------------------------------------
 # Market data source

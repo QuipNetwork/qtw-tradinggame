@@ -6,14 +6,38 @@ while keeping Python attributes snake_case.
 
 from __future__ import annotations
 
+import re
+from email.utils import parseaddr
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Universe tickers are ≤6 chars; cap each list item and the list length so an oversized payload
 # can't reach validate_basket / persistence (resource-exhaustion guard). 64 tolerates duplicates
 # above the 28-asset universe (dedup happens in validate_basket).
 _Ticker = Annotated[str, Field(max_length=12)]
+_EMAIL_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def _valid_email(value: str | None) -> str | None:
+    if value is None:
+        return None
+    email = value.strip()
+    if not email:
+        raise ValueError("email is required when provided")
+    if _EMAIL_CONTROL_RE.search(email) or any(ch.isspace() for ch in email):
+        raise ValueError("email contains invalid whitespace or control characters")
+    _, parsed = parseaddr(email)
+    if parsed != email:
+        raise ValueError("email must be a single address")
+    local, sep, domain = parsed.rpartition("@")
+    if not sep or not local or not domain:
+        raise ValueError("email must include local and domain parts")
+    if "." not in domain or domain.startswith(".") or domain.endswith("."):
+        raise ValueError("email domain must include a dotted host")
+    if any(not part for part in domain.split(".")):
+        raise ValueError("email domain contains an empty label")
+    return email
 
 
 class SliderValues(BaseModel):
@@ -66,6 +90,11 @@ class AgentConfig(BaseModel):
     qpu_budget: QpuBudgetStatus | None = Field(default=None, alias="qpuBudget")
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str | None) -> str | None:
+        return _valid_email(value)
 
 
 ProviderType = Literal["QPU", "CPU"]

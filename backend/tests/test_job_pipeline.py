@@ -14,7 +14,23 @@ pytestmark = pytest.mark.skipif(
     importlib.util.find_spec("gurobipy") is None, reason="gurobipy not installed"
 )
 
-BASKET = ["BTC", "ETH", "SOL", "USDC", "IONQ", "QBTS", "RGTI"]
+BASKET = [
+    "BTC",
+    "ETH",
+    "SOL",
+    "USDC",
+    "IONQ",
+    "QBTS",
+    "RGTI",
+    "IBM",
+    "GOOGL",
+    "NVDA",
+    "MSFT",
+    "AMZN",
+    "HON",
+    "SAF",
+    "SPCX",
+]
 
 
 def _config(assets: list[str] | None = BASKET, **sliders: int) -> AgentConfig:
@@ -77,7 +93,23 @@ def test_retune_can_select_a_new_basket():
     record = store.create(_config(), bankroll=10_000.0)
     run_optimization(record.id)
 
-    new_basket = ["HON", "GOOGL", "IBM", "QBTS"]
+    new_basket = [
+        "BNB",
+        "XRP",
+        "USDT",
+        "DOGE",
+        "HYPE",
+        "ZEC",
+        "ALGO",
+        "FIL",
+        "RENDER",
+        "STRK",
+        "ARQQ",
+        "LAES",
+        "QUBT",
+        "IBM",
+        "SPCX",
+    ]
     result = run_optimization(record.id, assets=new_basket).result
 
     assert result.kind == "retune"
@@ -97,7 +129,7 @@ def test_no_basket_defaults_to_full_universe():
 
 
 def test_cardinality_holds_exactly_k_of_the_basket(monkeypatch):
-    # holdCount sub-selects K of the 7-asset basket (force mode for env-independence)
+    # holdCount sub-selects K of the 15-asset basket (force mode for env-independence)
     from backend import config
 
     monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
