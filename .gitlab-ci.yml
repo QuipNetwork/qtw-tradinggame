@@ -39,6 +39,9 @@ backend:image:
       printf '{"auths":{"%s":{"username":"%s","password":"%s"}}}'
       "$CI_REGISTRY" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD"
       > /kaniko/.docker/config.json
+    # --ignore-path=/lib/firmware: GPU runners bind-mount host NVIDIA firmware
+    # into the container; kaniko can't remove /lib to recreate the usr-merge
+    # symlink while those mounts are busy, so it must skip that subtree.
     - |
       DESTINATIONS="--destination ${BACKEND_IMAGE_SHA} --destination ${BACKEND_IMAGE_REF}"
       if [ "$CI_COMMIT_BRANCH" = "deployment-dev" ]; then
@@ -52,6 +55,7 @@ backend:image:
         --dockerfile "$CI_PROJECT_DIR/backend/Dockerfile" \
         --cache=true \
         --cache-repo "$CI_REGISTRY_IMAGE/cache/backend" \
+        --ignore-path=/lib/firmware \
         $DESTINATIONS
 
 backend:deploy:
