@@ -83,12 +83,23 @@ def map_sliders(sliders: SliderValues, basket_size: int) -> SliderParams:
         # Grid M is SIZE-AWARE: fine (more weight levels) for small baskets that stay
         # embeddable, coarse for large ones — floored so M ≥ K (budget placeable).
         m_units = units_for_grid(k, basket_size)
-        w_min = u_min / m_units  # integer-grid floor = the minimum buy-in if held
-        # K-dominant, grid-aware: the cap can't make the INTEGER budget unreachable.
-        # K held assets must place M units, so each may need up to ⌈M/K⌉ units;
-        # floor(w_max·M) ≥ ⌈M/K⌉ requires w_max ≥ ⌈M/K⌉/M (stricter than 1/K).
-        grid_min_cap = math.ceil(m_units / k) / m_units
-        w_max = max(max_position_cap(basket_size, sliders.max_position_size), grid_min_cap)
+        if config.CARDINALITY_ENCODING == "select":
+            # The select QUBO is N selection bits only — M never enters it. The weights come purely
+            # from the convex QP (financial.weighting), so the box is a FREE design choice, not the
+            # integer grid. Scale the floor so the K participation floors lock at most
+            # CARDINALITY_FLOOR_BUDGET of the bankroll (else at large K each held asset is pinned at
+            # the fixed grid floor, K·w_min → 1, and the sliders stop tilting the weights). The only
+            # floor on the cap is the QP feasibility bound 1/K (K held assets must reach Σw = 1).
+            w_min = min(u_min / m_units, config.CARDINALITY_FLOOR_BUDGET / k)
+            w_max = max(max_position_cap(basket_size, sliders.max_position_size), 1.0 / k)
+        else:
+            # Penalized (legacy): weights live on the integer M-grid, so the floor MUST stay
+            # grid-aligned and the cap can't make the INTEGER budget unreachable — K held assets must
+            # place M units, so each may need up to ⌈M/K⌉ units; floor(w_max·M) ≥ ⌈M/K⌉ requires
+            # w_max ≥ ⌈M/K⌉/M (stricter than 1/K).
+            w_min = u_min / m_units  # integer-grid floor = the minimum buy-in if held
+            grid_min_cap = math.ceil(m_units / k) / m_units
+            w_max = max(max_position_cap(basket_size, sliders.max_position_size), grid_min_cap)
         return SliderParams(
             gamma=gamma,
             w_max=w_max,

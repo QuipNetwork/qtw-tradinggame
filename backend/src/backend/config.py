@@ -75,8 +75,10 @@ GAMMA_RANGE: tuple[float, float] = (0.5, 20.0)  # log-scaled
 # Per-asset cap is RELATIVE to the basket (mirrors mvp/src/utils/strategy.ts::
 # maxPositionCapPct): slider sweeps from equal weight (1/n — maximally
 # diversified) up to W_MAX_CEILING in a single asset. A 1-asset basket is
-# always 100%.
-W_MAX_CEILING: float = 0.5
+# always 100%. 0.85 (was 0.5) lets a speculative book concentrate into its best
+# names — the select-encoding weights are a free convex-QP box, so the only hard
+# bound is feasibility (K·w_max ≥ 1). Keep mvp/src/utils/strategy.ts in sync.
+W_MAX_CEILING: float = 0.85
 
 # Participation floor, not user-facing: w_min = MIN_POSITION_FRACTION/n, so
 # every basket asset the player picked shows up in the portfolio. n·w_min ≤ 1
@@ -134,6 +136,12 @@ OPTIMIZATION_MODE: str = os.environ.get("OPTIMIZATION_MODE", "cardinality").lowe
 CARDINALITY_MIN_UNITS: int = 8  # floor (b=2, 4 weight levels) — granularity vs feasibility
 CARDINALITY_MAX_UNITS: int = 32  # cap (b=4) — M ≥ K so this also caps K at 32 ≥ universe
 CARDINALITY_U_MIN: int = 1
+# SELECT-encoding only: the weights come from the convex QP, not the integer grid, so the
+# participation floor w_min is a free design choice rather than u_min/M. Scale it so the K floors
+# collectively lock at most this fraction of the bankroll (w_min = min(u_min/M, this/K)), keeping
+# ≥ (1 − this) of the weight free for the QP to tilt — otherwise at large K every held asset is
+# pinned at the fixed grid floor (K·w_min → 1) and risk/return sliders stop mattering.
+CARDINALITY_FLOOR_BUDGET: float = 0.5
 # Size-aware grid budget. Like the convex QUBO_PREFERRED_MAX_VARS, the grid M is raised
 # toward a FINER resolution (more weight levels ≈ closer to continuous) for SMALL baskets
 # that stay embeddable, and kept COARSE (b=2) for large baskets so the dense QUBO still
@@ -149,17 +157,19 @@ CARDINALITY_PENALTY_MULT_LINK: float = 12.0
 # pairwise pulls → many local minima) so D-Wave can out-search SA on portfolio quality. For the
 # SELECT encoding this value is a FRACTION of the per-problem objective scale (resolve_frustration_beta
 # scales it per basket, so the relative pressure is basket-invariant); it applies only to the select
-# encoding. 0 = off. This is the PEAK fraction, reached at LARGE baskets — β is RAMPED by basket size
-# (below): OOS backtests show its benefit grows with N and it hurts tiny baskets
-# (qpu-experiment-synthesis-2026-06-22.md §7/§9). See also qpu-c2-beta-findings.md.
+# encoding. 0 = off. This is the PEAK fraction, reached at the full universe — β is RAMPED by basket
+# size (below) from a FLOOR at the minimum basket up to this peak. See qpu-c2-beta-findings.md.
 CARDINALITY_FRUSTRATION_BETA: float = float(os.environ.get("CARDINALITY_FRUSTRATION_BETA", 0.4))
-# N-aware β ramp: 0 below N_MIN (small baskets — β over-penalizes, hurts OOS), rising linearly to the
-# full CARDINALITY_FRUSTRATION_BETA at/above N_FULL. N_FULL = the booth universe (28), so a full booth
-# basket reaches FULL β (rugged landscape → D-Wave wins the race on portfolio quality; verified on
-# real data — see qpu-experiment-synthesis §QPU race) while smaller player baskets ramp down toward
-# plain MV (OOS-safe). When the universe expands past 28 (deferred), raise N_FULL so the larger
-# baskets aren't over-rugged. At N=28 this now lands at the full 0.4 (was ≈0.23 with N_FULL=40).
-CARDINALITY_BETA_N_MIN: int = int(os.environ.get("CARDINALITY_BETA_N_MIN", 12))
+# N-aware β ramp: OFF below N_MIN, then a FLOOR fraction (CARDINALITY_BETA_FLOOR) at N_MIN rising
+# linearly to the full CARDINALITY_FRUSTRATION_BETA at/above N_FULL (the booth universe, 28). N_MIN is
+# now the booth-minimum basket (15) and the floor is NON-ZERO because at N=15 a β-fraction of ~0.3 is
+# where (a) D-Wave starts beating SA on portfolio quality (the rugged edge emerges; β≤0.2 is a smooth
+# tie) AND (b) OOS Sharpe still beats plain MV — both verified 2026-06-23 (Yahoo OOS, 82 windows + a
+# live N=15 QPU sweep; see qpu-beta-oos-booth-yahoo / qpu-c2-beta-findings). Below N_MIN β stays 0
+# (tiny baskets over-penalize OOS) — moot in play since the minimum basket is 15. Raise N_FULL if the
+# universe grows past 28 so larger baskets aren't over-rugged.
+CARDINALITY_BETA_FLOOR: float = float(os.environ.get("CARDINALITY_BETA_FLOOR", 0.3))
+CARDINALITY_BETA_N_MIN: int = int(os.environ.get("CARDINALITY_BETA_N_MIN", 15))
 CARDINALITY_BETA_N_FULL: int = int(os.environ.get("CARDINALITY_BETA_N_FULL", 28))
 
 # cardinality QUBO encoding:
