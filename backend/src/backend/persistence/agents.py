@@ -19,6 +19,18 @@ from ..financial.slider_map import rebalance_every_hours
 VALUATION_HISTORY_MAX_POINTS = 240
 
 
+class EmailAlreadyRegistered(Exception):
+    """Raised when a signup reuses an email already tied to an agent (one per email)."""
+
+
+def _normalize_email(email: str | None) -> str | None:
+    """Lowercase + trim for case-insensitive uniqueness; empty/None → None (not unique)."""
+    if email is None:
+        return None
+    cleaned = email.strip().lower()
+    return cleaned or None
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -85,7 +97,13 @@ class AgentStore:
     def create(
         self, config: AgentConfig, bankroll: float, *, token_hash: str | None = None
     ) -> AgentRecord:
+        normalized_email = _normalize_email(config.email)
         with self._lock:
+            if normalized_email is not None and any(
+                _normalize_email(existing.email) == normalized_email
+                for existing in self._agents.values()
+            ):
+                raise EmailAlreadyRegistered(normalized_email)
             agent_id = uuid4().hex[:8]
             created = _now_iso()
             record = AgentRecord(

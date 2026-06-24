@@ -21,23 +21,25 @@ class SignupRateLimiter:
         self._global: deque[float] = deque()
         self._lock = Lock()
 
-    def check(self, ip: str, *, now: float | None = None) -> int | None:
+    def check(self, ip: str, *, now: float | None = None, trusted: bool = False) -> int | None:
         """Record a signup from ``ip``. Returns None if allowed, else retry-after seconds.
 
-        Limits are read from config at call time so they can be tuned (or patched in
-        tests) without rebuilding the limiter.
+        ``trusted`` (a valid booth kiosk) skips the per-IP limit so the single
+        tablet IP / shared conference WiFi is never throttled; the booth-wide hourly
+        ceiling still applies as a DoS backstop. Limits are read from config at call
+        time so they can be tuned (or patched in tests) without rebuilding the limiter.
         """
         now = time.monotonic() if now is None else now
         with self._lock:
-            window = config.SIGNUP_RATE_WINDOW_S
-            bucket = self._per_ip.setdefault(ip, deque())
-            self._prune(bucket, now - window)
-            if len(bucket) >= config.SIGNUP_RATE_PER_IP:
-                return window
             self._prune(self._global, now - 3600)
             if len(self._global) >= config.SIGNUP_RATE_GLOBAL_PER_HOUR:
                 return 3600
-            bucket.append(now)
+            if not trusted:
+                bucket = self._per_ip.setdefault(ip, deque())
+                self._prune(bucket, now - config.SIGNUP_RATE_WINDOW_S)
+                if len(bucket) >= config.SIGNUP_RATE_PER_IP:
+                    return config.SIGNUP_RATE_WINDOW_S
+                bucket.append(now)
             self._global.append(now)
             return None
 

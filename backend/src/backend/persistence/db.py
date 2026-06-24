@@ -7,6 +7,7 @@ the env var is unset.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -50,6 +51,7 @@ from .qpu_budget import (
     _status_from_times,
 )
 
+log = logging.getLogger(__name__)
 metadata = MetaData()
 
 agents_table = Table(
@@ -242,11 +244,30 @@ class DbAgentStore(AgentStore):
             },
         )
         _ensure_rebalance_interval_type(self._engine)
+        self._ensure_email_unique_index()
         self._load()
 
     @property
     def engine(self) -> Engine:
         return self._engine
+
+    def _ensure_email_unique_index(self) -> None:
+        # Defense-in-depth backstop to the in-memory one-per-email check (the deploy is
+        # single-worker, so that check is the primary guard). Partial + case-insensitive,
+        # scoped per environment; null/blank emails are exempt. Best-effort: if the table
+        # already holds duplicate emails the index won't build — log and carry on.
+        ddl = (
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_agents_env_email "
+            "ON agents (environment, lower(email)) "
+            "WHERE email IS NOT NULL AND email <> ''"
+        )
+        try:
+            with self._engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception:
+            log.warning(
+                "email unique index not created (pre-existing duplicate emails?)", exc_info=True
+            )
 
     def create(
         self, config: AgentConfig, bankroll: float, *, token_hash: str | None = None

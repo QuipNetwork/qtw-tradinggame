@@ -8,7 +8,12 @@ import pytest
 
 from backend import config
 from backend.api.schemas import AgentConfig, AgentUpdate, SliderValues
-from backend.persistence.agents import AgentStore, get_agent_store, set_agent_store
+from backend.persistence.agents import (
+    AgentStore,
+    EmailAlreadyRegistered,
+    get_agent_store,
+    set_agent_store,
+)
 from backend.persistence.db import (
     DbAgentStore,
     DbJobStore,
@@ -95,6 +100,30 @@ def test_mark_update_email_sent_advances_timestamp():
     record = store.create(_config("Mark"), bankroll=10_000.0)
     store.mark_update_email_sent(record.id, "2026-06-23T12:00:00+00:00")
     assert store.get(record.id).last_update_email_at == "2026-06-23T12:00:00+00:00"
+
+
+def test_create_rejects_duplicate_email_case_insensitive():
+    store = AgentStore()
+    store.create(_config("Ann"), bankroll=10_000.0)  # ann@example.com
+    dup = _config("Bob").model_copy(update={"email": "ANN@example.com"})
+    with pytest.raises(EmailAlreadyRegistered):
+        store.create(dup, bankroll=10_000.0)
+
+
+def test_create_allows_repeated_null_email():
+    store = AgentStore()
+    store.create(_config("Ann").model_copy(update={"email": None}), bankroll=10_000.0)
+    store.create(_config("Bob").model_copy(update={"email": None}), bankroll=10_000.0)
+    assert len(store.all()) == 2
+
+
+def test_db_store_rejects_duplicate_email(tmp_path):
+    url = f"sqlite:///{tmp_path / 'dupemail.db'}"
+    store = DbAgentStore(url, environment="local", allow_reset=True)
+    store.create(_config("Ann"), bankroll=10_000.0)
+    dup = _config("Bob").model_copy(update={"email": "ann@example.com"})
+    with pytest.raises(EmailAlreadyRegistered):
+        store.create(dup, bankroll=10_000.0)
 
 
 def test_db_store_round_trips_last_update_email_at(tmp_path):

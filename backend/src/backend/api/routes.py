@@ -11,6 +11,7 @@ import asyncio
 import ipaddress
 import logging
 import os
+import secrets
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
@@ -22,7 +23,7 @@ from ..financial.prices.assets_api import AssetsApiError
 from ..notifications.dispatch import maybe_send_update_email
 from ..notifications.email import send_signup_confirmation
 from ..orchestration.job import run_optimization
-from ..persistence.agents import AgentRecord, get_agent_store
+from ..persistence.agents import AgentRecord, EmailAlreadyRegistered, get_agent_store
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
@@ -62,11 +63,25 @@ async def healthz() -> HealthResponse:
     )
 
 
+def _require_kiosk(request: Request) -> bool:
+    """Enforce the booth-kiosk gate. Returns True when the request carries a valid
+    X-Kiosk-Key (a trusted kiosk → the per-IP signup limit is skipped). When
+    KIOSK_SIGNUP_KEY is unset the gate is off and signups are untrusted (normal
+    per-IP limiting). A configured key with a missing/wrong header is rejected 403."""
+    if not config.KIOSK_SIGNUP_KEY:
+        return False
+    provided = request.headers.get("x-kiosk-key", "")
+    if not secrets.compare_digest(provided, config.KIOSK_SIGNUP_KEY):
+        raise HTTPException(status_code=403, detail="sign-ups are limited to the booth kiosk")
+    return True
+
+
 @router.post("/agents", response_model=SubmitAgentResponse)
 async def create_agent(
     config_in: AgentConfig, request: Request, background_tasks: BackgroundTasks
 ) -> SubmitAgentResponse:
-    retry_after = request.app.state.signup_limiter.check(_client_ip(request))
+    trusted = _require_kiosk(request)
+    retry_after = request.app.state.signup_limiter.check(_client_ip(request), trusted=trusted)
     if retry_after is not None:
         raise HTTPException(
             status_code=429,
@@ -78,9 +93,14 @@ async def create_agent(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     token, token_hash = new_agent_token()
-    record = get_agent_store().create(
-        config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
-    )
+    try:
+        record = get_agent_store().create(
+            config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
+        )
+    except EmailAlreadyRegistered as exc:
+        raise HTTPException(
+            status_code=409, detail="an agent already exists for this email"
+        ) from exc
     background_tasks.add_task(_send_signup_confirmation_email, record, token)
     return SubmitAgentResponse(
         agent_id=record.id,

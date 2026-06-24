@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import itertools
 
 import pytest
 from fastapi.testclient import TestClient
@@ -56,12 +57,17 @@ _ALT_BASKET = [
 ]
 
 
+_email_seq = itertools.count()
+
+
 def _create(client: TestClient, name: str = "Neo") -> str:
     response = client.post(
         "/agents",
         json={
             "name": name,
-            "email": f"{name.lower()}@example.com",
+            # Unique per call so the one-agent-per-email guard never collides across
+            # helper-created agents within a single test.
+            "email": f"{name.lower()}{next(_email_seq)}@example.com",
             "sliders": _SLIDERS,
             "assets": _BASKET,
         },
@@ -427,10 +433,12 @@ def test_basket_below_minimum_is_rejected():
 def test_signup_rate_limited_per_ip(monkeypatch):
     monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 3)
     with TestClient(create_app()) as client:
-        body = {"name": "Spam", "email": "spam@example.com", "sliders": _SLIDERS, "assets": _BASKET}
-        for _ in range(3):
-            assert client.post("/agents", json=body).status_code == 200
-        blocked = client.post("/agents", json=body)
+        body = {"name": "Spam", "sliders": _SLIDERS, "assets": _BASKET}
+        # Distinct emails so the per-IP limit (not the one-per-email guard) is what trips.
+        for i in range(3):
+            r = client.post("/agents", json={**body, "email": f"spam{i}@example.com"})
+            assert r.status_code == 200
+        blocked = client.post("/agents", json={**body, "email": "spam-x@example.com"})
         assert blocked.status_code == 429
         assert int(blocked.headers["retry-after"]) > 0
 
@@ -438,19 +446,57 @@ def test_signup_rate_limited_per_ip(monkeypatch):
 def test_rate_limit_keys_on_real_ip_not_spoofable_forwarded_for(monkeypatch):
     monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 2)
     with TestClient(create_app()) as client:
-        body = {
-            "name": "Spoof",
-            "email": "spoof@example.com",
-            "sliders": _SLIDERS,
-            "assets": _BASKET,
-        }
+        body = {"name": "Spoof", "sliders": _SLIDERS, "assets": _BASKET}
         real = {"X-Real-IP": "5.5.5.5"}  # what Caddy sets (trusted, overwritten)
         # Varying the client-supplied X-Forwarded-For must NOT escape the bucket.
         for i in range(2):
-            r = client.post("/agents", json=body, headers={**real, "X-Forwarded-For": f"1.2.3.{i}"})
+            r = client.post(
+                "/agents",
+                json={**body, "email": f"spoof{i}@example.com"},
+                headers={**real, "X-Forwarded-For": f"1.2.3.{i}"},
+            )
             assert r.status_code == 200
-        blocked = client.post("/agents", json=body, headers={**real, "X-Forwarded-For": "9.9.9.9"})
+        blocked = client.post(
+            "/agents",
+            json={**body, "email": "spoof-x@example.com"},
+            headers={**real, "X-Forwarded-For": "9.9.9.9"},
+        )
         assert blocked.status_code == 429  # same X-Real-IP → same bucket
+
+
+def test_create_agent_rejects_duplicate_email():
+    with TestClient(create_app()) as client:
+        body = {"name": "First", "email": "dup@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=body).status_code == 200
+        # Case-insensitive: same address, different case + name → 409.
+        again = {**body, "name": "Second", "email": "DUP@example.com"}
+        resp = client.post("/agents", json=again)
+        assert resp.status_code == 409
+        assert "already exists" in resp.json()["detail"]
+
+
+def test_create_agent_requires_kiosk_key_when_configured(monkeypatch):
+    monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
+    with TestClient(create_app()) as client:
+        body = {"name": "Gated", "email": "gate@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=body).status_code == 403  # no key
+        assert client.post("/agents", json=body, headers={"X-Kiosk-Key": "wrong"}).status_code == 403
+        ok = client.post("/agents", json=body, headers={"X-Kiosk-Key": "s3cret"})
+        assert ok.status_code == 200
+
+
+def test_kiosk_signups_skip_per_ip_limit(monkeypatch):
+    monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
+    monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 1)
+    with TestClient(create_app()) as client:
+        headers = {"X-Kiosk-Key": "s3cret"}
+        body = {"name": "Booth", "sliders": _SLIDERS, "assets": _BASKET}
+        # A second keyed signup from the same IP would 429 if the per-IP cap applied —
+        # the trusted kiosk skips it (booth tablet / shared WiFi is one IP).
+        r1 = client.post("/agents", json={**body, "email": "a@example.com"}, headers=headers)
+        r2 = client.post("/agents", json={**body, "email": "b@example.com"}, headers=headers)
+        assert r1.status_code == 200
+        assert r2.status_code == 200
 
 
 @requires_gurobi

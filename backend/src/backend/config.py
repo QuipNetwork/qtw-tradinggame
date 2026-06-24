@@ -268,6 +268,13 @@ SIGNUP_RATE_PER_IP: int = int(os.environ.get("SIGNUP_RATE_PER_IP", 10))
 SIGNUP_RATE_WINDOW_S: int = int(os.environ.get("SIGNUP_RATE_WINDOW_S", 600))
 SIGNUP_RATE_GLOBAL_PER_HOUR: int = int(os.environ.get("SIGNUP_RATE_GLOBAL_PER_HOUR", 300))
 
+# Booth-kiosk gate. When set, POST /agents requires a matching X-Kiosk-Key header so
+# signup stays off the public web (a returning attendee can't mint a second agent from
+# their phone). A valid kiosk key is also trusted — it skips the per-IP signup limit, so
+# the single booth-tablet IP (and shared conference WiFi) is never throttled. Unset → no
+# gate, normal per-IP limiting (dev/tests).
+KIOSK_SIGNUP_KEY: str = os.environ.get("KIOSK_SIGNUP_KEY", "")
+
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------
