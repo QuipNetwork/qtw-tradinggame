@@ -11,6 +11,8 @@ import asyncio
 import ipaddress
 import logging
 import os
+import secrets
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
@@ -18,9 +20,10 @@ from .. import config
 from ..events.bus import get_bus
 from ..financial.basket import validate_basket
 from ..financial.prices.assets_api import AssetsApiError
+from ..notifications.dispatch import maybe_send_update_email
 from ..notifications.email import send_signup_confirmation
 from ..orchestration.job import run_optimization
-from ..persistence.agents import AgentRecord, get_agent_store
+from ..persistence.agents import AgentRecord, EmailAlreadyRegistered, get_agent_store
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
@@ -60,11 +63,25 @@ async def healthz() -> HealthResponse:
     )
 
 
+def _require_kiosk(request: Request) -> bool:
+    """Enforce the booth-kiosk gate. Returns True when the request carries a valid
+    X-Kiosk-Key (a trusted kiosk → the per-IP signup limit is skipped). When
+    KIOSK_SIGNUP_KEY is unset the gate is off and signups are untrusted (normal
+    per-IP limiting). A configured key with a missing/wrong header is rejected 403."""
+    if not config.KIOSK_SIGNUP_KEY:
+        return False
+    provided = request.headers.get("x-kiosk-key", "")
+    if not secrets.compare_digest(provided, config.KIOSK_SIGNUP_KEY):
+        raise HTTPException(status_code=403, detail="sign-ups are limited to the booth kiosk")
+    return True
+
+
 @router.post("/agents", response_model=SubmitAgentResponse)
 async def create_agent(
     config_in: AgentConfig, request: Request, background_tasks: BackgroundTasks
 ) -> SubmitAgentResponse:
-    retry_after = request.app.state.signup_limiter.check(_client_ip(request))
+    trusted = _require_kiosk(request)
+    retry_after = request.app.state.signup_limiter.check(_client_ip(request), trusted=trusted)
     if retry_after is not None:
         raise HTTPException(
             status_code=429,
@@ -76,10 +93,15 @@ async def create_agent(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     token, token_hash = new_agent_token()
-    record = get_agent_store().create(
-        config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
-    )
-    background_tasks.add_task(_send_signup_confirmation_email, record)
+    try:
+        record = get_agent_store().create(
+            config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
+        )
+    except EmailAlreadyRegistered as exc:
+        raise HTTPException(
+            status_code=409, detail="an agent already exists for this email"
+        ) from exc
+    background_tasks.add_task(_send_signup_confirmation_email, record, token)
     return SubmitAgentResponse(
         agent_id=record.id,
         # Token in the URL fragment — never sent to the server, so it stays out of logs.
@@ -89,14 +111,21 @@ async def create_agent(
     )
 
 
-def _send_signup_confirmation_email(record: AgentRecord) -> None:
-    """Send an opt-in signup confirmation without letting SMTP failures break signup."""
-    if not record.email or record.updates_opt_in is not True:
+def _send_signup_confirmation_email(record: AgentRecord, token: str) -> None:
+    """Send the signup email with the secure agent link to anyone who gave an email.
+
+    Transactional (the link is their way back to the agent), so it is not gated on
+    the result-email opt-in. SMTP failures are logged and never break signup.
+    """
+    if not record.email:
         return
+    link = f"{config.QR_BASE_URL}/p/{record.id}#t={token}"
     try:
         send_signup_confirmation(
             to=record.email,
             name=record.name,
+            link=link,
+            updates_opt_in=record.updates_opt_in is True,
         )
     except Exception:
         log.warning("signup confirmation email failed agent_id=%s", record.id, exc_info=True)
@@ -150,7 +179,9 @@ _solve_semaphore = asyncio.Semaphore(config.SOLVE_CONCURRENCY)
     response_model=RoutingResult,
     dependencies=[Depends(require_agent_token)],
 )
-async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> RoutingResult:
+async def optimize(
+    agent_id: str, background_tasks: BackgroundTasks, body: OptimizeRequest | None = None
+) -> RoutingResult:
     sliders = body.sliders if body is not None else None
     assets = body.assets if body is not None else None
     try:
@@ -181,6 +212,11 @@ async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> Routin
     bus = get_bus()
     for event in outcome.events:
         bus.publish(event.channel, event.payload)
+    refreshed = get_agent_store().get(agent_id)
+    if refreshed is not None:
+        background_tasks.add_task(
+            maybe_send_update_email, refreshed, now=datetime.now(UTC), store=get_agent_store()
+        )
     return outcome.result
 
 

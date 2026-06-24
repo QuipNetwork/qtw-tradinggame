@@ -15,6 +15,7 @@ import type {
   ValuationHistoryPoint,
 } from './types';
 import { ReconnectingSocket } from './socket';
+import { kioskKey } from './kiosk';
 import { getAgentToken, storeAgentToken } from './token';
 
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
@@ -103,9 +104,11 @@ function authHeaders(agentId: string): Record<string, string> {
 }
 
 export async function submitAgent(config: AgentConfig): Promise<SubmitAgentResponse> {
+  const key = kioskKey();  // booth-kiosk gate: backend requires this when enabled
   const response = await request<SubmitAgentResponse>('/agents', {
     method: 'POST',
     body: JSON.stringify(config),
+    headers: key ? { 'x-kiosk-key': key } : {},
   });
   storeAgentToken(response.agentId, response.token);  // authorize this session's calls
   return response;

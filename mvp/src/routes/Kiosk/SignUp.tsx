@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { submitAgent, requestOptimization, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, IS_MOCK } from '../../api';
+import { submitAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, IS_MOCK } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
+import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount, riskLevelPct } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -157,25 +157,15 @@ export default function KioskSignUp() {
         sliders: sliderValues,
         assets: ASSETS.filter(a => selected.has(a.ticker)).map(a => a.ticker),
       });
-      // The agent now exists — persist it and move on, so a failed first solve
-      // can't strand the attendee here or let a re-press create a duplicate
-      // agent. The first solve is best-effort caching; the welcome screen
-      // re-solves on its own if it's missing.
+      // The agent now exists — persist the id/QR and go straight to the welcome
+      // screen, which runs the first solve behind its "Routing through Quip…"
+      // spinner. Awaiting the solve here would freeze the kiosk "Create" button
+      // for up to ~10s on a QPU cold start; the welcome screen owns (and shows) it.
       try {
         localStorage.setItem('quip:lastAgentId', agentId);
         sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
       } catch {
         // Locked-down kiosk browsers may block storage; token.ts keeps an in-memory token.
-      }
-      try {
-        const result = await requestOptimization(agentId);
-        try {
-          sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(result));
-        } catch {
-          // The welcome screen can re-solve if the best-effort cache cannot be written.
-        }
-      } catch {
-        // Leave it to the welcome screen to solve and surface any error.
       }
       navigate(`/kiosk/welcome?agent=${agentId}`, { replace: true });
     } catch (err) {
@@ -352,6 +342,8 @@ export default function KioskSignUp() {
                           {labelFor(i, sliders[i])}
                           {/* the position cap is relative to the basket — show the live number */}
                           {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                          {/* risk preference shown as a plain 0–100 level that rises with aggressiveness */}
+                          {def.key === 'riskPreference' && ` · ${riskLevelPct(sliders[i])}%`}
                         </span>
                       </div>
                     </div>

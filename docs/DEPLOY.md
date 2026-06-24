@@ -280,12 +280,19 @@ Current behavior:
 
 - Email sends only from the FastAPI backend container.
 - Netlify and the browser never receive SMTP credentials.
-- After `POST /agents` persists the attendee, the backend schedules a
-  background email task only when `updatesOptIn=true` and an email address is
-  present.
-- The current message is the initial signup confirmation after signup.
-- Hourly/daily recurring result emails are not implemented yet.
-- SMTP failures are logged and do not fail signup.
+- After `POST /agents` persists the attendee, the backend sends a signup
+  confirmation to anyone who provided an email. It carries the attendee's secure
+  agent link (`/p/{id}#t={token}`); when they did not opt into result emails it
+  also states the link is one-time and no further mail will follow.
+- Opted-in attendees (`updatesOptIn=true`) also receive a portfolio-result email
+  after a rebalance, throttled to their cadence (`updateFrequency`: hourly = at
+  most 1/h, daily = at most 1/24h). The result email is informational only — the
+  secure deep link lives solely in the signup email, because only the token hash
+  is stored server-side.
+- SMTP failures are logged and do not fail signup or a rebalance.
+- Note: the signup link puts the capability token in an email (Proton TLS + the
+  recipient inbox), a conscious tradeoff vs. the log-safe URL-fragment design —
+  acceptable for a short-lived, play-money booth agent.
 
 Required Proton values:
 

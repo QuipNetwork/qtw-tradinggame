@@ -11,6 +11,7 @@ import pytest
 from backend.api.schemas import AgentConfig, QpuBudgetStatus, SliderValues
 from backend.events.bus import EventBus
 from backend.financial.prices.base import SpotSnapshot
+from backend.notifications import email as email_mod
 from backend.orchestration import scheduler
 from backend.orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
 from backend.persistence.agents import AgentStore
@@ -294,3 +295,67 @@ async def test_scheduled_rebalance_defers_when_qpu_budget_is_exhausted(monkeypat
     assert agents.get(record.id).next_rebalance_at == next_available
     assert payload["nextRebalanceAt"] == next_available
     assert payload["qpuBudget"]["retryAfterSeconds"] == 300
+
+
+@pytest.mark.asyncio
+async def test_scheduled_rebalance_sends_throttled_result_email(monkeypatch):
+    agents = AgentStore()
+    record = agents.create(
+        AgentConfig(
+            name="Mailer",
+            email="mailer@example.com",
+            updatesOptIn=True,
+            updateFrequency="hourly",
+            sliders=SliderValues(rebalanceFrequency=100, riskPreference=70, maxPositionSize=50),
+            assets=["BTC", "ETH"],
+        ),
+        bankroll=10_000.0,
+    )
+    agents.apply_solve(
+        record.id, holdings_units={"BTC": 0.1, "ETH": 1.0}, total=10_000.0, provider_type="QPU"
+    )
+    record.next_rebalance_at = (datetime.now(UTC) - timedelta(seconds=1)).isoformat()
+    record.last_update_email_at = None  # force "due"
+
+    def fake_optimization(agent_id, *, agents, jobs, market, source):
+        agents.apply_solve(
+            agent_id, holdings_units={"BTC": 0.11, "ETH": 0.9}, total=10_250.0, provider_type="QPU"
+        )
+        return SimpleNamespace(
+            events=[
+                SimpleNamespace(
+                    channel=f"agent:{agent_id}", payload={"type": "scheduled-rebalance"}
+                )
+            ]
+        )
+
+    monkeypatch.setattr(scheduler, "run_optimization", fake_optimization)
+
+    sent: list[str] = []
+
+    class CaptureProvider:
+        def send(self, *, to, subject, html, text):
+            sent.append(to)
+
+    email_mod.set_email_provider(CaptureProvider())
+    bus = EventBus()
+    queue = bus.subscribe(f"agent:{record.id}")
+    stop = asyncio.Event()
+    task = asyncio.create_task(
+        run_scheduled_rebalance_loop(
+            bus, stop, agents=agents, jobs=SimpleNamespace(), market=MovingSpot(), tick_s=60.0
+        )
+    )
+    try:
+        await asyncio.wait_for(queue.get(), timeout=1.0)
+        for _ in range(50):  # email dispatches just after the publish
+            if sent:
+                break
+            await asyncio.sleep(0.01)
+    finally:
+        stop.set()
+        await task
+        email_mod.set_email_provider(email_mod.NoopEmailProvider())
+
+    assert sent == ["mailer@example.com"]
+    assert agents.get(record.id).last_update_email_at is not None

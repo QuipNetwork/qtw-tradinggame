@@ -50,6 +50,10 @@ class RaceResult:
     all_results: list[Solution]
     solver_runs: list[SolverRun]
     q_hash: str
+    # How the winner won, for the UI: "quality" (materially better portfolio), "speed" (objective tie,
+    # winner materially faster), "tie" (objective tie AND times within tolerance — don't claim a winner
+    # from timing noise). The winner is still picked for the portfolio in every case.
+    outcome: str = "quality"
 
     @property
     def vs_classical(self) -> float:
@@ -213,7 +217,33 @@ def race(
         all_results=results,
         solver_runs=solver_runs,
         q_hash=q_h,
+        outcome=_classify_outcome(winner, feasible_results),
     )
+
+
+def _classify_outcome(winner: Solution, feasible: list[Solution]) -> str:
+    """How the winner won, for the UI. The winner is already chosen (best objective, ties→fastest);
+    this only labels HOW so the booth doesn't show a misleading "X% faster" on a quality+speed tie:
+      "quality" — winner's portfolio is materially better (objective gap > RACE_WINNER_OBJECTIVE_TOL),
+      "speed"   — objective tie, winner materially faster (time gap > RACE_TIME_TIE_TOL),
+      "tie"     — objective tie AND times within RACE_TIME_TIE_TOL (timing noise; no real winner)."""
+    if winner.objective is None:
+        return "quality"
+    others = [s for s in feasible if s is not winner and s.objective is not None]
+    if not others:
+        return "quality"  # uncontested → it's simply the result
+    runner = min(others, key=lambda s: s.objective)
+    quality_gap = abs(runner.objective - winner.objective) / max(
+        abs(runner.objective), abs(winner.objective), 1e-12
+    )
+    if quality_gap > config.RACE_WINNER_OBJECTIVE_TOL:
+        return "quality"
+    # objective tie → decided by speed; report a genuine TIE when the times are also within tolerance.
+    wt, rt = winner.solve_time_s, runner.solve_time_s
+    if not wt or not rt or max(wt, rt) <= 0.0:
+        return "tie"
+    time_gap = abs(rt - wt) / max(wt, rt)
+    return "speed" if time_gap > config.RACE_TIME_TIE_TOL else "tie"
 
 
 def pick_winner(feasible: list[Solution]) -> Solution | None:

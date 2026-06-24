@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 from pydantic import ValidationError
 
@@ -98,7 +100,10 @@ def test_hold_count_below_three_is_rejected():
 
 
 def test_cardinality_w_max_is_k_dominant_grid_aware(monkeypatch):
+    # The grid-aware cap is a PENALIZED-encoding concern (its weights live on the integer M-grid);
+    # the select encoding uses the QP feasibility floor 1/K instead (see test below).
     monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "penalized")
     # A low cap slider can't make the INTEGER budget unreachable: w_max is raised to the
     # grid-aware floor ⌈M/K⌉/M, STRICTER than 1/K. K=3 → M=8 → ⌈8/3⌉/8 = 3/8 vs 1/K = 1/3,
     # so this only passes with the grid-aware cap, not a plain 1/K one.
@@ -107,6 +112,57 @@ def test_cardinality_w_max_is_k_dominant_grid_aware(monkeypatch):
     assert params.w_max == pytest.approx(3 / 8)  # ⌈M/K⌉/M, not 1/K = 0.333
     # held units can actually reach the budget: K · floor(w_max·M) ≥ M
     assert params.cardinality_k * int(params.w_max * params.n_units_M) >= params.n_units_M
+
+
+def test_select_w_min_scales_with_k_to_cap_locked_budget(monkeypatch):
+    # SELECT: weights come from the convex QP, so the floor is decoupled from the grid. At large K a
+    # fixed grid floor (u_min/M) would lock ~all the bankroll — every held asset pinned at the floor,
+    # K·w_min → 1 — washing out the sliders. w_min now scales so the K floors lock at most
+    # CARDINALITY_FLOOR_BUDGET, leaving the rest free for the QP to tilt.
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
+    p = map_sliders(_sliders(holdCount=14), basket_size=15)
+    assert p.cardinality_k == 14
+    locked = p.cardinality_k * p.w_min
+    assert locked <= config.CARDINALITY_FLOOR_BUDGET + 1e-9
+
+
+def test_select_w_min_keeps_grid_floor_at_small_k(monkeypatch):
+    # small K: the grid floor u_min/M is already below the budget cap, so it still binds unchanged.
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
+    p = map_sliders(_sliders(holdCount=3), basket_size=15)
+    assert p.w_min == pytest.approx(config.CARDINALITY_U_MIN / p.n_units_M)
+    assert p.cardinality_k * p.w_min < config.CARDINALITY_FLOOR_BUDGET
+
+
+def test_select_w_max_floor_is_one_over_k_not_grid(monkeypatch):
+    # SELECT: the only feasibility floor on w_max is the QP bound 1/K (K assets must reach Σw=1),
+    # NOT the integer-grid ⌈M/K⌉/M the penalized encoding needs.
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
+    p = map_sliders(_sliders(maxPositionSize=0, holdCount=3), basket_size=20)
+    assert p.w_max == pytest.approx(1.0 / 3)
+
+
+def test_max_position_ceiling_allows_concentration(monkeypatch):
+    # max-position slider at 100 can now exceed the old 50% cap for a concentrated speculative book.
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
+    p = map_sliders(_sliders(maxPositionSize=100, holdCount=3), basket_size=15)
+    assert p.w_max == pytest.approx(config.W_MAX_CEILING)
+    assert p.w_max > 0.5
+
+
+def test_penalized_keeps_grid_aligned_box(monkeypatch):
+    # The legacy penalized encoding's weights live on the integer M-grid, so its box MUST stay
+    # grid-aligned: floor = u_min/M, cap floor = ⌈M/K⌉/M (stricter than 1/K). Guards the decoupling
+    # from leaking into the encoding that still depends on the grid.
+    monkeypatch.setattr(config, "OPTIMIZATION_MODE", "cardinality")
+    monkeypatch.setattr(config, "CARDINALITY_ENCODING", "penalized")
+    p = map_sliders(_sliders(maxPositionSize=0, holdCount=3), basket_size=20)
+    assert p.w_min == pytest.approx(config.CARDINALITY_U_MIN / p.n_units_M)
+    assert p.w_max == pytest.approx(math.ceil(p.n_units_M / p.cardinality_k) / p.n_units_M)
 
 
 def test_basket_below_minimum_raises():

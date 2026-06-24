@@ -39,12 +39,12 @@ function buildSurfaces(latestAgentId: string | null): Surface[] {
     },
     {
       num: '03', id: 'tv', title: 'Booth TV', formFactor: '1920×1080 · landscape',
-      blurb: 'The big-screen rotator behind the booth: welcome splash, leaderboard, top-10 spotlight, and a new-agent interrupt.',
+      blurb: 'The big-screen rotator behind the booth: leaderboard, top-10 spotlight, a how-it-works welcome, and a new-agent interrupt.',
       links: [
-        { label: 'Auto-rotate · A → B → C (D interrupts)', to: '/tv', note: 'Default cinematic rotation.' },
-        { label: 'Force state A · Welcome splash', to: '/tv?state=A' },
-        { label: 'Force state B · Leaderboard', to: '/tv?state=B' },
-        { label: 'Force state C · Top-10 spotlight', to: '/tv?state=C' },
+        { label: 'Auto-rotate · A → B → C (D interrupts)', to: '/tv', note: 'Default rotation: leaderboard → spotlight → welcome; a new agent interrupts.' },
+        { label: 'Force state A · Leaderboard', to: '/tv?state=A' },
+        { label: 'Force state B · Top-10 spotlight', to: '/tv?state=B' },
+        { label: 'Force state C · Welcome / how it works', to: '/tv?state=C' },
         { label: 'Force state D · New-agent interrupt', to: '/tv?state=D' },
       ],
     },

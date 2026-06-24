@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { getValuationHistory } from '../../api';
-import type { LeaderboardEntry, RoutingStats, ValuationHistoryPoint } from '../../api';
+import { useMemo } from 'react';
+import type { LeaderboardEntry, RoutingStats } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
 import { useTween } from '../../utils/anim';
@@ -11,44 +10,30 @@ export default function StateB({
   leaderboard,
   rankIndex,
   routingStats,
+  totals,
   phaseSeconds = 15,
 }: {
   leaderboard: LeaderboardEntry[];
   rankIndex: number;
   routingStats: RoutingStats;
+  totals: number[];
   phaseSeconds?: number;
 }) {
   // Fall back to the top agent if the spotlight index is ever out of range
   // (e.g. a NaN from a transiently empty board); BoothTV guarantees ≥1 entry.
   const agent = leaderboard[rankIndex % leaderboard.length] ?? leaderboard[0];
-  const [history, setHistory] = useState<ValuationHistoryPoint[]>([]);
   const tweenTotal = useTween(agent.total, { durationMs: 600 });
   const rankPadded = String(agent.rank).padStart(2, '0');
   const displayPct = Math.round(agent.plPct * 100) / 100;
   const lineColor = displayPct > 0 ? '#0A832E' : displayPct < 0 ? '#ff6467' : '#71717b';
   const changePrefix = displayPct > 0 ? '+' : displayPct < 0 ? '−' : '';
+  // Live P&L curve from the rolling leaderboard-total buffer BoothTV maintains
+  // (the per-agent history endpoint is token-gated; the TV can't read it). Falls
+  // back to a flat line at the current total until the buffer has ≥2 points.
   const { sparkPath, sparkFill } = useMemo(
-    () => buildSparkline(history, agent.total),
-    [history, agent.total],
+    () => buildSparkline(totals.length ? totals : [agent.total]),
+    [totals, agent.total],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      try {
-        const points = await getValuationHistory(agent.agentId, 60);
-        if (!cancelled) setHistory(points);
-      } catch {
-        if (!cancelled) setHistory([]);
-      }
-    };
-    refresh();
-    const interval = window.setInterval(refresh, 30_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [agent.agentId]);
 
   return (
     <div className="bigscreen dir-quipsite v4 state-c">
@@ -148,16 +133,11 @@ export default function StateB({
   );
 }
 
-function buildSparkline(history: ValuationHistoryPoint[], currentTotal: number) {
-  const values = history
-    .map(point => point.total)
-    .filter(value => Number.isFinite(value));
-  const last = values[values.length - 1];
-  if (last === undefined || Math.abs(last - currentTotal) >= 0.005) {
-    values.push(currentTotal);
-  }
+function buildSparkline(rawValues: number[]) {
+  const values = rawValues.filter(value => Number.isFinite(value));
+  if (values.length === 0) return { sparkPath: '', sparkFill: '' };
   if (values.length === 1) {
-    values.push(values[0]);
+    values.push(values[0]);   // a single point → a flat line
   }
 
   const min = Math.min(...values);

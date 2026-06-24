@@ -19,6 +19,18 @@ from ..financial.slider_map import rebalance_every_hours
 VALUATION_HISTORY_MAX_POINTS = 240
 
 
+class EmailAlreadyRegistered(Exception):
+    """Raised when a signup reuses an email already tied to an agent (one per email)."""
+
+
+def _normalize_email(email: str | None) -> str | None:
+    """Lowercase + trim for case-insensitive uniqueness; empty/None → None (not unique)."""
+    if email is None:
+        return None
+    cleaned = email.strip().lower()
+    return cleaned or None
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -57,6 +69,7 @@ class AgentRecord:
     valuation_as_of: str | None = None
     valuation_stale: bool = False
     update_frequency: str | None = None  # 'daily' | 'hourly' email cadence (opt-in)
+    last_update_email_at: str | None = None  # ISO-8601 UTC of the last result email (throttle)
     token_hash: str | None = None  # sha256 of the agent's capability token (owner auth)
 
     def to_config(self) -> AgentConfig:
@@ -84,8 +97,15 @@ class AgentStore:
     def create(
         self, config: AgentConfig, bankroll: float, *, token_hash: str | None = None
     ) -> AgentRecord:
+        normalized_email = _normalize_email(config.email)
         with self._lock:
+            if normalized_email is not None and any(
+                _normalize_email(existing.email) == normalized_email
+                for existing in self._agents.values()
+            ):
+                raise EmailAlreadyRegistered(normalized_email)
             agent_id = uuid4().hex[:8]
+            created = _now_iso()
             record = AgentRecord(
                 id=agent_id,
                 name=config.name,
@@ -98,7 +118,10 @@ class AgentStore:
                 assets=list(config.assets) if config.assets else None,
                 bankroll=bankroll,
                 total=bankroll,
-                created_at=_now_iso(),
+                created_at=created,
+                # Seed the throttle to creation time so the first result email waits a
+                # full opt-in window instead of arriving right behind the signup email.
+                last_update_email_at=created,
                 token_hash=token_hash,
             )
             self._agents[agent_id] = record
@@ -167,6 +190,14 @@ class AgentStore:
             if record is None:
                 return
             record.next_rebalance_at = next_rebalance_at
+
+    def mark_update_email_sent(self, agent_id: str, ts: str) -> None:
+        """Record when the last throttled result email went out."""
+        with self._lock:
+            record = self._agents.get(agent_id)
+            if record is None:
+                return
+            record.last_update_email_at = ts
 
     def set_valuation(self, agent_id: str, update: AgentUpdate) -> None:
         """Update the mark-to-market valuation from the MTM loop."""

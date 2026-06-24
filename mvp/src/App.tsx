@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary';
+import KioskGate from './routes/Kiosk/KioskGate';
 
 // Routes are code-split so each surface ships its own chunk — the QR-opened
 // phone profile no longer downloads the kiosk QR generator or the TV states.
@@ -17,7 +18,7 @@ export default function App() {
         <Suspense fallback={<div className="route-fallback" aria-busy="true" />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/kiosk" element={<KioskSignUp />} />
+            <Route path="/kiosk" element={<KioskGate><KioskSignUp /></KioskGate>} />
             <Route path="/kiosk/welcome" element={<KioskWelcome />} />
             <Route path="/p/:agentId" element={<PhoneProfile />} />
             <Route path="/tv" element={<BoothTV />} />

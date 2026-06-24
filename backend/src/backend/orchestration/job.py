@@ -158,6 +158,7 @@ def run_optimization(
             _solver_run_result(run, winner_provider=winner.provider)
             for run in race_result.solver_runs
         ],
+        outcome=race_result.outcome,
         kind="first" if is_first else "retune",
         job_id=job.id,
         solved_at=job.solved_at,

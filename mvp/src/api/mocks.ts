@@ -149,6 +149,7 @@ export async function requestOptimization(
       vsClassical: Math.round((classical / qpu) * 10) / 10,
       portfolio,
       solverResults,
+      outcome: 'quality' as const,
       nextRebalanceAt,
       rebalanceIntervalHours: intervalHours,
     });
@@ -181,6 +182,7 @@ export async function requestOptimization(
     vsClassical: Math.round((qpu / cpu) * 10) / 10,
     portfolio,
     solverResults,
+    outcome: 'quality' as const,
     nextRebalanceAt,
     rebalanceIntervalHours: intervalHours,
   });

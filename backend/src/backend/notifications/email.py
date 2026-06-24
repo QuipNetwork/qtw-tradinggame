@@ -112,6 +112,39 @@ def _safe_header(value: str, field: str) -> str:
     return cleaned
 
 
+# Quip brand styling for the email masthead. The wordmark is the official hosted
+# lockup PNG so the brand typography is pixel-correct in every client (custom web
+# fonts are stripped by Gmail/most webmail). The brand fonts in the stack below
+# only render where the client allows them (e.g. Apple Mail with the faces installed).
+_DISPLAY_FONT = "'ABC Gaisyr',Georgia,'Times New Roman',serif"
+_BODY_FONT = "-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif"
+_MONO_FONT = "'ABC Favorit Mono',ui-monospace,SFMono-Regular,Menlo,monospace"
+_LOGO_URL = "https://quip.network/images/brand/quip-network-lockup-horizontal-standard-on-light.png"
+
+
+def _branded_html(inner: str) -> str:
+    """Wrap body HTML in the Quip masthead: icon + wordmark + accent rule, on white."""
+    return (
+        '<div style="margin:0;padding:0;background:#FFFFFF">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="background:#FFFFFF"><tr><td align="center" style="padding:36px 16px">'
+        '<table role="presentation" width="600" cellpadding="0" cellspacing="0" '
+        'style="max-width:600px">'
+        '<tr><td style="padding:0 6px">'
+        f'<img src="{_LOGO_URL}" width="220" height="32" alt="Quip Network" '
+        'style="display:block;border:0"></td></tr>'
+        '<tr><td style="padding:16px 6px 0">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+        '<td style="height:3px;background:#4CE0FF;font-size:0;line-height:0">&nbsp;</td>'
+        '<td style="height:3px;background:#A5C3D4;font-size:0;line-height:0">&nbsp;</td>'
+        '<td style="height:3px;background:#FF92D5;font-size:0;line-height:0">&nbsp;</td>'
+        "</tr></table></td></tr>"
+        f'<tr><td style="padding:24px 6px 0;font-family:{_BODY_FONT};color:#1A1A1A;'
+        f'font-size:16px;line-height:1.55">{inner}</td></tr>'
+        "</table></td></tr></table></div>"
+    )
+
+
 def render_portfolio_email(
     *, name: str, total: float, pl_usd: float, pl_pct: float
 ) -> PortfolioEmail:
@@ -127,53 +160,80 @@ def render_portfolio_email(
     )
     text = (
         f"Hi {display_name},\n\n"
-        f"Your Quantum.Tech World trading agent is now worth ${total:,.0f} "
-        f"({sign}${pl_abs:,.0f}, {sign}{abs(pl_pct):.2f}%).\n\n"
+        f"Your Quip Network trading agent at Quantum.Tech World is now worth "
+        f"${total:,.0f} ({sign}${pl_abs:,.0f}, {sign}{abs(pl_pct):.2f}%).\n\n"
         f"Track it live and retune anytime from your profile.\n\n"
         f"— Quip Network"
     )
-    html = (
-        '<div style="font-family:Inter,Arial,sans-serif;color:#18181b">'
-        f"<p>Hi {html_name},</p>"
-        "<p>Your <strong>Quantum.Tech World</strong> trading agent is now worth "
-        f"<strong>${total:,.0f}</strong> "
-        f'<span style="color:{color}">({sign}${pl_abs:,.0f} · '
+    inner = (
+        f'<p style="margin:0 0 16px">Hi {html_name},</p>'
+        '<p style="margin:0 0 8px">Your <strong>Quip Network</strong> trading agent at '
+        "Quantum.Tech World is now worth "
+        f'<span style="font-family:{_MONO_FONT};font-weight:600">${total:,.0f}</span> '
+        f'<span style="color:{color};font-family:{_MONO_FONT}">({sign}${pl_abs:,.0f} · '
         f"{sign}{abs(pl_pct):.2f}%)</span>.</p>"
-        "<p>Track it live and retune anytime from your profile.</p>"
-        '<p style="color:#71717b">— Quip Network</p>'
-        "</div>"
+        '<p style="margin:16px 0 0">Track it live and retune anytime from your profile.</p>'
+        f'<p style="margin:26px 0 0;color:#A9A9A9;font-size:13px;font-family:{_MONO_FONT}">'
+        "— Quip Network</p>"
     )
-    return PortfolioEmail(subject=subject, html=html, text=text)
+    return PortfolioEmail(subject=subject, html=_branded_html(inner), text=text)
 
 
-def render_signup_email(*, name: str) -> PortfolioEmail:
-    """Signup confirmation sent immediately after an opted-in attendee creates an agent."""
+def render_signup_email(*, name: str, link: str, updates_opt_in: bool = False) -> PortfolioEmail:
+    """Signup confirmation carrying the attendee's secure agent link.
+
+    Sent to anyone who gives an email (the link is their way back to the agent).
+    When they did not opt into result emails, a closing line states the one-time,
+    no-further-mail intent.
+    """
     display_name = _clean_display(name) or "there"
     html_name = escape(display_name)
+    safe_link = _safe_header(link, "link")
+    href = escape(safe_link, quote=True)
     subject = _safe_header(f"{display_name}, your Quip Network agent is live", "subject")
+    text_closing = (
+        ""
+        if updates_opt_in
+        else "This is a one-time link to your agent — we won't email you again.\n\n"
+    )
+    html_closing = (
+        ""
+        if updates_opt_in
+        else '<p style="margin:0;color:#525252;font-size:14px">This is a one-time link to '
+        "your agent — we won't email you again.</p>"
+    )
     text = (
         f"Hi {display_name},\n\n"
-        "Your Quantum.Tech World trading agent is live. Your $10,000 starting "
-        "portfolio has been created and will update as the booth game runs.\n\n"
-        "Scan your secure QR link from the kiosk to follow and retune your agent.\n\n"
+        "Your Quip Network trading agent at Quantum.Tech World is live. Your "
+        "$10,000 starting portfolio has been created and will update as the "
+        "booth game runs.\n\n"
+        f"Follow and retune your agent here:\n{safe_link}\n\n"
+        f"{text_closing}"
         "— Quip Network"
     )
-    html = (
-        '<div style="font-family:Inter,Arial,sans-serif;color:#18181b">'
-        f"<p>Hi {html_name},</p>"
-        "<p>Your <strong>Quantum.Tech World</strong> trading agent is live. "
-        "Your <strong>$10,000</strong> starting portfolio has been created and "
-        "will update as the booth game runs.</p>"
-        "<p>Scan your secure QR link from the kiosk to follow and retune your agent.</p>"
-        '<p style="color:#71717b">— Quip Network</p>'
-        "</div>"
+    inner = (
+        f'<p style="font-family:{_DISPLAY_FONT};font-size:25px;line-height:1.18;'
+        f'margin:6px 0 18px;color:#1A1A1A">Your agent is live, {html_name}.</p>'
+        '<p style="margin:0 0 16px">Your <strong>Quip Network</strong> trading agent at '
+        "Quantum.Tech World is live. Your starting portfolio of "
+        f'<span style="font-family:{_MONO_FONT};font-weight:600">$10,000</span> has been '
+        "created and will update as the booth game runs.</p>"
+        f'<p style="margin:26px 0"><a href="{href}" style="display:inline-block;'
+        "padding:12px 26px;background:#FFFFFF;color:#1A1A1A;border:1.5px solid #1A1A1A;"
+        f"border-radius:10px;text-decoration:none;font-family:{_BODY_FONT};font-weight:600;"
+        'font-size:15px">Open my agent</a></p>'
+        f"{html_closing}"
+        f'<p style="margin:26px 0 0;color:#A9A9A9;font-size:13px;font-family:{_MONO_FONT}">'
+        "— Quip Network</p>"
     )
-    return PortfolioEmail(subject=subject, html=html, text=text)
+    return PortfolioEmail(subject=subject, html=_branded_html(inner), text=text)
 
 
-def send_signup_confirmation(*, to: str, name: str) -> None:
-    """Render + dispatch the initial opt-in signup confirmation."""
-    email = render_signup_email(name=name)
+def send_signup_confirmation(
+    *, to: str, name: str, link: str, updates_opt_in: bool = False
+) -> None:
+    """Render + dispatch the initial signup confirmation with the agent link."""
+    email = render_signup_email(name=name, link=link, updates_opt_in=updates_opt_in)
     get_email_provider().send(to=to, subject=email.subject, html=email.html, text=email.text)
 
 

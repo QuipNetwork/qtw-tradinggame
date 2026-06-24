@@ -12,13 +12,22 @@ import type {
 import { getAgent, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, getAgentToken, IS_MOCK, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
+import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import RebalanceSlider from '../../components/RebalanceSlider';
 import { useTweens } from '../../utils/anim';
 import StatusScreen from '../../components/StatusScreen';
 import TickValue from '../../components/TickValue';
 import { WHOLE_USD, fmtUsd } from '../../utils/format';
+import { isUsStockMarketOpen } from '../../utils/market';
+
+// Per-share price WITH cents (e.g. 61234.5 → "$61,234.50"); distinct from the
+// whole-dollar fmtUsd used for holdings value. Local to the route so the shared
+// format module stays untouched.
+const PRICE_USD = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function fmtPrice(n: number): string {
+  return `$${PRICE_USD.format(n)}`;
+}
 
 const SLIDER_DEFS: Array<{ key: keyof SliderValues; label: string }> = [
   { key: 'rebalanceFrequency', label: 'Rebalance frequency' },
@@ -143,7 +152,7 @@ export default function PhoneProfile() {
   const [result, setResult] = useState<RoutingResult | null>(null);
   const { update: live } = useAgentLive(agentId);
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<'profile' | 'basket'>('profile');
+  const [view, setView] = useState<'profile' | 'basket' | 'portfolio'>('profile');
   const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
   const [savingBasket, setSavingBasket] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -256,7 +265,7 @@ export default function PhoneProfile() {
   const [tweenTotal, tweenPlUSD, tweenPlPct] = useTweens([liveTotal, livePlUSD, livePlPct]);
 
   const phoneFrame = (body: ReactNode) => (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a10', padding: 16 }}>
+    <div className="phone-live-root">
       <div className="mockup-frame phone dark">
         <div className="screen">
           <div className="qs-v4-mock phone-v4">{body}</div>
@@ -376,6 +385,17 @@ export default function PhoneProfile() {
     : result?.portfolio ?? []
   ).filter(e => ASSET_BY_TICKER[e.ticker]);
 
+  // Full portfolio for the dedicated page: keep per-share spot (live stream only;
+  // the last-solve fallback has no price), sort by dollar value. Stock vs crypto
+  // comes from the asset registry, and the market banner only matters if a stock
+  // is actually held.
+  const portfolioRows = (live?.holdings?.length
+    ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd, spot: h.spot as number | undefined }))
+    : (result?.portfolio ?? []).map(p => ({ ticker: p.ticker, pct: p.pct, usd: p.usd, spot: undefined as number | undefined }))
+  ).filter(e => ASSET_BY_TICKER[e.ticker]).sort((a, b) => b.usd - a.usd);
+  const portfolioHasStocks = portfolioRows.some(r => ASSET_BY_TICKER[r.ticker]?.class === 'stock');
+  const showMarketClosed = !isUsStockMarketOpen(nowMs) && portfolioHasStocks;
+
   const solveTime = result?.solveTime ?? 0.42;
   const providerName = result?.provider ?? 'D-Wave Advantage';
   const raceRows = solverRaceRows(result);
@@ -406,19 +426,10 @@ export default function PhoneProfile() {
   const rankTotalText = rankInfo?.total ? `of ${rankInfo.total}` : 'rank pending';
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0a0a10', padding: 16 }}>
+    <div className="phone-live-root">
       <div className="mockup-frame phone dark">
         <div className="screen">
           <div className="qs-v4-mock phone-v4">
-
-            <div className="v4m-status">
-              <span>9:41</span>
-              <div className="v4m-status-icons">
-                <span className="v4m-bars"><span></span><span></span><span></span><span></span></span>
-                <span style={{ fontFamily: "'JetBrains Mono',ui-monospace,monospace", fontSize: '0.6rem', letterSpacing: '0.04em' }}>5G</span>
-                <span className="v4m-battery"></span>
-              </div>
-            </div>
 
             {view === 'basket' ? (
             <div className="v4m-basket-screen">
@@ -440,6 +451,53 @@ export default function PhoneProfile() {
               {(error || basket.size < MIN_ASSETS) && (
                 <div className="v4m-cta-sub">{error ?? `Select at least ${MIN_ASSETS} assets`}</div>
               )}
+            </div>
+            ) : view === 'portfolio' ? (
+            <div className="v4m-portfolio-screen">
+              <div className="v4m-basket-head">
+                <button type="button" className="v4m-basket-back" onClick={() => setView('profile')} aria-label="Back to profile">←</button>
+                <span className="v4m-section-eyebrow">Portfolio</span>
+                <span className="v4m-basket-count">{portfolioRows.length} held</span>
+              </div>
+              {showMarketClosed && (
+                <div className="v4m-port-closed" role="status">
+                  Stock market closed — prices resume at the next open · crypto trades 24/7
+                </div>
+              )}
+              {portfolioRows.length > 0 && (
+                <div className="v4m-alloc-stack v4m-port-alloc">
+                  {portfolioRows.map(h => (
+                    <span key={h.ticker} className="v4m-alloc-seg" style={{ width: `${h.pct}%`, background: assetColor(h.ticker) }}></span>
+                  ))}
+                </div>
+              )}
+              <div className="v4m-portfolio-scroll">
+                {portfolioRows.map(h => {
+                  const info = ASSET_BY_TICKER[h.ticker];
+                  const isStock = info?.class === 'stock';
+                  return (
+                    <div className="v4m-port-row" key={h.ticker}>
+                      <img className="v4m-port-icon" src={assetIconSrc(h.ticker)} alt="" loading="lazy" />
+                      <span className="v4m-port-id">
+                        <span className="v4m-port-ticker">{h.ticker}</span>
+                        <span className="v4m-port-name">{info?.name ?? ''}</span>
+                      </span>
+                      <span className="v4m-port-nums">
+                        <TickValue className="v4m-port-usd" value={Math.round(h.usd)} text={fmtUsd(h.usd)} />
+                        <span className="v4m-port-sub">
+                          <span className="v4m-port-weight">{Math.round(h.pct)}%</span>
+                          {h.spot != null && (
+                            <span className={`v4m-port-price${isStock && showMarketClosed ? ' closed' : ''}`}>@ {fmtPrice(h.spot)}</span>
+                          )}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })}
+                {portfolioRows.length === 0 && (
+                  <div className="v4m-port-empty">No holdings yet — retune to solve your first portfolio.</div>
+                )}
+              </div>
             </div>
             ) : (
             <main className="v4m-phone-view">
@@ -481,7 +539,10 @@ export default function PhoneProfile() {
 
             {holdings.length > 0 && (
             <div className="v4m-holds">
-              <div className="v4m-section-eyebrow">Holdings · {holdings.length}</div>
+              <button type="button" className="v4m-holds-head" onClick={() => setView('portfolio')}>
+                <span className="v4m-section-eyebrow">Holdings · {holdings.length}</span>
+                <span className="v4m-holds-viewall">View all →</span>
+              </button>
               <div className="v4m-alloc-stack" style={{ marginTop: 8 }}>
                 {holdings.map(h => (
                   <span key={h.ticker} className="v4m-alloc-seg" style={{ width: `${h.pct}%`, background: assetColor(h.ticker) }}></span>
@@ -496,7 +557,11 @@ export default function PhoneProfile() {
                     <TickValue className="v4m-holds-usd" value={Math.round(h.usd)} text={fmtUsd(h.usd)} />
                   </div>
                 ))}
-                {holdings.length > 6 && <div className="v4m-holds-more">+{holdings.length - 6} more held</div>}
+                {holdings.length > 6 && (
+                  <button type="button" className="v4m-holds-more" onClick={() => setView('portfolio')}>
+                    +{holdings.length - 6} more · View all →
+                  </button>
+                )}
               </div>
             </div>
             )}
@@ -560,7 +625,13 @@ export default function PhoneProfile() {
                   <div className="v4m-slider" key={def.key}>
                     <div className="v4m-slider-top">
                       <span className="v4m-slider-label">{def.label}</span>
-                      <span className="v4m-slider-val">{labelFor(i, sliders[i])}</span>
+                      <span className="v4m-slider-val">
+                        {def.key === 'maxPositionSize'
+                          ? `${labelFor(i, sliders[i])} · ${maxPositionCapPct(basket.size, sliders[i])}%`
+                          : def.key === 'riskPreference'
+                          ? `${labelFor(i, sliders[i])} · ${riskLevelPct(sliders[i])}%`
+                          : labelFor(i, sliders[i])}
+                      </span>
                     </div>
                     <div className="v4m-slider-shell">
                       <div className="v4m-slider-track">

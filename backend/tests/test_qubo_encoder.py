@@ -229,16 +229,19 @@ def test_large_baskets_drop_to_2_bits(synthetic_problem_3assets):
     assert encode_qubo(synthetic_problem_3assets).n == 12
 
 
-def test_resolve_frustration_beta_ramps_with_basket_size(monkeypatch):
-    # β is N-aware: 0 for tiny baskets (β hurts OOS there), ramping to the full peak fraction at
-    # large baskets (qpu-experiment-synthesis §7/§9). Verifies the resolve_frustration_beta ramp.
+def test_resolve_frustration_beta_ramps_floor_to_peak(monkeypatch):
+    # β is N-aware: OFF below N_MIN, a non-zero FLOOR fraction at N_MIN (the booth-minimum basket),
+    # ramping linearly to the PEAK at N_FULL. The N=15 floor of ~0.3 is where D-Wave's quality edge
+    # emerges and OOS still beats plain MV (2026-06-23 Yahoo OOS + live QPU sweep). Verifies the
+    # floor→peak interpolation in resolve_frustration_beta.
     from backend.financial.qubo_encoder import resolve_frustration_beta, select_objective_scale
     from backend.financial.types import PortfolioProblem
 
     monkeypatch.setattr(config, "CARDINALITY_ENCODING", "select")
-    monkeypatch.setattr(config, "CARDINALITY_FRUSTRATION_BETA", 0.4)
-    monkeypatch.setattr(config, "CARDINALITY_BETA_N_MIN", 12)
-    monkeypatch.setattr(config, "CARDINALITY_BETA_N_FULL", 40)
+    monkeypatch.setattr(config, "CARDINALITY_FRUSTRATION_BETA", 0.4)  # peak
+    monkeypatch.setattr(config, "CARDINALITY_BETA_FLOOR", 0.3)  # floor at N_MIN
+    monkeypatch.setattr(config, "CARDINALITY_BETA_N_MIN", 15)
+    monkeypatch.setattr(config, "CARDINALITY_BETA_N_FULL", 28)
 
     def prob(n):
         rng = np.random.default_rng(n)
@@ -255,9 +258,11 @@ def test_resolve_frustration_beta_ramps_with_basket_size(monkeypatch):
             u_min_units=1,
         )
 
-    assert resolve_frustration_beta(prob(10)) == 0.0  # below N_MIN → off
-    p40 = prob(40)
-    assert resolve_frustration_beta(p40) == pytest.approx(0.4 * select_objective_scale(p40))  # full
-    p28 = prob(28)  # mid → linearly ramped
-    ramp = (28 - 12) / (40 - 12)
-    assert resolve_frustration_beta(p28) == pytest.approx(0.4 * ramp * select_objective_scale(p28))
+    assert resolve_frustration_beta(prob(12)) == 0.0  # below N_MIN=15 → off (tiny baskets)
+    p15 = prob(15)  # booth minimum → floor
+    assert resolve_frustration_beta(p15) == pytest.approx(0.3 * select_objective_scale(p15))
+    p28 = prob(28)  # full universe → peak
+    assert resolve_frustration_beta(p28) == pytest.approx(0.4 * select_objective_scale(p28))
+    p20 = prob(20)  # mid → linear floor→peak
+    frac = 0.3 + (0.4 - 0.3) * (20 - 15) / (28 - 15)
+    assert resolve_frustration_beta(p20) == pytest.approx(frac * select_objective_scale(p20))

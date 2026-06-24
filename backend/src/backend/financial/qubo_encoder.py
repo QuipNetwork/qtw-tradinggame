@@ -255,15 +255,20 @@ def resolve_frustration_beta(problem: PortfolioProblem) -> float:
 
     CARDINALITY_FRUSTRATION_BETA is the PEAK fraction of the objective scale; it is (a) multiplied by
     select_objective_scale so the relative diversification pressure is basket-invariant, and (b)
-    RAMPED by basket size N — 0 below CARDINALITY_BETA_N_MIN, full at/above CARDINALITY_BETA_N_FULL, linear
-    between — because OOS backtests show β helps at scale but hurts tiny baskets
-    (qpu-experiment-synthesis-2026-06-22.md §7/§9)."""
+    RAMPED by basket size N — 0 below CARDINALITY_BETA_N_MIN, then a non-zero FLOOR
+    (CARDINALITY_BETA_FLOOR) at N_MIN rising linearly to the full peak at/above CARDINALITY_BETA_N_FULL.
+    The N_MIN=15 floor (~0.3) is where D-Wave's quality edge emerges and OOS still beats plain MV
+    (verified 2026-06-23 — Yahoo OOS + live N=15 QPU sweep); below N_MIN β stays off (tiny baskets
+    over-penalize OOS), moot in play since the minimum basket is 15. See qpu-c2-beta-findings.md."""
     beta_max = config.CARDINALITY_FRUSTRATION_BETA
     if not (beta_max and problem.is_cardinality and config.CARDINALITY_ENCODING == "select"):
         return 0.0
     lo, hi = config.CARDINALITY_BETA_N_MIN, config.CARDINALITY_BETA_N_FULL
-    ramp = min(1.0, max(0.0, (problem.N - lo) / max(1, hi - lo)))
-    return beta_max * ramp * select_objective_scale(problem)
+    if problem.N < lo:
+        return 0.0  # below the minimum basket β is off
+    ramp = min(1.0, (problem.N - lo) / max(1, hi - lo))  # ≥ 0 since N ≥ lo
+    frac = config.CARDINALITY_BETA_FLOOR + (beta_max - config.CARDINALITY_BETA_FLOOR) * ramp
+    return frac * select_objective_scale(problem)
 
 
 def encode_penalized(

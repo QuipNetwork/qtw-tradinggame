@@ -7,6 +7,7 @@ the env var is unset.
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -50,6 +51,7 @@ from .qpu_budget import (
     _status_from_times,
 )
 
+log = logging.getLogger(__name__)
 metadata = MetaData()
 
 agents_table = Table(
@@ -74,6 +76,7 @@ agents_table = Table(
     Column("last_solved_at", String, nullable=True),
     Column("next_rebalance_at", String, nullable=True),
     Column("rebalance_interval_hours", Float, nullable=True),
+    Column("last_update_email_at", String, nullable=True),
     Column("created_at", String, nullable=False),
     Column("updated_at", String, nullable=False),
     Column("environment", String, nullable=False),
@@ -236,15 +239,35 @@ class DbAgentStore(AgentStore):
                 "next_rebalance_at": "VARCHAR",
                 "rebalance_interval_hours": "FLOAT",
                 "update_frequency": "VARCHAR",
+                "last_update_email_at": "VARCHAR",
                 "token_hash": "VARCHAR(64)",
             },
         )
         _ensure_rebalance_interval_type(self._engine)
+        self._ensure_email_unique_index()
         self._load()
 
     @property
     def engine(self) -> Engine:
         return self._engine
+
+    def _ensure_email_unique_index(self) -> None:
+        # Defense-in-depth backstop to the in-memory one-per-email check (the deploy is
+        # single-worker, so that check is the primary guard). Partial + case-insensitive,
+        # scoped per environment; null/blank emails are exempt. Best-effort: if the table
+        # already holds duplicate emails the index won't build — log and carry on.
+        ddl = (
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_agents_env_email "
+            "ON agents (environment, lower(email)) "
+            "WHERE email IS NOT NULL AND email <> ''"
+        )
+        try:
+            with self._engine.begin() as conn:
+                conn.execute(text(ddl))
+        except Exception:
+            log.warning(
+                "email unique index not created (pre-existing duplicate emails?)", exc_info=True
+            )
 
     def create(
         self, config: AgentConfig, bankroll: float, *, token_hash: str | None = None
@@ -362,6 +385,16 @@ class DbAgentStore(AgentStore):
                 .values(next_rebalance_at=next_rebalance_at, updated_at=_now_iso())
             )
 
+    def mark_update_email_sent(self, agent_id: str, ts: str) -> None:
+        super().mark_update_email_sent(agent_id, ts)
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(agents_table)
+                .where(agents_table.c.id == agent_id)
+                .where(agents_table.c.environment == self._environment)
+                .values(last_update_email_at=ts, updated_at=_now_iso())
+            )
+
     def record_valuation_snapshot(self, agent_id: str, update_: AgentUpdate) -> None:
         super().record_valuation_snapshot(agent_id, update_)
         with self._engine.begin() as conn:
@@ -462,6 +495,7 @@ class DbAgentStore(AgentStore):
                         last_solved_at=row["last_solved_at"],
                         next_rebalance_at=row["next_rebalance_at"],
                         rebalance_interval_hours=row["rebalance_interval_hours"],
+                        last_update_email_at=row["last_update_email_at"],
                     )
                     self._agents[record.id] = record
 
@@ -497,6 +531,7 @@ class DbAgentStore(AgentStore):
             "last_solved_at": record.last_solved_at,
             "next_rebalance_at": record.next_rebalance_at,
             "rebalance_interval_hours": record.rebalance_interval_hours,
+            "last_update_email_at": record.last_update_email_at,
             "created_at": record.created_at or now,
             "updated_at": now,
             "environment": self._environment,

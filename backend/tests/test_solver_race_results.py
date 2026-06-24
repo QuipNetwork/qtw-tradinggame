@@ -188,6 +188,50 @@ def test_objective_winner_prefers_best_portfolio_over_speed(monkeypatch, synthet
     assert result.winner.provider == "fast_tie"
 
 
+def test_race_outcome_quality_speed_tie(monkeypatch, synthetic_problem_3assets):
+    # The race classifies its OUTCOME for the UI so the booth doesn't manufacture a winner from timing
+    # noise on a quality tie: TIE (objectives tie AND times within RACE_TIME_TIE_TOL), SPEED
+    # (objectives tie, winner materially faster), QUALITY (winner's portfolio materially better).
+    monkeypatch.setattr(config, "RACE_WINNER_BY", "objective")
+    eq = [1 / 3, 1 / 3, 1 / 3]  # obj ≈ 0.00100
+    best = [0.1, 0.3, 0.6]  # obj ≈ 0.00062 — materially better (gap ≈ 38%)
+
+    # TIE: identical portfolios, solve times within the time tolerance (9% < 15%)
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("sa", eq, solve_time_s=0.10),
+            FakeProvider("dwave", eq, solve_time_s=0.11),
+        ],
+    )
+    assert router.race(synthetic_problem_3assets, deadline_s=2.0).outcome == "tie"
+
+    # SPEED: identical portfolios, winner materially faster (66% > 15%)
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("sa", eq, solve_time_s=0.10),
+            FakeProvider("dwave", eq, solve_time_s=0.30),
+        ],
+    )
+    assert router.race(synthetic_problem_3assets, deadline_s=2.0).outcome == "speed"
+
+    # QUALITY: winner's portfolio is materially better even though it is the SLOWER solver
+    monkeypatch.setattr(
+        router,
+        "build_providers",
+        lambda include_qpu=True: [
+            FakeProvider("dwave", best, solve_time_s=0.30),
+            FakeProvider("sa", eq, solve_time_s=0.10),
+        ],
+    )
+    res = router.race(synthetic_problem_3assets, deadline_s=2.0)
+    assert res.winner.provider == "dwave"
+    assert res.outcome == "quality"
+
+
 def test_race_deadline_does_not_wait_for_blocked_provider(monkeypatch, synthetic_problem_3assets):
     release = threading.Event()
 
