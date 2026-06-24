@@ -16,6 +16,12 @@ const TIMINGS: Record<StateName, number> = { A: 12000, B: 15000, C: 20000, D: 10
 // Live data refresh cadence. Fast enough that the board visibly moves on screen.
 const REFRESH_MS = 4000;
 
+// Rolling per-agent total buffer for the spotlight sparkline (≈ last 60 polls).
+// The /valuation-history endpoint is per-agent-token-gated, which the TV doesn't
+// hold for other agents — so the spotlight chart is built from the public
+// leaderboard feed accumulated here instead.
+const MAX_SPARK_POINTS = 60;
+
 const EMPTY_ROUTING_STATS: RoutingStats = {
   total: 0,
   qpuWins: 0,
@@ -43,12 +49,31 @@ export default function BoothTV() {
   const leaderboardLenRef = useRef(0);
   leaderboardLenRef.current = leaderboard?.length ?? 0;
 
+  // Per-agent rolling P&L-total buffers, accumulated from each leaderboard poll.
+  // Held in a ref so the curve survives State A/B remounts across the rotation
+  // (a new agent's buffer starts empty and fills in as the board polls).
+  const totalsByAgentRef = useRef<Map<string, number[]>>(new Map());
+
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
       try {
         const board = await getLeaderboard();
-        if (!cancelled) setLeaderboard(board.slice(0, 10));  // Top ten only — never overflow the TV
+        if (!cancelled) {
+          const top = board.slice(0, 10);  // Top ten only — never overflow the TV
+          setLeaderboard(top);
+          // Append each agent's latest total to its rolling buffer, deduped so a
+          // flat market doesn't pad the curve — this is what makes the spotlight
+          // sparkline move as prices update.
+          const buffers = totalsByAgentRef.current;
+          for (const row of top) {
+            const prev = buffers.get(row.agentId) ?? [];
+            const last = prev[prev.length - 1];
+            if (last === undefined || Math.abs(last - row.total) >= 0.005) {
+              buffers.set(row.agentId, [...prev, row.total].slice(-MAX_SPARK_POINTS));
+            }
+          }
+        }
       } catch {
         // Keep the last good leaderboard; the cold-start splash covers an empty board.
       }
@@ -120,6 +145,8 @@ export default function BoothTV() {
   }
 
   const active: StateName = forced ?? (interruptName ? 'D' : spotlightAgentId ? 'B' : state);
+  const spotAgent = leaderboard[spotIndex % leaderboard.length] ?? leaderboard[0];
+  const spotTotals = totalsByAgentRef.current.get(spotAgent.agentId) ?? [];
   // Re-key the stage on every view change so each state fades in cleanly.
   const fadeKey = `${active}-${active === 'B' ? spotIndex : ''}-${interruptName ?? ''}`;
 
@@ -136,7 +163,7 @@ export default function BoothTV() {
       }}>
         <main className="tv-stage-fade" key={fadeKey} style={{ height: '100%' }}>
           {active === 'A' && <StateA leaderboard={leaderboard} routingStats={routingStats} phaseSeconds={TIMINGS.A / 1000} />}
-          {active === 'B' && <StateB leaderboard={leaderboard} rankIndex={spotIndex} routingStats={routingStats} phaseSeconds={TIMINGS.B / 1000} />}
+          {active === 'B' && <StateB leaderboard={leaderboard} rankIndex={spotIndex} routingStats={routingStats} totals={spotTotals} phaseSeconds={TIMINGS.B / 1000} />}
           {active === 'C' && <StateC />}
           {active === 'D' && <StateD name={interruptName ?? undefined} />}
         </main>

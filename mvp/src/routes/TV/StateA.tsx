@@ -3,6 +3,7 @@ import { IS_MOCK } from '../../api';
 import RoutingStatsPanel from './RoutingStatsPanel';
 import Countdown from './Countdown';
 import { fmtUsd } from '../../utils/format';
+import { useFlipList } from '../../utils/flip';
 import TickValue from '../../components/TickValue';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -16,6 +17,8 @@ export default function StateA({
   routingStats: RoutingStats;
   phaseSeconds?: number;
 }) {
+  // Glide rows to their new ranks when the board reshuffles (FLIP).
+  const tableRef = useFlipList<HTMLDivElement>(leaderboard.map(row => row.agentId).join(','));
   return (
     <div className="bigscreen dir-quipsite v4">
       <div className="qs-nav">
@@ -39,13 +42,13 @@ export default function StateA({
         </div>
 
         <div className={`qs-table-area${leaderboard.length < 10 ? ' top-align' : ''}`}>
-          <div className="qs-table">
+          <div className="qs-table" ref={tableRef}>
             <div className="th"><span className="rk">Rank</span><span className="nm">Agent</span><span className="pnl">Total P&amp;L</span><span className="change">▲%</span></div>
             {leaderboard.map((row) => {
               const rankClass = row.rank <= 3 ? ` top${row.rank}` : '';
               const changeClass = row.plPct < 0 ? 'change down' : 'change';
               return (
-                <div className={`qs-row${rankClass}`} key={row.agentId}>
+                <div className={`qs-row${rankClass}`} key={row.agentId} data-flip-key={row.agentId}>
                   <span className="rank">
                     <span className="rank-num">{String(row.rank).padStart(2, '0')}</span>
                     {row.rank <= 3 && <span className="medal">{MEDALS[row.rank - 1]}</span>}
