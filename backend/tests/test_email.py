@@ -37,8 +37,9 @@ def test_send_portfolio_update_uses_registered_provider():
             "text": provider.sent[0]["text"],
         }
     ]
-    assert "Quantum.Tech World" in provider.sent[0]["text"]
-    assert "<strong>$10,250</strong>" in provider.sent[0]["html"]
+    assert "Quip Network trading agent at Quantum.Tech World" in provider.sent[0]["text"]
+    assert "$10,250" in provider.sent[0]["html"]
+    assert "quip.network/images/brand/quip-network-lockup" in provider.sent[0]["html"]
 
 
 def test_signup_confirmation_includes_link():
@@ -56,8 +57,9 @@ def test_signup_confirmation_includes_link():
 
     assert provider.sent[0]["to"] == "player@example.com"
     assert provider.sent[0]["subject"] == "Ada, your Quip Network agent is live"
-    assert "trading agent is live" in provider.sent[0]["text"]
-    assert "<strong>$10,000</strong>" in provider.sent[0]["html"]
+    assert "trading agent at Quantum.Tech World is live" in provider.sent[0]["text"]
+    assert "$10,000" in provider.sent[0]["html"]
+    assert "quip.network/images/brand/quip-network-lockup" in provider.sent[0]["html"]  # masthead
     assert "https://qtw.example/p/abcd1234#t=deadbeef" in provider.sent[0]["text"]
     assert "abcd1234#t=deadbeef" in provider.sent[0]["html"]
 
