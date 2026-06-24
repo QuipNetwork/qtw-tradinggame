@@ -41,11 +41,16 @@ def test_send_portfolio_update_uses_registered_provider():
     assert "<strong>$10,250</strong>" in provider.sent[0]["html"]
 
 
-def test_signup_confirmation_uses_registered_provider():
+def test_signup_confirmation_includes_link():
     provider = CaptureProvider()
     email_mod.set_email_provider(provider)
     try:
-        email_mod.send_signup_confirmation(to="player@example.com", name="Ada")
+        email_mod.send_signup_confirmation(
+            to="player@example.com",
+            name="Ada",
+            link="https://qtw.example/p/abcd1234#t=deadbeef",
+            updates_opt_in=True,
+        )
     finally:
         email_mod.set_email_provider(email_mod.NoopEmailProvider())
 
@@ -53,10 +58,24 @@ def test_signup_confirmation_uses_registered_provider():
     assert provider.sent[0]["subject"] == "Ada, your Quip Network agent is live"
     assert "trading agent is live" in provider.sent[0]["text"]
     assert "<strong>$10,000</strong>" in provider.sent[0]["html"]
+    assert "https://qtw.example/p/abcd1234#t=deadbeef" in provider.sent[0]["text"]
+    assert "abcd1234#t=deadbeef" in provider.sent[0]["html"]
+
+
+def test_signup_opt_out_includes_one_time_line_opt_in_does_not():
+    link = "https://x/p/a#t=b"
+    out = email_mod.render_signup_email(name="Ada", link=link, updates_opt_in=False)
+    assert "one-time link" in out.text
+    assert "won't email you again" in out.text
+    opted_in = email_mod.render_signup_email(name="Ada", link=link, updates_opt_in=True)
+    assert "one-time link" not in opted_in.text
 
 
 def test_email_templates_escape_names_and_strip_control_characters():
-    email = email_mod.render_signup_email(name="<b>Ada</b>\r\nBcc: bad@example.com")
+    email = email_mod.render_signup_email(
+        name="<b>Ada</b>\r\nBcc: bad@example.com",
+        link="https://qtw.example/p/abcd1234#t=deadbeef",
+    )
 
     assert "\r" not in email.subject
     assert "\n" not in email.subject

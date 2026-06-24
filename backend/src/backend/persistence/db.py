@@ -74,6 +74,7 @@ agents_table = Table(
     Column("last_solved_at", String, nullable=True),
     Column("next_rebalance_at", String, nullable=True),
     Column("rebalance_interval_hours", Float, nullable=True),
+    Column("last_update_email_at", String, nullable=True),
     Column("created_at", String, nullable=False),
     Column("updated_at", String, nullable=False),
     Column("environment", String, nullable=False),
@@ -236,6 +237,7 @@ class DbAgentStore(AgentStore):
                 "next_rebalance_at": "VARCHAR",
                 "rebalance_interval_hours": "FLOAT",
                 "update_frequency": "VARCHAR",
+                "last_update_email_at": "VARCHAR",
                 "token_hash": "VARCHAR(64)",
             },
         )
@@ -362,6 +364,16 @@ class DbAgentStore(AgentStore):
                 .values(next_rebalance_at=next_rebalance_at, updated_at=_now_iso())
             )
 
+    def mark_update_email_sent(self, agent_id: str, ts: str) -> None:
+        super().mark_update_email_sent(agent_id, ts)
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(agents_table)
+                .where(agents_table.c.id == agent_id)
+                .where(agents_table.c.environment == self._environment)
+                .values(last_update_email_at=ts, updated_at=_now_iso())
+            )
+
     def record_valuation_snapshot(self, agent_id: str, update_: AgentUpdate) -> None:
         super().record_valuation_snapshot(agent_id, update_)
         with self._engine.begin() as conn:
@@ -462,6 +474,7 @@ class DbAgentStore(AgentStore):
                         last_solved_at=row["last_solved_at"],
                         next_rebalance_at=row["next_rebalance_at"],
                         rebalance_interval_hours=row["rebalance_interval_hours"],
+                        last_update_email_at=row["last_update_email_at"],
                     )
                     self._agents[record.id] = record
 
@@ -497,6 +510,7 @@ class DbAgentStore(AgentStore):
             "last_solved_at": record.last_solved_at,
             "next_rebalance_at": record.next_rebalance_at,
             "rebalance_interval_hours": record.rebalance_interval_hours,
+            "last_update_email_at": record.last_update_email_at,
             "created_at": record.created_at or now,
             "updated_at": now,
             "environment": self._environment,

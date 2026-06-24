@@ -24,6 +24,7 @@ from ..financial.pnl import mark_to_market
 from ..financial.prices.base import MarketDataSource, SpotSnapshot
 from ..financial.prices.source import get_source
 from ..financial.slider_map import rebalance_every_hours
+from ..notifications.dispatch import maybe_send_update_email
 from ..orchestration.job import run_optimization
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
@@ -179,6 +180,9 @@ async def run_scheduled_rebalance_loop(
                 continue
             for event in outcome.events:
                 bus.publish(event.channel, event.payload)
+            refreshed = agents.get(agent.id)
+            if refreshed is not None:
+                await asyncio.to_thread(maybe_send_update_email, refreshed, now=now, store=agents)
         try:
             await asyncio.wait_for(stop.wait(), timeout=tick)
         except TimeoutError:

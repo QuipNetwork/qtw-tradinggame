@@ -146,16 +146,35 @@ def render_portfolio_email(
     return PortfolioEmail(subject=subject, html=html, text=text)
 
 
-def render_signup_email(*, name: str) -> PortfolioEmail:
-    """Signup confirmation sent immediately after an opted-in attendee creates an agent."""
+def render_signup_email(*, name: str, link: str, updates_opt_in: bool = False) -> PortfolioEmail:
+    """Signup confirmation carrying the attendee's secure agent link.
+
+    Sent to anyone who gives an email (the link is their way back to the agent).
+    When they did not opt into result emails, a closing line states the one-time,
+    no-further-mail intent.
+    """
     display_name = _clean_display(name) or "there"
     html_name = escape(display_name)
+    safe_link = _safe_header(link, "link")
+    href = escape(safe_link, quote=True)
     subject = _safe_header(f"{display_name}, your Quip Network agent is live", "subject")
+    text_closing = (
+        ""
+        if updates_opt_in
+        else "This is a one-time link to your agent — we won't email you again.\n\n"
+    )
+    html_closing = (
+        ""
+        if updates_opt_in
+        else '<p style="color:#71717b">This is a one-time link to your agent — '
+        "we won't email you again.</p>"
+    )
     text = (
         f"Hi {display_name},\n\n"
         "Your Quantum.Tech World trading agent is live. Your $10,000 starting "
         "portfolio has been created and will update as the booth game runs.\n\n"
-        "Scan your secure QR link from the kiosk to follow and retune your agent.\n\n"
+        f"Follow and retune your agent here:\n{safe_link}\n\n"
+        f"{text_closing}"
         "— Quip Network"
     )
     html = (
@@ -164,16 +183,21 @@ def render_signup_email(*, name: str) -> PortfolioEmail:
         "<p>Your <strong>Quantum.Tech World</strong> trading agent is live. "
         "Your <strong>$10,000</strong> starting portfolio has been created and "
         "will update as the booth game runs.</p>"
-        "<p>Scan your secure QR link from the kiosk to follow and retune your agent.</p>"
+        f'<p><a href="{href}" style="display:inline-block;padding:10px 18px;'
+        'background:#18181b;color:#ffffff;border-radius:8px;text-decoration:none">'
+        "Open my agent</a></p>"
+        f"{html_closing}"
         '<p style="color:#71717b">— Quip Network</p>'
         "</div>"
     )
     return PortfolioEmail(subject=subject, html=html, text=text)
 
 
-def send_signup_confirmation(*, to: str, name: str) -> None:
-    """Render + dispatch the initial opt-in signup confirmation."""
-    email = render_signup_email(name=name)
+def send_signup_confirmation(
+    *, to: str, name: str, link: str, updates_opt_in: bool = False
+) -> None:
+    """Render + dispatch the initial signup confirmation with the agent link."""
+    email = render_signup_email(name=name, link=link, updates_opt_in=updates_opt_in)
     get_email_provider().send(to=to, subject=email.subject, html=email.html, text=email.text)
 
 

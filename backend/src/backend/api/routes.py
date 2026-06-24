@@ -11,6 +11,7 @@ import asyncio
 import ipaddress
 import logging
 import os
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
@@ -18,6 +19,7 @@ from .. import config
 from ..events.bus import get_bus
 from ..financial.basket import validate_basket
 from ..financial.prices.assets_api import AssetsApiError
+from ..notifications.dispatch import maybe_send_update_email
 from ..notifications.email import send_signup_confirmation
 from ..orchestration.job import run_optimization
 from ..persistence.agents import AgentRecord, get_agent_store
@@ -79,7 +81,7 @@ async def create_agent(
     record = get_agent_store().create(
         config_in, bankroll=config.BANKROLL_USD, token_hash=token_hash
     )
-    background_tasks.add_task(_send_signup_confirmation_email, record)
+    background_tasks.add_task(_send_signup_confirmation_email, record, token)
     return SubmitAgentResponse(
         agent_id=record.id,
         # Token in the URL fragment — never sent to the server, so it stays out of logs.
@@ -89,14 +91,21 @@ async def create_agent(
     )
 
 
-def _send_signup_confirmation_email(record: AgentRecord) -> None:
-    """Send an opt-in signup confirmation without letting SMTP failures break signup."""
-    if not record.email or record.updates_opt_in is not True:
+def _send_signup_confirmation_email(record: AgentRecord, token: str) -> None:
+    """Send the signup email with the secure agent link to anyone who gave an email.
+
+    Transactional (the link is their way back to the agent), so it is not gated on
+    the result-email opt-in. SMTP failures are logged and never break signup.
+    """
+    if not record.email:
         return
+    link = f"{config.QR_BASE_URL}/p/{record.id}#t={token}"
     try:
         send_signup_confirmation(
             to=record.email,
             name=record.name,
+            link=link,
+            updates_opt_in=record.updates_opt_in is True,
         )
     except Exception:
         log.warning("signup confirmation email failed agent_id=%s", record.id, exc_info=True)
@@ -150,7 +159,9 @@ _solve_semaphore = asyncio.Semaphore(config.SOLVE_CONCURRENCY)
     response_model=RoutingResult,
     dependencies=[Depends(require_agent_token)],
 )
-async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> RoutingResult:
+async def optimize(
+    agent_id: str, background_tasks: BackgroundTasks, body: OptimizeRequest | None = None
+) -> RoutingResult:
     sliders = body.sliders if body is not None else None
     assets = body.assets if body is not None else None
     try:
@@ -181,6 +192,11 @@ async def optimize(agent_id: str, body: OptimizeRequest | None = None) -> Routin
     bus = get_bus()
     for event in outcome.events:
         bus.publish(event.channel, event.payload)
+    refreshed = get_agent_store().get(agent_id)
+    if refreshed is not None:
+        background_tasks.add_task(
+            maybe_send_update_email, refreshed, now=datetime.now(UTC), store=get_agent_store()
+        )
     return outcome.result
 
 

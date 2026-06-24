@@ -121,15 +121,15 @@ def test_create_agent_sends_signup_confirmation_for_update_opt_in(monkeypatch):
         )
 
     assert response.status_code == 200
-    assert sent == [
-        {
-            "to": "mail@example.com",
-            "name": "Mail",
-        }
-    ]
+    assert len(sent) == 1
+    call = sent[0]
+    assert call["to"] == "mail@example.com"
+    assert call["name"] == "Mail"
+    assert call["updates_opt_in"] is True
+    assert "/p/" in call["link"] and "#t=" in call["link"]
 
 
-def test_create_agent_skips_email_without_update_opt_in(monkeypatch):
+def test_create_agent_sends_signup_email_even_without_update_opt_in(monkeypatch):
     from backend.api import routes
 
     sent: list[dict[str, object]] = []
@@ -148,7 +148,12 @@ def test_create_agent_skips_email_without_update_opt_in(monkeypatch):
         )
 
     assert response.status_code == 200
-    assert sent == []
+    # The signup+link email is transactional (their way back to the agent), so it
+    # still sends to a non-opter — just flagged updates_opt_in=False for the copy.
+    assert len(sent) == 1
+    assert sent[0]["to"] == "nomail@example.com"
+    assert sent[0]["updates_opt_in"] is False
+    assert "/p/" in sent[0]["link"] and "#t=" in sent[0]["link"]
 
 
 def test_create_agent_email_failure_does_not_fail_signup(monkeypatch):

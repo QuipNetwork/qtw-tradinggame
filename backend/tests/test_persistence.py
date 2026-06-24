@@ -83,6 +83,30 @@ def test_apply_solve_with_rebalance_off_has_no_next_schedule():
     assert updated.rebalance_interval_hours is None
 
 
+def test_create_initializes_last_update_email_at_to_created_at():
+    store = AgentStore()
+    record = store.create(_config("Mark"), bankroll=10_000.0)
+    assert record.last_update_email_at == record.created_at
+    assert record.created_at  # non-empty ISO string
+
+
+def test_mark_update_email_sent_advances_timestamp():
+    store = AgentStore()
+    record = store.create(_config("Mark"), bankroll=10_000.0)
+    store.mark_update_email_sent(record.id, "2026-06-23T12:00:00+00:00")
+    assert store.get(record.id).last_update_email_at == "2026-06-23T12:00:00+00:00"
+
+
+def test_db_store_round_trips_last_update_email_at(tmp_path):
+    url = f"sqlite:///{tmp_path / 'email_throttle.db'}"
+    store = DbAgentStore(url, environment="local", allow_reset=True)
+    record = store.create(_config("Mark"), bankroll=10_000.0)
+    store.mark_update_email_sent(record.id, "2026-06-23T09:00:00+00:00")
+
+    reloaded = DbAgentStore(url, environment="local", allow_reset=True)
+    assert reloaded.get(record.id).last_update_email_at == "2026-06-23T09:00:00+00:00"
+
+
 def test_leaderboard_ranks_by_total_descending():
     store = get_agent_store()
     low = store.create(_config("Low"), bankroll=10_000.0)
