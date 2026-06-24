@@ -109,6 +109,9 @@ export type RoutingResult = {
   vsClassical: number;          // legacy multiplier; UI uses solverResults
   portfolio: PortfolioEntry[];
   solverResults?: SolverResult[];
+  // How the winner won: 'quality' (better portfolio) | 'speed' (objective tie, faster) | 'tie'
+  // (objective + speed tie — shown as a genuine tie, not a noise-level "X% faster").
+  outcome?: 'quality' | 'speed' | 'tie';
   kind?: 'first' | 'retune';
   jobId?: string | null;
   solvedAt?: string | null;

@@ -209,6 +209,13 @@ RACE_WINNER_BY: str = os.environ.get("RACE_WINNER_BY", "objective").lower()
 # objective are a quality tie and ranked by speed (β=0 → both optimal → faster wins; a β>0
 # quality gap of ~1%+ → the better portfolio wins).
 RACE_WINNER_OBJECTIVE_TOL: float = float(os.environ.get("RACE_WINNER_OBJECTIVE_TOL", 0.005))
+# Relative time tolerance for the WINNER-DISPLAY tie-break. On a quality tie (objectives within
+# RACE_WINNER_OBJECTIVE_TOL) the faster solver is still picked for the portfolio, but the race OUTCOME
+# is reported as a genuine TIE when the two solve times are within this fraction of each other — so the
+# booth doesn't manufacture an "X% faster" winner from sub-noise timing (SA's ~20-30ms jitter vs the
+# QPU's ~constant access time). Beyond this gap the faster solver is a real speed win. A materially
+# better objective is always a QUALITY win regardless of time.
+RACE_TIME_TIE_TOL: float = float(os.environ.get("RACE_TIME_TIE_TOL", 0.15))
 
 # -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)

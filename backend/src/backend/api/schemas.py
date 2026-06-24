@@ -139,6 +139,9 @@ class RoutingResult(BaseModel):
     vs_classical: float = Field(alias="vsClassical")  # legacy multiplier for older clients
     portfolio: list[PortfolioEntry]
     solver_results: list[SolverResult] = Field(default_factory=list, alias="solverResults")
+    # How the winner won, so the UI shows a genuine tie instead of a noise-level "X% faster":
+    # "quality" (better portfolio) | "speed" (objective tie, faster) | "tie" (objective + speed tie).
+    outcome: Literal["quality", "speed", "tie"] = "quality"
 
     # Extensions beyond the mock contract
     kind: Literal["first", "retune"] | None = None

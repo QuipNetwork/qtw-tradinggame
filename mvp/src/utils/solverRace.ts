@@ -68,12 +68,22 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
     };
   }
 
-  // The race is scored on PORTFOLIO QUALITY (best objective), so the winner can be the best
-  // portfolio yet slower than the classical runner-up. Only claim a speed margin when the winner
-  // is genuinely faster; otherwise lead with the quality win instead of a misleading "0% faster".
+  // The backend classifies the outcome with the authoritative objective + time tolerances. The race
+  // is scored on PORTFOLIO QUALITY (best objective): the winner can be the best portfolio yet slower.
+  //   tie     → objective AND speed within tolerance: a genuine tie, NOT a noise-level "X% faster".
+  //   speed   → objective tie, winner materially faster: a real speed win.
+  //   quality → winner's portfolio is materially better (time shown alongside).
   const fasterPct = ((opponent.solveTime - winner.solveTime) / opponent.solveTime) * 100;
-  if (fasterPct >= 1) {
-    const rounded = Math.round(fasterPct);
+  const outcome = result?.outcome ?? (fasterPct >= 1 ? 'speed' : 'quality');
+  if (outcome === 'tie') {
+    return {
+      value: 'Tie',
+      label: `${winner.providerType} = ${opponent.providerType}`,
+      summary: `Tie · both found the best portfolio`,
+    };
+  }
+  if (outcome === 'speed') {
+    const rounded = Math.max(1, Math.round(fasterPct));
     return {
       value: `${rounded}%`,
       label: `Faster than ${opponent.providerType}`,

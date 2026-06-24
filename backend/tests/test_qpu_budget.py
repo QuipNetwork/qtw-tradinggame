@@ -110,6 +110,7 @@ def test_run_optimization_consumes_qpu_budget_when_dwave_configured(monkeypatch)
             solver_runs=[],
             all_results=[winner],
             q_hash="q",
+            outcome="quality",
         )
 
     monkeypatch.setattr(job, "race", fake_race)
