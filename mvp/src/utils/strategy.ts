@@ -62,6 +62,12 @@ export function maxPositionCapPct(basketSize: number, value: number): number {
   return Math.round(cap * 100);
 }
 
+// Risk preference shown as a plain 0–100 setting that RISES with aggressiveness (Conservative ~0 →
+// Speculative ~100) — visually intuitive, unlike the backend's inverted γ. Just the rounded slider value.
+export function riskLevelPct(value: number): number {
+  return Math.round(Math.max(0, Math.min(100, value)));
+}
+
 // Hold-count K guardrails (mirror the backend slider_map.py / qubo_encoder).
 // K is how many of the N selected assets the optimizer actually holds. K = N is
 // degenerate — there's no subset to choose, so SA, D-Wave and Gurobi all return

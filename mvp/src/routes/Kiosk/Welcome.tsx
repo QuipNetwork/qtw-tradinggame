@@ -6,7 +6,7 @@ import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { labelFor, glyphParams, maxPositionCapPct } from '../../utils/strategy';
+import { labelFor, glyphParams, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import StatusScreen from '../../components/StatusScreen';
 import TickValue from '../../components/TickValue';
@@ -249,7 +249,7 @@ export default function KioskWelcome() {
           {/* Strategy recap — compact horizontal strip (3 sliders) */}
           <div className="v4m-strat-strip">
             <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Rebalance frequency</span><span className="v4m-strat-val">{labelFor(0, agent.sliders.rebalanceFrequency)}</span></div>
-            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)}</span></div>
+            <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Risk preference</span><span className="v4m-strat-val">{labelFor(1, agent.sliders.riskPreference)} · {riskLevelPct(agent.sliders.riskPreference)}%</span></div>
             <div className="v4m-strat-cell"><span className="v4m-strat-strip-label">Max position size</span><span className="v4m-strat-val">{labelFor(2, agent.sliders.maxPositionSize)}{agent.assets?.length ? ` · ${maxPositionCapPct(agent.assets.length, agent.sliders.maxPositionSize)}%` : ''}</span></div>
           </div>
 

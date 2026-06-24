@@ -12,7 +12,7 @@ import type {
 import { getAgent, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, getAgentToken, IS_MOCK, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
-import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount, maxPositionCapPct } from '../../utils/strategy';
+import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import RebalanceSlider from '../../components/RebalanceSlider';
 import { useTweens } from '../../utils/anim';
@@ -628,6 +628,8 @@ export default function PhoneProfile() {
                       <span className="v4m-slider-val">
                         {def.key === 'maxPositionSize'
                           ? `${labelFor(i, sliders[i])} · ${maxPositionCapPct(basket.size, sliders[i])}%`
+                          : def.key === 'riskPreference'
+                          ? `${labelFor(i, sliders[i])} · ${riskLevelPct(sliders[i])}%`
                           : labelFor(i, sliders[i])}
                       </span>
                     </div>

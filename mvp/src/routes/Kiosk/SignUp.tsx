@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { submitAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, IS_MOCK } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
-import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount } from '../../utils/strategy';
+import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount, riskLevelPct } from '../../utils/strategy';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -342,6 +342,8 @@ export default function KioskSignUp() {
                           {labelFor(i, sliders[i])}
                           {/* the position cap is relative to the basket — show the live number */}
                           {def.key === 'maxPositionSize' && selected.size > 0 && ` · ≤${maxPositionCapPct(selected.size, sliders[i])}%`}
+                          {/* risk preference shown as a plain 0–100 level that rises with aggressiveness */}
+                          {def.key === 'riskPreference' && ` · ${riskLevelPct(sliders[i])}%`}
                         </span>
                       </div>
                     </div>
