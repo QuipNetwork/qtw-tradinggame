@@ -25,3 +25,207 @@ body { margin: 0; font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
   min-height: 0;
   overflow: hidden;
 }
+
+/* ───────────────────────────────────────────────────────────────
+   Phone profile (live QR route). On desktop it shows the centered
+   bezel mockup; on a real phone it must FILL the device — no bezel,
+   no centering, a single internal scroll — so it reads as a native
+   page, not a phone-inside-a-phone.
+   ─────────────────────────────────────────────────────────────── */
+.phone-live-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #0a0a10;
+  padding: 16px;
+}
+
+@media (max-width: 480px) {
+  .phone-live-root {
+    padding: 0;
+    align-items: stretch;
+    min-height: 100dvh;
+  }
+  .phone-live-root .mockup-frame.phone {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .phone-live-root .mockup-frame.phone .screen {
+    aspect-ratio: auto;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+  /* .phone-v4 fills the screen; its active view scrolls internally.
+     Safe-area insets keep content clear of the notch / home indicator. */
+  .phone-live-root .phone-v4 {
+    padding-top: calc(14px + env(safe-area-inset-top));
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Holdings card → tappable entry into the full portfolio page ── */
+.qs-v4-mock .v4m-holds-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.qs-v4-mock .v4m-holds-viewall {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #0891b2;
+}
+.qs-v4-mock button.v4m-holds-more {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-top: 3px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  color: #0891b2;
+  cursor: pointer;
+}
+
+/* ── Full portfolio page (view === 'portfolio') ── */
+.phone-v4 .v4m-portfolio-screen {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.phone-v4 .v4m-port-alloc {
+  display: flex;
+  height: 7px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.phone-v4 .v4m-port-alloc > span {
+  display: block;
+  height: 100%;
+}
+.phone-v4 .v4m-portfolio-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.phone-v4 .v4m-port-row {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 2px;
+  border-bottom: 1px solid #ececef;
+}
+.phone-v4 .v4m-port-row:last-child {
+  border-bottom: 0;
+}
+.phone-v4 .v4m-port-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+.phone-v4 .v4m-port-id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.phone-v4 .v4m-port-ticker {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: #18181b;
+}
+.phone-v4 .v4m-port-name {
+  font-size: 0.64rem;
+  color: #71717b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone-v4 .v4m-port-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.phone-v4 .v4m-port-usd {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: #18181b;
+  font-variant-numeric: tabular-nums;
+}
+.phone-v4 .v4m-port-sub {
+  display: inline-flex;
+  gap: 8px;
+  align-items: baseline;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.66rem;
+}
+.phone-v4 .v4m-port-weight {
+  color: #a1a1aa;
+  font-variant-numeric: tabular-nums;
+}
+.phone-v4 .v4m-port-price {
+  color: #71717b;
+  font-variant-numeric: tabular-nums;
+}
+.phone-v4 .v4m-port-price.closed {
+  color: #b45309;
+}
+.phone-v4 .v4m-port-empty {
+  color: #71717b;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 24px 12px;
+}
+
+/* Stock-market-closed note — a clean italic line, no boxed highlight. */
+.phone-v4 .v4m-port-closed {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #b45309;
+  padding: 2px 2px 4px;
+}
+
+/* Hide the persistent scrollbar on the phone's internal scroll areas — touch
+   swipe (and wheel) still scroll. Keeps the right edge clean and stops the bar
+   from clipping the right-aligned values. */
+.phone-v4 .v4m-phone-view,
+.phone-v4 .v4m-portfolio-scroll,
+.phone-v4 .v4m-basket-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+.phone-v4 .v4m-phone-view::-webkit-scrollbar,
+.phone-v4 .v4m-portfolio-scroll::-webkit-scrollbar,
+.phone-v4 .v4m-basket-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
