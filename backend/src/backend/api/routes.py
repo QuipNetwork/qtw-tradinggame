@@ -230,6 +230,29 @@ async def leaderboard() -> list[LeaderboardEntry]:
     return build_leaderboard()
 
 
+@router.get(
+    "/leaderboard/{agent_id}/history",
+    response_model=list[ValuationHistoryPoint],
+)
+async def public_valuation_history(
+    agent_id: str,
+    limit: int = Query(default=60, ge=1, le=240),
+) -> list[ValuationHistoryPoint]:
+    """Public P&L history for a leaderboard-shown agent.
+
+    Same series the phone profile charts — the point type carries only
+    total/pl over time, no holdings or PII — so it reveals nothing beyond what
+    the public leaderboard already shows, just across time. This lets the booth
+    TV spotlight draw a REAL movement curve without holding the agent's owner
+    token. Hidden agents 404, matching their exclusion from the public board.
+    """
+    store = get_agent_store()
+    record = store.get(agent_id)
+    if record is None or record.hidden:
+        raise HTTPException(status_code=404, detail="agent not found")
+    return store.valuation_history(agent_id, limit=limit)
+
+
 @router.get("/routing-stats", response_model=RoutingStats)
 async def routing_stats() -> RoutingStats:
     store = get_job_store()

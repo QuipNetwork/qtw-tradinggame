@@ -360,6 +360,15 @@ export async function getValuationHistory(
   return delay(points, 120);
 }
 
+// Public (token-free) variant used by the booth TV spotlight. Same simulated
+// series as the owner-scoped history so the demo TV shows real movement too.
+export async function getPublicValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  return getValuationHistory(agentId, limit);
+}
+
 // Seeded per-agent/ticker offset so each demo agent opens with a distinct,
 // stable starting P&L (units are derived at the flat base; the live spot then
 // opens already nudged). Deterministic — the same agent renders the same open.

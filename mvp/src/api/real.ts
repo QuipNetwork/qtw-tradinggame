@@ -186,6 +186,19 @@ export async function getValuationHistory(
   );
 }
 
+// Public (token-free) P&L history for any leaderboard-shown agent — same series
+// as above, served by /leaderboard/{id}/history. The booth TV uses this to draw
+// a real spotlight sparkline; it holds no owner token for other agents.
+export async function getPublicValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request<ValuationHistoryPoint[]>(
+    `/leaderboard/${encodeURIComponent(agentId)}/history?${params.toString()}`,
+  );
+}
+
 export function subscribeAgent(
   agentId: string,
   callback: (update: AgentUpdate) => void,

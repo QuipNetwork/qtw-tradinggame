@@ -405,6 +405,35 @@ def test_valuation_history_returns_sampled_points_and_current_tail():
         assert body[-1]["plPct"] == 1.25
 
 
+def test_public_valuation_history_is_token_free_and_excludes_hidden():
+    # The booth TV draws the spotlight sparkline from this PUBLIC endpoint — it
+    # holds no owner token for other agents. Same series as the token-gated route,
+    # carrying only total/pl over time (no holdings/PII).
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        store = get_agent_store()
+        store.record_valuation_snapshot(
+            agent_id,
+            AgentUpdate(plUSD=100.0, plPct=1.0, total=10_100.0, asOf="2026-06-17T12:00:00Z", holdings=[]),
+        )
+        store.set_valuation(
+            agent_id,
+            AgentUpdate(plUSD=125.0, plPct=1.25, total=10_125.0, asOf="2026-06-17T12:01:00Z", holdings=[]),
+        )
+
+        # No Authorization header → still served (unlike /agents/{id}/valuation-history).
+        client.headers.pop("Authorization", None)
+        response = client.get(f"/leaderboard/{agent_id}/history")
+        assert response.status_code == 200
+        assert [point["total"] for point in response.json()] == [10_100.0, 10_125.0]
+
+        # Admin-hidden agents 404 here too (consistent with the public leaderboard).
+        store.set_flags(agent_id, hidden=True, disabled=False)
+        assert client.get(f"/leaderboard/{agent_id}/history").status_code == 404
+        # Unknown agent → 404.
+        assert client.get("/leaderboard/does-not-exist/history").status_code == 404
+
+
 @requires_gurobi
 def test_optimize_returns_routing_result():
     with TestClient(create_app()) as client:
