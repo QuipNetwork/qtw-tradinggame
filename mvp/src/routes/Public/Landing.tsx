@@ -41,7 +41,7 @@ export default function Landing() {
       <LandingNav resumeUrl={resumeUrl} />
 
       <main className="qpub-page">
-        <Hero />
+        <Hero resumeUrl={resumeUrl} />
         <HowItWorks />
         <LiveLeaderboard rows={board} />
         <Spotlight agent={board[0] ?? null} />

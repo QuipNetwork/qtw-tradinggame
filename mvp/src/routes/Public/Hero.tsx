@@ -5,7 +5,7 @@ import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 // Public hero: mono kicker w/ live dot, serif headline, lede, two CTAs, a stat
 // strip, and the SAME generative glyph used across the booth (canvas renderGlyph,
 // all-brand 'mixed' palette) as the agent's mark.
-export default function Hero() {
+export default function Hero({ resumeUrl }: { resumeUrl?: string | null }) {
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -24,7 +24,9 @@ export default function Hero() {
           quantum and classical solvers compete to optimize the portfolio.
         </p>
         <div className="qpub-cta-row">
-          <Link to="/kiosk" className="qpub-btn qpub-btn-solid">Create your agent <span aria-hidden>→</span></Link>
+          {resumeUrl
+            ? <a href={resumeUrl} className="qpub-btn qpub-btn-solid">Resume your agent <span aria-hidden>→</span></a>
+            : <Link to="/kiosk" className="qpub-btn qpub-btn-solid">Create your agent <span aria-hidden>→</span></Link>}
           <a href="#leaderboard" className="qpub-btn qpub-btn-ghost">See the leaderboard</a>
         </div>
         <dl className="qpub-hero-stats">
