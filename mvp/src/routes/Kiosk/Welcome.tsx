@@ -151,12 +151,15 @@ export default function KioskWelcome() {
       </KioskStage>
     );
   }
-  if (!agent) {
+  // Hold the loader until BOTH the agent config AND the first solve are in. The config fetch is
+  // fast, but the solve takes ~1–10s — without `!result` here the hero would render mid-solve with
+  // a null result, flashing the "D-Wave Advantage 0.42s" placeholder before the real winner lands.
+  if (!agent || !result) {
     return (
       <KioskStage>
         <div className="qs-v4-mock kiosk-welcome-v4 app-fit">
-          <StatusScreen tone="light" busy title="Routing through Quip…"
-            message="Solving your first portfolio across the quantum and classical providers." />
+          <StatusScreen tone="light" busy title="Quiping…"
+            message="Racing your first portfolio across the quantum and classical solvers." />
         </div>
       </KioskStage>
     );
@@ -164,7 +167,7 @@ export default function KioskWelcome() {
 
   const portfolio: PortfolioEntry[] = (live?.holdings?.length
     ? live.holdings.map(h => ({ ticker: h.ticker, pct: h.pct, usd: h.usd }))
-    : result?.portfolio ?? [])
+    : result.portfolio)
     // Drop any ticker the frontend doesn't know so the icon/color/class lookups
     // below can't throw on a basket that's drifted from the backend universe.
     .filter(e => ASSET_BY_TICKER[e.ticker]);
@@ -183,9 +186,9 @@ export default function KioskWelcome() {
       <TickValue className="v4m-alloc-usd" value={Math.round(entry.usd)} text={fmtUsd(entry.usd)} />
     </div>
   );
-  const providerWords = (result?.provider ?? 'D-Wave Advantage').split(' ');
+  const providerWords = result.provider.split(' ');
 
-  const solveTime = result?.solveTime ?? 0.42;
+  const solveTime = result.solveTime;
   const raceRows = solverRaceRows(result);
   const raceComparison = solverRaceComparison(result);
 
