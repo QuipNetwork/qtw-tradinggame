@@ -2,6 +2,7 @@
 // Enabled through api/index.ts when VITE_API_BASE is set.
 
 import type {
+  AdminAgent,
   AgentConfig,
   AgentUpdate,
   LeaderboardEntry,
@@ -151,6 +152,23 @@ export async function requestOptimization(
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return request<LeaderboardEntry[]>('/leaderboard');
+}
+
+// --- Admin dashboard (operator-only; every call carries the X-Admin-Key header) ---
+export async function getAdminAgents(adminKey: string): Promise<AdminAgent[]> {
+  return request<AdminAgent[]>('/admin/agents', { headers: { 'x-admin-key': adminKey } });
+}
+
+export async function setAgentFlags(
+  adminKey: string,
+  agentId: string,
+  patch: { hidden?: boolean; disabled?: boolean },
+): Promise<AdminAgent> {
+  return request<AdminAgent>(`/admin/agents/${encodeURIComponent(agentId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+    headers: { 'x-admin-key': adminKey },
+  });
 }
 
 export async function getRoutingStats(): Promise<RoutingStats> {

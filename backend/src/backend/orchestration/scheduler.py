@@ -132,6 +132,8 @@ async def run_scheduled_rebalance_loop(
         for agent in records:
             if stop.is_set():
                 break
+            if agent.disabled:  # admin-disabled: no scheduled rebalances (no QPU hits)
+                continue
             if not agent.holdings_units:
                 continue
             if not agent.next_rebalance_at:

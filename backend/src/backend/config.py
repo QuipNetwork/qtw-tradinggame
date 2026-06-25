@@ -275,6 +275,12 @@ SIGNUP_RATE_GLOBAL_PER_HOUR: int = int(os.environ.get("SIGNUP_RATE_GLOBAL_PER_HO
 # gate, normal per-IP limiting (dev/tests).
 KIOSK_SIGNUP_KEY: str = os.environ.get("KIOSK_SIGNUP_KEY", "")
 
+# Admin dashboard gate. When set, the /admin/* endpoints require a matching
+# X-Admin-Key header (the operator dashboard reads every attendee's email and can
+# hide/disable agents). Unset → admin endpoints are disabled (403). Backend-only
+# secret; lives in /opt/qtw/backend.env, never in Netlify/browser env.
+ADMIN_API_KEY: str = os.environ.get("ADMIN_API_KEY", "")
+
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------

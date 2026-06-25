@@ -71,6 +71,8 @@ class AgentRecord:
     update_frequency: str | None = None  # 'daily' | 'hourly' email cadence (opt-in)
     last_update_email_at: str | None = None  # ISO-8601 UTC of the last result email (throttle)
     token_hash: str | None = None  # sha256 of the agent's capability token (owner auth)
+    hidden: bool = False  # admin: excluded from the public leaderboard + TV ranking
+    disabled: bool = False  # admin: blocked from retunes + scheduled rebalances (requires hidden)
 
     def to_config(self) -> AgentConfig:
         return AgentConfig(
@@ -144,6 +146,18 @@ class AgentStore:
         with self._lock:
             record = self._agents[agent_id]
             record.assets = list(assets)
+
+    def set_flags(self, agent_id: str, *, hidden: bool, disabled: bool) -> None:
+        """Admin: set an agent's visibility (hidden) and solve-lock (disabled) flags.
+
+        The caller enforces the invariant that ``disabled`` implies ``hidden``.
+        """
+        with self._lock:
+            record = self._agents.get(agent_id)
+            if record is None:
+                return
+            record.hidden = hidden
+            record.disabled = disabled
 
     def apply_solve(
         self,

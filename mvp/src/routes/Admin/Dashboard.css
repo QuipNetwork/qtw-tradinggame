@@ -1,0 +1,176 @@
+/* Admin dashboard (/admin) — operator-only. Plain, functional table; not part of
+   the booth-branded surfaces. */
+
+.admin-gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a10;
+  padding: 24px;
+}
+.admin-gate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 320px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px;
+  box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.5);
+}
+.admin-gate-card h1 { margin: 0; font-size: 1.25rem; color: #18181b; }
+.admin-gate-card p { margin: 0; font-size: 0.85rem; color: #71717b; }
+.admin-gate-card input {
+  padding: 10px 12px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.admin-gate-card button {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #0891b2;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-gate-card button:hover { background: #0e7490; }
+.admin-gate-err { color: #dc2626; font-size: 0.8rem; }
+
+.admin-root {
+  min-height: 100vh;
+  background: #f6f6f7;
+  color: #18181b;
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 24px 28px 64px;
+}
+.admin-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.admin-head h1 { margin: 0; font-size: 1.4rem; }
+.admin-sub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: #71717b;
+  letter-spacing: 0.02em;
+}
+.admin-head-actions { display: flex; gap: 8px; }
+.admin-head-actions button {
+  padding: 8px 14px;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-head-actions button:hover { background: #ececef; }
+.admin-head-actions button:disabled { opacity: 0.5; cursor: default; }
+
+.admin-banner-err {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  margin-bottom: 16px;
+}
+
+.admin-section { margin-bottom: 28px; }
+.admin-section h2 {
+  margin: 0 0 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #71717b;
+}
+.admin-empty { color: #a1a1aa; font-size: 0.85rem; padding: 12px 0; }
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #ececef;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.82rem;
+}
+.admin-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #ececef;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #71717b;
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f1f3;
+  vertical-align: top;
+}
+.admin-table tr:last-child td { border-bottom: 0; }
+.admin-table tr.is-disabled { background: #fafafa; opacity: 0.72; }
+.admin-table .num {
+  text-align: right;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.admin-table .up { color: #0a832e; }
+.admin-table .down { color: #dc2626; }
+.admin-name { font-weight: 600; }
+.admin-handle {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  color: #a1a1aa;
+}
+.admin-email {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.74rem;
+  color: #52525b;
+}
+.admin-date { color: #71717b; font-size: 0.76rem; white-space: nowrap; }
+
+.admin-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.admin-badge.live { background: #dcfce7; color: #15803d; }
+.admin-badge.hidden { background: #f1f1f3; color: #71717b; }
+.admin-badge.disabled { background: #fee2e2; color: #b91c1c; }
+
+.admin-actions-h { text-align: right; }
+.admin-actions { text-align: right; white-space: nowrap; }
+.admin-actions button {
+  padding: 5px 11px;
+  margin-left: 6px;
+  border: 1px solid #d4d4d8;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-actions button:hover { background: #ececef; }
+.admin-actions button:disabled { opacity: 0.5; cursor: default; }
+.admin-actions button.danger { border-color: #fca5a5; color: #b91c1c; }
+.admin-actions button.danger:hover { background: #fef2f2; }

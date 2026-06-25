@@ -183,6 +183,10 @@ _solve_semaphore = asyncio.Semaphore(config.SOLVE_CONCURRENCY)
 async def optimize(
     agent_id: str, background_tasks: BackgroundTasks, body: OptimizeRequest | None = None
 ) -> RoutingResult:
+    # Admin-disabled agents are cut off from solving — reject before the QPU race.
+    record = get_agent_store().get(agent_id)
+    if record is not None and record.disabled:
+        raise HTTPException(status_code=403, detail="agent is disabled")
     sliders = body.sliders if body is not None else None
     assets = body.assets if body is not None else None
     try:

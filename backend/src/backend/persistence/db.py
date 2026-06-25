@@ -77,6 +77,8 @@ agents_table = Table(
     Column("next_rebalance_at", String, nullable=True),
     Column("rebalance_interval_hours", Float, nullable=True),
     Column("last_update_email_at", String, nullable=True),
+    Column("hidden", Boolean, nullable=False, default=False),
+    Column("disabled", Boolean, nullable=False, default=False),
     Column("created_at", String, nullable=False),
     Column("updated_at", String, nullable=False),
     Column("environment", String, nullable=False),
@@ -241,6 +243,8 @@ class DbAgentStore(AgentStore):
                 "update_frequency": "VARCHAR",
                 "last_update_email_at": "VARCHAR",
                 "token_hash": "VARCHAR(64)",
+                "hidden": "BOOLEAN NOT NULL DEFAULT false",
+                "disabled": "BOOLEAN NOT NULL DEFAULT false",
             },
         )
         _ensure_rebalance_interval_type(self._engine)
@@ -297,6 +301,16 @@ class DbAgentStore(AgentStore):
                 .where(agents_table.c.id == agent_id)
                 .where(agents_table.c.environment == self._environment)
                 .values(sliders=sliders.model_dump(by_alias=True), updated_at=_now_iso())
+            )
+
+    def set_flags(self, agent_id: str, *, hidden: bool, disabled: bool) -> None:
+        super().set_flags(agent_id, hidden=hidden, disabled=disabled)
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(agents_table)
+                .where(agents_table.c.id == agent_id)
+                .where(agents_table.c.environment == self._environment)
+                .values(hidden=hidden, disabled=disabled, updated_at=_now_iso())
             )
 
     def update_assets(self, agent_id: str, assets: list[str]) -> None:
@@ -496,6 +510,8 @@ class DbAgentStore(AgentStore):
                         next_rebalance_at=row["next_rebalance_at"],
                         rebalance_interval_hours=row["rebalance_interval_hours"],
                         last_update_email_at=row["last_update_email_at"],
+                        hidden=bool(row["hidden"]),
+                        disabled=bool(row["disabled"]),
                     )
                     self._agents[record.id] = record
 
@@ -532,6 +548,8 @@ class DbAgentStore(AgentStore):
             "next_rebalance_at": record.next_rebalance_at,
             "rebalance_interval_hours": record.rebalance_interval_hours,
             "last_update_email_at": record.last_update_email_at,
+            "hidden": record.hidden,
+            "disabled": record.disabled,
             "created_at": record.created_at or now,
             "updated_at": now,
             "environment": self._environment,

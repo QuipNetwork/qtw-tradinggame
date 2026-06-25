@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .. import config
 from ..events.bus import get_bus
 from ..orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
-from . import routes, ws
+from . import admin, routes, ws
 from .ratelimit import SignupRateLimiter
 
 log = logging.getLogger(__name__)
@@ -131,6 +131,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(routes.router)
     app.include_router(ws.router)
+    app.include_router(admin.router)
     return app
 
 

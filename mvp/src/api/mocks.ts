@@ -3,6 +3,7 @@
 // rest of the app calls these via `api/index.ts`, not directly.
 
 import type {
+  AdminAgent,
   AgentConfig,
   AgentUpdate,
   AssetTicker,
@@ -212,6 +213,64 @@ function tickBoard(): LeaderboardEntry[] {
 
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return delay(tickBoard(), 120);
+}
+
+// --- Admin dashboard (mock: operates on the seeded leaderboard + a flag map) ---
+const adminFlags: Record<string, { hidden: boolean; disabled: boolean }> = {};
+
+function adminRow(entry: LeaderboardEntry, rank: number | null): AdminAgent {
+  const seeded = SEEDED_AGENTS[entry.agentId];
+  const flags = adminFlags[entry.agentId] ?? { hidden: false, disabled: false };
+  return {
+    agentId: entry.agentId,
+    name: entry.name,
+    handle: entry.handle,
+    email: `${(entry.handle ?? '@player').replace(/^@/, '')}@example.com`,
+    rank,
+    total: entry.total,
+    plUSD: entry.plUSD,
+    plPct: entry.plPct,
+    jobsSolved: entry.jobsSolved,
+    primaryProvider: entry.primaryProvider,
+    basketSize: seeded?.assets?.length ?? 0,
+    sliders: seeded?.sliders ?? { rebalanceFrequency: 50, riskPreference: 50, maxPositionSize: 50 },
+    createdAt: '2026-06-24T18:00:00.000Z',
+    lastSolvedAt: '2026-06-25T12:00:00.000Z',
+    hidden: flags.hidden,
+    disabled: flags.disabled,
+  };
+}
+
+function adminRows(): AdminAgent[] {
+  const visible = TOP_10.filter(e => !adminFlags[e.agentId]?.hidden).sort((a, b) => b.total - a.total);
+  const rankById: Record<string, number> = {};
+  visible.forEach((e, i) => { rankById[e.agentId] = i + 1; });
+  const ordered = [...TOP_10].sort((a, b) => {
+    const ah = adminFlags[a.agentId]?.hidden ? 1 : 0;
+    const bh = adminFlags[b.agentId]?.hidden ? 1 : 0;
+    return ah - bh || b.total - a.total;
+  });
+  return ordered.map(e => adminRow(e, rankById[e.agentId] ?? null));
+}
+
+export async function getAdminAgents(adminKey: string): Promise<AdminAgent[]> {
+  void adminKey; // mock ignores auth; the real adapter sends it as X-Admin-Key
+  return delay(adminRows(), 200);
+}
+
+export async function setAgentFlags(
+  _adminKey: string,
+  agentId: string,
+  patch: { hidden?: boolean; disabled?: boolean },
+): Promise<AdminAgent> {
+  const cur = adminFlags[agentId] ?? { hidden: false, disabled: false };
+  const hidden = patch.hidden ?? cur.hidden;
+  let disabled = patch.disabled ?? cur.disabled;
+  if (!hidden) disabled = false;  // mirror the backend invariant: disabled ⇒ hidden
+  adminFlags[agentId] = { hidden, disabled };
+  const entry = TOP_10.find(e => e.agentId === agentId);
+  if (!entry) throw new Error('agent not found');
+  return delay(adminRows().find(r => r.agentId === agentId) ?? adminRow(entry, null), 150);
 }
 
 // Live routing-stats simulation: a solve lands now and then; the QPU wins most.

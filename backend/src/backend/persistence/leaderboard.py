@@ -12,7 +12,11 @@ from .agents import AgentStore, get_agent_store
 
 def build_leaderboard(agents: AgentStore | None = None) -> list[LeaderboardEntry]:
     store = agents if agents is not None else get_agent_store()
-    records = sorted(store.all(), key=lambda r: (-r.total, r.id))
+    # Admin-hidden agents are excluded from the public board (and the TV, which
+    # reads it). Their own /p/{id} profile still works — it reads the agent directly.
+    records = sorted(
+        (r for r in store.all() if not r.hidden), key=lambda r: (-r.total, r.id)
+    )
     return [
         LeaderboardEntry(
             rank=index + 1,

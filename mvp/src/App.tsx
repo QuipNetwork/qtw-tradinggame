@@ -12,6 +12,7 @@ const KioskSignUp = lazy(() => import('./routes/Kiosk/SignUp'));
 const KioskWelcome = lazy(() => import('./routes/Kiosk/Welcome'));
 const PhoneProfile = lazy(() => import('./routes/Phone/Profile'));
 const BoothTV = lazy(() => import('./routes/TV/BoothTV'));
+const AdminDashboard = lazy(() => import('./routes/Admin/Dashboard'));
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/kiosk/welcome" element={<KioskWelcome />} />
             <Route path="/p/:agentId" element={<PhoneProfile />} />
             <Route path="/tv" element={<BoothTV />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<div style={{ padding: 40 }}>404 — surface not found</div>} />
           </Routes>
         </Suspense>

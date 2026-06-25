@@ -20,3 +20,5 @@ export const getRoutingStats = api.getRoutingStats;
 export const getValuationHistory = api.getValuationHistory;
 export const subscribeAgent = api.subscribeAgent;
 export const subscribeTvEvents = api.subscribeTvEvents;
+export const getAdminAgents = api.getAdminAgents;
+export const setAgentFlags = api.setAgentFlags;
