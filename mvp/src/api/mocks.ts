@@ -53,8 +53,10 @@ const TOP_10: LeaderboardEntry[] = [
 // (e.g. /kiosk/welcome?agent=a06, /p/a06) render without needing the kiosk
 // form to have created the agent in this browser's localStorage.
 const SEEDED_AGENTS: Record<string, AgentConfig> = {
-  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 } },
-  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 } },
+  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 },
+         assets: ['NVDA', 'BTC', 'IONQ', 'GOOGL', 'ETH', 'QBTS'] },
+  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 },
+         assets: ['BTC', 'ETH', 'SOL', 'RGTI', 'MSFT', 'AMZN'] },
   a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { rebalanceFrequency: 65, riskPreference: 78, maxPositionSize: 60 },
          assets: ['XRP', 'ALGO', 'IONQ', 'IBM', 'SAF', 'ARQQ'] },
   a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { rebalanceFrequency: 55, riskPreference: 70, maxPositionSize: 50 } },

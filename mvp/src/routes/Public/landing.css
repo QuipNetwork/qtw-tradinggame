@@ -1,0 +1,175 @@
+/* Public landing — Editorial Light, Quip brand. Everything scoped under .qpub so
+   it never touches the kiosk / phone / TV surfaces. Tokens come from brand.css. */
+
+.qpub {
+  font-family: var(--font-body);
+  color: var(--z900);
+  background: #fff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.qpub *,
+.qpub *::before,
+.qpub *::after { box-sizing: border-box; }
+.qpub h1, .qpub h2, .qpub h3 { font-family: var(--font-heading); font-weight: 500; }
+.qpub a { color: inherit; text-decoration: none; }
+
+.qpub-mono,
+.qpub-eyebrow,
+.qpub-kicker,
+.qpub-live,
+.qpub-step-n,
+.qpub-board-cols,
+.qpub-rk,
+.qpub-solver,
+.qpub-total,
+.qpub-pnl,
+.qpub-spot-rank,
+.qpub-spot-meta,
+.qpub-alloc-key,
+.qpub-foot-note,
+.qpub-foot-link { font-family: var(--font-mono); }
+
+/* reveal-on-scroll */
+.qpub [data-reveal] { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+.qpub [data-reveal].is-revealed { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .qpub [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
+}
+
+/* splash (phone redirect in flight) */
+.qpub-splash { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #fff; }
+.qpub-splash p { font-family: var(--font-mono); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--z500); }
+
+/* ── nav ────────────────────────────────────────────────────────── */
+.qpub-nav {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px clamp(20px, 5vw, 44px);
+  background: transparent; border-bottom: 1px solid transparent;
+  transition: background .25s ease, border-color .25s ease, backdrop-filter .25s ease;
+}
+.qpub-nav.is-scrolled { background: rgba(255,255,255,.82); backdrop-filter: saturate(160%) blur(12px); border-bottom-color: var(--z200); }
+.qpub-brand { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-heading); font-size: 19px; letter-spacing: -.4px; }
+.qpub-bfly { display: block; border-radius: 5px; }
+.qpub-nav-links { display: flex; align-items: center; gap: clamp(14px, 2.4vw, 26px); }
+.qpub-nav-links a { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--z600); }
+.qpub-nav-links a:hover { color: var(--z950); }
+/* The top-right action stands apart from the mono uppercase links — Quip body
+   type (ABC Favorit), sentence case. */
+.qpub-nav-links a.qpub-nav-cta { background: var(--z950); color: #fff !important; padding: 9px 16px; border-radius: 9px; font-family: var(--font-body); font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: -.005em; }
+.qpub-nav-links a.qpub-nav-cta:hover { background: var(--z800); }
+
+/* ── layout ────────────────────────────────────────────────────── */
+.qpub-page { max-width: var(--max); margin: 0 auto; padding: 0 clamp(20px, 5vw, 44px); }
+.qpub-section { padding: clamp(48px, 7vw, 88px) 0; border-top: 1px solid var(--z200); }
+.qpub-eyebrow { display: block; font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--z400); margin-bottom: 26px; }
+.qpub-eyebrow.sm { margin-bottom: 14px; }
+
+/* ── hero ──────────────────────────────────────────────────────── */
+.qpub-hero { display: grid; grid-template-columns: 1.4fr .6fr; gap: clamp(24px, 5vw, 56px); align-items: center; padding: clamp(48px, 8vw, 88px) 0 clamp(40px, 6vw, 64px); }
+.qpub-kicker { display: inline-flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--coral); }
+.qpub-livedot { width: 7px; height: 7px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 4px var(--coral-soft); animation: qpub-pulse 2.4s ease-in-out infinite; }
+@keyframes qpub-pulse { 0%,100% { box-shadow: 0 0 0 4px var(--coral-soft); } 50% { box-shadow: 0 0 0 7px rgba(255,108,120,.10); } }
+.qpub-hero h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.02; letter-spacing: -1.4px; margin: 18px 0 0; color: var(--z950); }
+.qpub-hero h1 em { font-style: italic; color: var(--coral); }
+.qpub-lede { font-size: clamp(15px, 1.4vw, 17px); line-height: 1.55; color: var(--z600); max-width: 48ch; margin: 20px 0 28px; }
+.qpub-cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.qpub-btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-body); font-weight: 600; font-size: 14.5px; padding: 13px 20px; border-radius: 11px; border: 1px solid transparent; transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.qpub-btn:hover { transform: translateY(-1px); }
+.qpub-btn-solid { background: var(--z950); color: #fff; }
+.qpub-btn-solid:hover { box-shadow: 0 10px 24px rgba(10,10,11,.18); }
+.qpub-btn-ghost { background: #fff; color: var(--z900); border-color: var(--z300); }
+.qpub-btn-ghost:hover { border-color: var(--z950); }
+.qpub-btn.lg { font-size: 15.5px; padding: 15px 26px; }
+/* Win over `.qpub a { color: inherit }`, which would otherwise darken the solid
+   button's label to the body ink (invisible on the dark fill). */
+.qpub a.qpub-btn-solid { color: #fff; }
+.qpub a.qpub-btn-ghost { color: var(--z900); }
+
+.qpub-hero-stats { display: flex; gap: clamp(20px, 4vw, 40px); margin: 32px 0 0; }
+.qpub-hero-stats div { display: flex; flex-direction: column-reverse; gap: 5px; }
+.qpub-hero-stats dd { font-family: var(--font-heading); font-size: clamp(20px, 2.4vw, 26px); letter-spacing: -.6px; margin: 0; color: var(--z950); }
+.qpub-hero-stats dt { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--z400); }
+
+.qpub-hero-glyph { justify-self: end; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.qpub-hero-glyph canvas { width: clamp(120px, 16vw, 176px); height: auto; border-radius: 14px; box-shadow: 0 14px 40px rgba(10,10,11,.14); }
+.qpub-glyph-cap { font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--z400); }
+
+/* ── how it works ──────────────────────────────────────────────── */
+.qpub-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.qpub-step { border: 1px solid var(--z200); border-radius: 14px; padding: 24px; background: var(--z50); transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.qpub-step:hover { border-color: var(--z300); transform: translateY(-2px); box-shadow: 0 14px 34px rgba(10,10,11,.06); }
+.qpub-step-ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; }
+.qpub-step-n { display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--coral); margin: 16px 0 0; }
+.qpub-step h3 { font-size: 21px; letter-spacing: -.4px; margin: 10px 0 8px; }
+.qpub-step p { font-size: 13.5px; line-height: 1.5; color: var(--z600); margin: 0; }
+
+/* ── leaderboard ───────────────────────────────────────────────── */
+.qpub-board-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+.qpub-board-head h2 { font-size: clamp(24px, 3vw, 32px); letter-spacing: -.8px; margin: 0; }
+.qpub-board-note { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--z400); }
+
+.qpub-board-cols, .qpub-row { display: grid; grid-template-columns: 46px minmax(0,1fr) 76px 116px 92px; align-items: center; gap: 14px; }
+.qpub-board-cols { padding: 0 12px 12px; border-bottom: 1px solid var(--z200); }
+.qpub-board-cols span { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--z400); }
+.qpub-board-cols .r, .qpub-pnl { text-align: right; justify-self: end; }
+.qpub-board-rows { position: relative; }
+.qpub-row { padding: 13px 12px; border-bottom: 1px solid var(--z100); border-radius: 10px; will-change: transform; }
+.qpub-row.is-top .qpub-rk { color: var(--z900); }
+.qpub-row.is-you { background: var(--coral-soft); }
+.qpub-rk { font-size: 13px; font-weight: 700; color: var(--z400); font-variant-numeric: tabular-nums; }
+.qpub-ag { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.qpub-av { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; }
+.qpub-ag-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.qpub-ag-name { font-family: var(--font-body); font-weight: 600; font-size: 14.5px; color: var(--z900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qpub-ag-handle { font-family: var(--font-mono); font-size: 10.5px; color: var(--z400); }
+.qpub-row.is-you .qpub-ag-name::after { content: 'YOU'; margin-left: 9px; font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: .1em; color: #fff; background: var(--coral); padding: 3px 6px; border-radius: 5px; vertical-align: middle; }
+.qpub-solver { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; padding: 4px 8px; border-radius: 6px; justify-self: start; }
+.qpub-solver.q { color: #0e7490; background: var(--cyan-soft); }
+.qpub-solver.c { color: var(--z600); background: var(--z100); }
+.qpub-total { font-size: 13.5px; color: var(--z700); font-variant-numeric: tabular-nums; }
+.qpub-pnl { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.qpub-pnl.up { color: var(--up); }
+.qpub-pnl.dn { color: var(--down); }
+.qpub-board-empty { padding: 28px 12px; text-align: center; color: var(--z400); font-family: var(--font-mono); font-size: 12px; }
+
+/* ── spotlight ─────────────────────────────────────────────────── */
+.qpub-spot { background: var(--z50); margin: 0 calc(-1 * clamp(20px, 5vw, 44px)); padding-left: clamp(20px, 5vw, 44px); padding-right: clamp(20px, 5vw, 44px); }
+.qpub-spot-card { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; background: #fff; border: 1px solid var(--z200); border-radius: 16px; padding: 28px; }
+.qpub-spot-rank { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--z400); }
+.qpub-spot-card h3 { font-size: clamp(22px, 2.6vw, 28px); letter-spacing: -.5px; margin: 8px 0 4px; }
+.qpub-spot-pnl { font-family: var(--font-mono); font-weight: 700; font-size: clamp(32px, 4vw, 42px); letter-spacing: -1px; margin: 14px 0 6px; }
+.qpub-spot-pnl.up { color: var(--up); }
+.qpub-spot-pnl.dn { color: var(--down); }
+.qpub-spot-meta { font-size: 11.5px; letter-spacing: .04em; color: var(--z500); }
+.qpub-alloc-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 4px; background: var(--z100); }
+.qpub-alloc-bar span { display: block; height: 100%; }
+.qpub-alloc-key { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 16px; }
+.qpub-alloc-key span { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; color: var(--z600); }
+.qpub-alloc-key i { width: 9px; height: 9px; border-radius: 3px; }
+.qpub-spot-noalloc { font-size: 13px; color: var(--z500); margin: 6px 0 0; }
+
+/* ── cta band + footer ─────────────────────────────────────────── */
+.qpub-band { text-align: center; padding: clamp(56px, 8vw, 88px) 0; }
+.qpub-band h2 { font-size: clamp(26px, 3.4vw, 36px); letter-spacing: -.8px; margin: 0 0 10px; }
+.qpub-band p { color: var(--z600); margin: 0 0 26px; font-size: 15px; }
+.qpub-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; max-width: var(--max); margin: 0 auto; padding: 26px clamp(20px, 5vw, 44px); border-top: 1px solid var(--z200); background: var(--z50); }
+.qpub-foot-mark { display: block; opacity: .9; }
+.qpub-foot-note, .qpub-foot-link { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--z400); }
+.qpub-foot-link:hover { color: var(--coral); }
+
+/* ── responsive ────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .qpub-hero { grid-template-columns: 1fr; }
+  .qpub-hero-glyph { justify-self: start; flex-direction: row; align-items: center; gap: 14px; order: -1; }
+  .qpub-spot-card { grid-template-columns: 1fr; gap: 22px; }
+}
+@media (max-width: 640px) {
+  .qpub-nav-links a:not(.qpub-nav-cta) { display: none; }
+  .qpub-board-cols, .qpub-row { grid-template-columns: 30px minmax(0,1fr) auto; gap: 12px; }
+  .qpub-board-cols span:nth-child(3), .qpub-board-cols span:nth-child(4),
+  .qpub-solver, .qpub-total { display: none; }
+  .qpub-hero-stats { flex-wrap: wrap; gap: 18px 26px; }
+}

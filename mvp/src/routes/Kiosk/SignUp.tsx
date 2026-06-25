@@ -164,6 +164,9 @@ export default function KioskSignUp() {
       try {
         localStorage.setItem('quip:lastAgentId', agentId);
         sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+        // Persist the tokenised resume link so the public landing can send a
+        // returning visitor straight back to their agent across sessions.
+        localStorage.setItem('quip:resumeUrl', qrUrl);
       } catch {
         // Locked-down kiosk browsers may block storage; token.ts keeps an in-memory token.
       }
