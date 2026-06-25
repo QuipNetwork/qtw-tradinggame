@@ -6297,36 +6297,25 @@
   }
   .bigscreen.dir-quipsite.v4.state-d .sdl-row {
     display: flex;
-    align-items: center;
-    gap: 1.6cqw;
+    align-items: baseline;
+    gap: 0.7cqw;
   }
-  /* Rectangular box tag — matches the brand design system's box-style
-     category labels (vs. pill shapes). Soft tinted backgrounds with
-     darker text in the same hue family. */
+  /* No box/pill — a coloured, bold adjective that reads inline with the phrase
+     ("REAL market signals"), so it's a statement, not a button or a lookup table. */
   .bigscreen.dir-quipsite.v4.state-d .sdl-tag {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 1.7cqh;
-    font-weight: 700;
-    letter-spacing: 0.2em;
+    font-size: 2cqh;
+    font-weight: 800;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #0E7490;                /* REAL — dark cyan text */
-    background: #E0F2FE;           /* REAL — pale cyan tint */
-    padding: 0.7cqh 1.3cqw;
-    border-radius: 3px;
+    color: #0E7490;                /* REAL — cyan */
     line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 8cqw;
-    box-sizing: border-box;
   }
   .bigscreen.dir-quipsite.v4.state-d .sdl-row.fake .sdl-tag {
-    color: #3F3F46;                /* FAKE — dark zinc text on pale zinc */
-    background: #F1F1F3;
+    color: #3F3F46;                /* FAKE — muted zinc/grey */
   }
   .bigscreen.dir-quipsite.v4.state-d .sdl-row.live .sdl-tag {
-    color: #15803D;                /* LIVE — dark green text on pale green */
-    background: #DCFCE7;
+    color: #15803D;                /* LIVE — green */
   }
   .bigscreen.dir-quipsite.v4.state-d .sdl-val {
     font-family: Georgia, 'Times New Roman', serif;
