@@ -25,6 +25,16 @@ export default function KioskStage({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Touch-kiosk scroll-lock: while the stage is mounted, hard-lock the page so a tablet can't
+  // rubber-band / scroll behind the fixed, letterboxed canvas (iOS Safari bounces the body even
+  // over a fixed overlay). Scoped via the <html> class so the phone profile + public pages keep
+  // scrolling; removed on unmount so navigating away restores normal scroll.
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add('kiosk-locked');
+    return () => html.classList.remove('kiosk-locked');
+  }, []);
+
   return (
     <div className="kiosk-stage-viewport">
       <div className="kiosk-stage" style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>

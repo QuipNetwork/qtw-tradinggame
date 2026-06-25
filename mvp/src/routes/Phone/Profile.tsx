@@ -250,6 +250,15 @@ export default function PhoneProfile() {
     return () => window.clearInterval(timer);
   }, []);
 
+  // Touch page-lock on a real phone: stop iOS Safari rubber-banding the whole page behind the
+  // fixed phone view — the active view scrolls internally instead. Effective only at phone widths
+  // (the lock CSS is @media-gated), so the desktop bezel preview still scrolls. Removed on unmount.
+  useEffect(() => {
+    const html = document.documentElement;
+    html.classList.add('phone-locked');
+    return () => html.classList.remove('phone-locked');
+  }, []);
+
   useEffect(() => {
     if (!qpuCooldownUntilMs || qpuCooldownUntilMs > nowMs) return;
     setQpuCooldownUntilMs(null);
