@@ -195,6 +195,9 @@ class RecentRouting(BaseModel):
     solve_time: float = Field(alias="solveTime")  # winner seconds
     vs_time: float | None = Field(default=None, alias="vsTime")  # runner-up seconds
     solved_at: str = Field(alias="solvedAt")  # ISO-8601 UTC
+    # How the winner won, so the TV shows a genuine tie instead of a noise-level "X% faster":
+    # "quality" (better portfolio) | "speed" (objective tie, faster) | "tie" (objective + speed tie).
+    outcome: Literal["quality", "speed", "tie"] = "quality"
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -154,6 +154,8 @@ export type RecentRouting = {
   solveTime: number;            // winner seconds
   vsTime: number | null;        // runner-up seconds (null if unavailable)
   solvedAt: string;             // ISO-8601 UTC
+  // How the winner won, so a quality+speed tie reads as a tie, not a noise-level "X% faster".
+  outcome?: 'quality' | 'speed' | 'tie';
 };
 
 export type RoutingStats = {

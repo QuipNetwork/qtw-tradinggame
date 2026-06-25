@@ -224,20 +224,29 @@ export async function getRoutingStats(): Promise<RoutingStats> {
   const { total, qpuWins, cpuWins } = routingState;
   const qpuPct = Math.round((qpuWins / total) * 100);
   const cpuPct = 100 - qpuPct;
-  // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU.
+  // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU. Booth-real timings
+  // (D-Wave ~0.10s chip-time, SA ~0.02–0.17s) with the classified outcome so the strip shows genuine
+  // ties instead of noise-level "X% faster": speed (winner clearly faster), tie (~same time), quality
+  // (winner's portfolio is better, may even be slower).
   const now = Date.now();
   const recent = Array.from({ length: 16 }, (_, i) => {
-    const qpu = i % 6 !== 2;                       // ~1 in 6 is a CPU win
-    const winSec = qpu ? 0.1 + Math.random() * 0.25 : 1.6 + Math.random();
-    const vsSec = qpu
-      ? 3.5 + Math.random() * 3.5
-      : Math.max(0.4, winSec - 0.5 - Math.random() * 0.3);
+    const outcome = (['speed', 'tie', 'quality', 'tie', 'speed'] as const)[i % 5];
+    const qpu = i % 6 !== 2;                        // ~1 in 6 is a CPU win
+    const winSec =
+      outcome === 'quality' ? 0.103 :              // won on portfolio (may be slower than the runner-up)
+      outcome === 'tie' ? 0.1 :                     // ~same as the runner-up
+      0.06 + Math.random() * 0.03;                  // speed: genuinely faster
+    const vsSec =
+      outcome === 'quality' ? 0.03 + Math.random() * 0.05 :          // runner-up faster but worse
+      outcome === 'tie' ? winSec + 0.004 + Math.random() * 0.008 :   // within the time tolerance
+      0.11 + Math.random() * 0.06;                                   // speed: runner-up slower
     return {
       provider: qpu ? 'dwave' : 'sa',
       providerType: (qpu ? 'QPU' : 'CPU') as 'QPU' | 'CPU',
-      solveTime: Math.round(winSec * 100) / 100,
-      vsTime: Math.round(vsSec * 100) / 100,
+      solveTime: Math.round(winSec * 1000) / 1000,
+      vsTime: Math.round(vsSec * 1000) / 1000,
       solvedAt: new Date(now - i * 47_000).toISOString(),
+      outcome,
     };
   });
   return delay({

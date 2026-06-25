@@ -27,6 +27,7 @@ from ..persistence.agents import AgentRecord, EmailAlreadyRegistered, get_agent_
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
+from ..solvers.router import classify_outcome
 from ..solvers.types import SolverFailed
 from .auth import new_agent_token, require_agent_token
 from .schemas import (
@@ -255,16 +256,36 @@ async def routing_stats() -> RoutingStats:
     recent: list[RecentRouting] = []
     for job in reversed(jobs[-RECENT_ROUTING_LIMIT:]):
         vs_time: float | None = None
+        outcome = "quality"
         snap = snapshots_by_job.get(job.id)
         if snap:
-            others = [
+            runs = snap.get("solver_results", [])
+            winner_provider = snap.get("winner_provider")
+            timed = [
                 run["solveTime"]
-                for run in snap.get("solver_results", [])
-                if run.get("provider") != snap.get("winner_provider")
-                and run.get("solveTime") is not None
+                for run in runs
+                if run.get("provider") != winner_provider and run.get("solveTime") is not None
             ]
-            if others:
-                vs_time = min(others)
+            if timed:
+                vs_time = min(timed)
+            # Classify HOW the winner won — same logic as the live race — so the TV reports a genuine
+            # tie instead of a misleading "X% faster" on a quality+speed tie.
+            win = next((run for run in runs if run.get("provider") == winner_provider), None)
+            scored = [
+                run
+                for run in runs
+                if run.get("provider") != winner_provider
+                and run.get("objective") is not None
+                and run.get("feasible", True)  # only a FEASIBLE runner-up is a real head-to-head
+            ]
+            runner = min(scored, key=lambda run: run["objective"]) if scored else None
+            if win is not None:
+                outcome = classify_outcome(
+                    win.get("objective"),
+                    win.get("solveTime"),
+                    runner.get("objective") if runner else None,
+                    runner.get("solveTime") if runner else None,
+                )
         recent.append(
             RecentRouting(
                 provider=job.provider,
@@ -272,6 +293,7 @@ async def routing_stats() -> RoutingStats:
                 solve_time=job.solve_time_s,
                 vs_time=vs_time,
                 solved_at=job.solved_at,
+                outcome=outcome,
             )
         )
 

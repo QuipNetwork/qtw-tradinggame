@@ -352,6 +352,31 @@ def test_routing_stats_counts_recorded_winning_jobs():
         assert body["recent"][0]["vsTime"] == 0.12
 
 
+def test_routing_stats_recent_reports_tie_not_false_speed_win():
+    # The TV bug: SA and D-Wave both ~0.10s with the SAME objective (quality tie), SA marginally
+    # faster → the recent feed must report a TIE, not "3% faster than QPU" (sub-noise timing).
+    jobs = get_job_store()
+    job = jobs.record(
+        "a1",
+        ProviderProvenance(
+            provider="sa", provider_role="CPU", q_hash="c" * 64,
+            deadline_s=3.0, solve_time_s=0.103, feasible=True,
+        ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id, agent_id="a1", sliders=_SLIDERS, assets=_BASKET,
+        portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}], holdings_units={"BTC": 1.0},
+        solver_results=[
+            {"provider": "sa", "providerRole": "CPU", "solveTime": 0.103, "objective": 0.00009},
+            {"provider": "dwave", "providerRole": "QPU", "solveTime": 0.106, "objective": 0.00009},
+        ],
+        winner_provider="sa",
+    )
+    with TestClient(create_app()) as client:
+        body = client.get("/routing-stats").json()
+        assert body["recent"][0]["outcome"] == "tie"
+
+
 def test_valuation_history_returns_sampled_points_and_current_tail():
     with TestClient(create_app()) as client:
         agent_id = _create(client)

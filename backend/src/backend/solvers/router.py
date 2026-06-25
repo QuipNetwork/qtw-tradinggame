@@ -221,29 +221,42 @@ def race(
     )
 
 
-def _classify_outcome(winner: Solution, feasible: list[Solution]) -> str:
-    """How the winner won, for the UI. The winner is already chosen (best objective, ties→fastest);
-    this only labels HOW so the booth doesn't show a misleading "X% faster" on a quality+speed tie:
+def classify_outcome(
+    winner_objective: float | None,
+    winner_time: float | None,
+    runner_objective: float | None,
+    runner_time: float | None,
+) -> str:
+    """Label HOW the winner won, from the winner vs the best feasible runner-up (objective + time):
       "quality" — winner's portfolio is materially better (objective gap > RACE_WINNER_OBJECTIVE_TOL),
       "speed"   — objective tie, winner materially faster (time gap > RACE_TIME_TIE_TOL),
-      "tie"     — objective tie AND times within RACE_TIME_TIE_TOL (timing noise; no real winner)."""
-    if winner.objective is None:
-        return "quality"
-    others = [s for s in feasible if s is not winner and s.objective is not None]
-    if not others:
-        return "quality"  # uncontested → it's simply the result
-    runner = min(others, key=lambda s: s.objective)
-    quality_gap = abs(runner.objective - winner.objective) / max(
-        abs(runner.objective), abs(winner.objective), 1e-12
+      "tie"     — objective tie AND times within RACE_TIME_TIE_TOL (timing noise; no real winner).
+    Shared by the live race AND the TV "recent routings" feed so both label ties identically (so the
+    booth never shows a misleading "X% faster" on a quality+speed tie)."""
+    if winner_objective is None or runner_objective is None:
+        return "quality"  # uncontested / no comparable runner-up → simply the result
+    quality_gap = abs(runner_objective - winner_objective) / max(
+        abs(runner_objective), abs(winner_objective), 1e-12
     )
     if quality_gap > config.RACE_WINNER_OBJECTIVE_TOL:
         return "quality"
     # objective tie → decided by speed; report a genuine TIE when the times are also within tolerance.
-    wt, rt = winner.solve_time_s, runner.solve_time_s
-    if not wt or not rt or max(wt, rt) <= 0.0:
+    if not winner_time or not runner_time or max(winner_time, runner_time) <= 0.0:
         return "tie"
-    time_gap = abs(rt - wt) / max(wt, rt)
+    time_gap = abs(runner_time - winner_time) / max(winner_time, runner_time)
     return "speed" if time_gap > config.RACE_TIME_TIE_TOL else "tie"
+
+
+def _classify_outcome(winner: Solution, feasible: list[Solution]) -> str:
+    """Race-path wrapper: pick the best feasible runner-up, then classify (see classify_outcome)."""
+    others = [s for s in feasible if s is not winner and s.objective is not None]
+    runner = min(others, key=lambda s: s.objective) if others else None
+    return classify_outcome(
+        winner.objective,
+        winner.solve_time_s,
+        runner.objective if runner else None,
+        runner.solve_time_s if runner else None,
+    )
 
 
 def pick_winner(feasible: list[Solution]) -> Solution | None:
