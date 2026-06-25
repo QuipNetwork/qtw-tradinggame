@@ -62,40 +62,30 @@ def _check_required_config() -> None:
 
 
 def _configure_email_provider() -> None:
-    """Register SMTP when configured; otherwise reset to the no-op provider."""
-    from ..notifications.email import NoopEmailProvider, SmtpEmailProvider, set_email_provider
+    """Register the Resend (HTTPS) email provider when RESEND_API_KEY is set,
+    otherwise the no-op provider. HTTPS is the only reliable sender on the droplet
+    — DigitalOcean blocks outbound SMTP."""
+    from ..notifications.email import (
+        NoopEmailProvider,
+        ResendEmailProvider,
+        set_email_provider,
+    )
 
-    if not config.SMTP_ENABLED:
+    if not config.RESEND_API_KEY:
         set_email_provider(NoopEmailProvider())
         log.info("email provider: noop")
         return
 
-    required = {
-        "SMTP_HOST": config.SMTP_HOST,
-        "SMTP_USERNAME": config.SMTP_USERNAME,
-        "SMTP_PASSWORD": config.SMTP_PASSWORD,
-        "SMTP_FROM": config.SMTP_FROM,
-    }
-    missing = [name for name, value in required.items() if not value]
-    if missing:
-        raise RuntimeError(f"SMTP_ENABLED requires {', '.join(missing)}")
-
+    if not config.EMAIL_FROM:
+        raise RuntimeError("RESEND_API_KEY requires EMAIL_FROM")
     set_email_provider(
-        SmtpEmailProvider(
-            host=config.SMTP_HOST,
-            port=config.SMTP_PORT,
-            username=config.SMTP_USERNAME,
-            password=config.SMTP_PASSWORD,
-            sender=config.SMTP_FROM,
-            timeout_s=config.SMTP_TIMEOUT_S,
+        ResendEmailProvider(
+            api_key=config.RESEND_API_KEY,
+            sender=config.EMAIL_FROM,
+            timeout_s=config.RESEND_TIMEOUT_S,
         )
     )
-    log.info(
-        "email provider: smtp host=%s port=%s username=%s",
-        config.SMTP_HOST,
-        config.SMTP_PORT,
-        config.SMTP_USERNAME,
-    )
+    log.info("email provider: resend from=%s", config.EMAIL_FROM)
 
 
 @asynccontextmanager

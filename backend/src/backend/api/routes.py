@@ -116,7 +116,7 @@ def _send_signup_confirmation_email(record: AgentRecord, token: str) -> None:
     """Send the signup email with the secure agent link to anyone who gave an email.
 
     Transactional (the link is their way back to the agent), so it is not gated on
-    the result-email opt-in. SMTP failures are logged and never break signup.
+    the result-email opt-in. Email send failures are logged and never break signup.
     """
     if not record.email:
         return

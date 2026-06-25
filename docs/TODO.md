@@ -32,9 +32,9 @@ Run/test refs:
 - **QPU budget**: 8 QPU-admitted solves per agent per rolling 10 minutes
   (`QPU_BUDGET_MAX_ATTEMPTS=8`, the code default; production sets it explicitly).
   Manual over-budget requests return 429 and scheduled rebalances defer.
-- **Email**: Proton SMTP provider is wired for opted-in signup confirmation emails when
-  backend SMTP env is present. Recurring hourly/daily result emails are not yet
-  implemented.
+- **Email**: the Resend (HTTPS) provider is wired for opted-in signup confirmation
+  emails when RESEND_API_KEY is set. Recurring hourly/daily result emails are not
+  yet implemented.
 
 ## Next Work
 
@@ -72,8 +72,7 @@ Environment/operations notes:
   worker. That still supports many phone websocket connections; it just means
   one process owns the MTM scheduler, in-process event bus, and solve queue.
 - Email capture and sending are separate concerns: Supabase stores
-  email/consent; FastAPI SMTP sending uses backend-only credentials. Proton
-  SMTP should use a generated SMTP token, not the Proton account password.
+  email/consent; FastAPI email sending uses the backend-only Resend API key.
 
 ### P1 - Production Deployment Wiring
 
@@ -93,13 +92,13 @@ Make the deployed frontend and backend agree on URLs and runtime env.
 
 ### P1 - Email Cadence Operations
 
-Proton SMTP sending is implemented for the initial opt-in signup confirmation. The
-hourly/daily update cadence still needs an operational scheduler pass.
+Resend (HTTPS) email sending is implemented for the initial opt-in signup
+confirmation. The hourly/daily update cadence still needs an operational scheduler pass.
 
 - Wire recurring emails from the scheduler using each agent's `updateFrequency`.
 - Send only to agents with `updatesOptIn=true` and a stored email address.
 - Use the latest mark-to-market totals and avoid duplicate sends after restarts.
-- Keep SMTP credentials out of Netlify/browser env.
+- Keep the Resend API key out of Netlify/browser env.
 
 ### P1 - QPU Budget Operations
 

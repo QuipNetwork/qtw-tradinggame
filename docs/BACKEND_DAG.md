@@ -22,8 +22,8 @@ and the solver race.
 - TV views now consume live backend data for leaderboard rows, valuation
   history, and QPU-vs-CPU winner share instead of hardcoded demo stats.
 - The backend Docker image build and GitLab deploy scaffold are implemented.
-  Droplet provisioning remains pending. Proton SMTP is wired for opt-in signup
-  recap emails when backend SMTP env is present.
+  Droplet provisioning remains pending. Resend (HTTPS) email is wired for opt-in
+  signup recap emails when RESEND_API_KEY is set.
 
 ## High-Level DAG
 
@@ -310,7 +310,7 @@ snapshots are sampled separately.
 
 - Frontend env (`VITE_API_BASE`, optional `VITE_WS_BASE`) belongs in Netlify.
 - Backend env (`DATABASE_URL`, `ASSETS_API_BASE_URL`, `DWAVE_API_TOKEN`,
-  `QR_BASE_URL`, SMTP secrets) belongs only on the backend host/container,
+  `QR_BASE_URL`, the Resend API key) belongs only on the backend host/container,
   normally `/opt/qtw/backend.env` on the droplet.
 - Supabase hosts Postgres only; the browser never connects to the database.
 - assets-api owns provider fallback, rate-limit protection, quote freshness, and
@@ -333,7 +333,7 @@ LISTEN/NOTIFY plus advisory locks.
 
 ## Still Missing
 
-- Recurring result emails: SMTP is wired for the initial opt-in signup confirmation,
+- Recurring result emails: Resend is wired for the initial opt-in signup confirmation,
   but hourly/daily scheduled email delivery still needs a cadence-safe scheduler
   pass.
 - Droplet rollout: GitLab CI can build/push/deploy the backend image, but the

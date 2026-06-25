@@ -218,10 +218,10 @@ PY
 
 See `../docs/DEPLOY.md` for the consolidated DigitalOcean Droplet + Docker
 operator runbook, production environment variables, Supabase/Postgres behavior,
-and Proton SMTP setup.
+and Resend email setup.
 
 GitLab CI now includes backend test/build image jobs and a manual droplet deploy
 job. The deploy job becomes usable after the droplet is provisioned, Docker/Caddy
 are installed, `/opt/qtw/backend.env` exists, and the GitLab CI deploy variables
-are set. Proton SMTP is wired for opted-in signup confirmation emails when SMTP env is
-present; recurring hourly/daily result emails still need scheduler work.
+are set. Resend email is wired for opted-in signup confirmation emails when
+RESEND_API_KEY is set; recurring hourly/daily result emails still need scheduler work.

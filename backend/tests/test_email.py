@@ -103,74 +103,50 @@ def test_noop_provider_does_not_log_recipient_or_subject(caplog):
     assert "suppressed" in logged
 
 
-def test_smtp_provider_sends_multipart_message_over_starttls(monkeypatch):
-    class FakeSMTP:
-        instances: list[FakeSMTP] = []
+def test_resend_provider_posts_to_resend_api(monkeypatch):
+    captured: dict = {}
 
-        def __init__(self, host: str, port: int, *, timeout: float) -> None:
-            self.host = host
-            self.port = port
-            self.timeout = timeout
-            self.started_tls = False
-            self.login_args: tuple[str, str] | None = None
-            self.message = None
-            FakeSMTP.instances.append(self)
-
-        def __enter__(self) -> FakeSMTP:
-            return self
-
-        def __exit__(self, exc_type, exc, tb) -> None:
+    class FakeResponse:
+        def raise_for_status(self) -> None:
             return None
 
-        def starttls(self, *, context) -> None:
-            self.started_tls = context is not None
+    def fake_post(url, *, headers, json, timeout):
+        captured.update(url=url, headers=headers, json=json, timeout=timeout)
+        return FakeResponse()
 
-        def login(self, username: str, password: str) -> None:
-            self.login_args = (username, password)
+    monkeypatch.setattr(email_mod.httpx, "post", fake_post)
 
-        def send_message(self, msg) -> None:
-            self.message = msg
-
-    monkeypatch.setattr(email_mod.smtplib, "SMTP", FakeSMTP)
-
-    provider = email_mod.SmtpEmailProvider(
-        host="smtp.protonmail.ch",
-        port=587,
-        username="qtw@quip.network",
-        password="token",
-        sender="Quip Network <qtw@quip.network>",
-        timeout_s=7.0,
+    provider = email_mod.ResendEmailProvider(
+        api_key="re_test_key",
+        sender="Quip Network <noreply@quip.network>",
+        timeout_s=5.0,
     )
     provider.send(
         to="player@example.com",
-        subject="Portfolio update",
+        subject="Your agent is live",
         html="<p>Hello</p>",
         text="Hello",
     )
 
-    smtp = FakeSMTP.instances[0]
-    assert (smtp.host, smtp.port, smtp.timeout) == ("smtp.protonmail.ch", 587, 7.0)
-    assert smtp.started_tls is True
-    assert smtp.login_args == ("qtw@quip.network", "token")
-    assert smtp.message["From"] == "Quip Network <qtw@quip.network>"
-    assert smtp.message["To"] == "player@example.com"
-    assert smtp.message["Subject"] == "Portfolio update"
-    assert smtp.message.is_multipart()
+    assert captured["url"] == "https://api.resend.com/emails"
+    assert captured["headers"]["Authorization"] == "Bearer re_test_key"
+    assert captured["timeout"] == 5.0
+    assert captured["json"]["from"] == "Quip Network <noreply@quip.network>"
+    assert captured["json"]["to"] == ["player@example.com"]
+    assert captured["json"]["subject"] == "Your agent is live"
+    assert captured["json"]["html"] == "<p>Hello</p>"
+    assert captured["json"]["text"] == "Hello"
 
 
-def test_smtp_provider_rejects_header_line_breaks(monkeypatch):
-    class FakeSMTP:
-        def __init__(self, *args, **kwargs) -> None:
-            raise AssertionError("SMTP should not be opened for unsafe headers")
+def test_resend_provider_rejects_header_line_breaks(monkeypatch):
+    def fake_post(*args, **kwargs):
+        raise AssertionError("Resend should not be called for unsafe headers")
 
-    monkeypatch.setattr(email_mod.smtplib, "SMTP", FakeSMTP)
+    monkeypatch.setattr(email_mod.httpx, "post", fake_post)
 
-    provider = email_mod.SmtpEmailProvider(
-        host="smtp.protonmail.ch",
-        port=587,
-        username="qtw@quip.network",
-        password="token",
-        sender="Quip Network <qtw@quip.network>",
+    provider = email_mod.ResendEmailProvider(
+        api_key="re_test_key",
+        sender="Quip Network <noreply@quip.network>",
     )
     with pytest.raises(ValueError, match="subject"):
         provider.send(
