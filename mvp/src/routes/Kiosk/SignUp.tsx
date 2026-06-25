@@ -228,7 +228,7 @@ export default function KioskSignUp() {
           aria-pressed={updatesOptIn}
           onClick={() => setUpdatesOptIn(v => !v)}
         >
-          <span className="v4m-check-box" aria-hidden="true">{updatesOptIn ? '✓' : ''}</span>
+          <span className="v4m-check-box" aria-hidden="true"><span className="v4m-check-tick">✓</span></span>
           <span className="v4m-check-label">Email me my portfolio results</span>
         </button>
         {updatesOptIn && (
@@ -257,7 +257,7 @@ export default function KioskSignUp() {
                 aria-pressed={reachOut.has(o.value)}
                 onClick={() => toggleReachOut(o.value)}
               >
-                <span className="v4m-check-box" aria-hidden="true">{reachOut.has(o.value) ? '✓' : ''}</span>
+                <span className="v4m-check-box" aria-hidden="true"><span className="v4m-check-tick">✓</span></span>
                 <span className="v4m-check-label">{o.label}</span>
               </button>
             ))}
@@ -292,7 +292,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
+                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">1</span>Pick your watchlist <span className={`v4m-selector-req${selected.size >= MIN_ASSETS ? ' ok' : ' need'}`}>{selected.size >= MIN_ASSETS ? `· ✓ ${selected.size} selected` : `· please pick at least ${MIN_ASSETS}`}</span></span>
                 <span className={`v4m-selector-count${selected.size > 0 && selected.size < MIN_ASSETS ? ' under' : ''}`}>{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
