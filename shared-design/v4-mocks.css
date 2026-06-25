@@ -4780,8 +4780,12 @@
   .kiosk-v4.app-fit .v4m-main-col { gap: 12px; }
   .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 10px 14px; }
   .kiosk-v4.app-fit .v4m-selector-actions { padding: 6px 0; }
-  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 8px 0 4px; }
-  .kiosk-v4.app-fit .v4m-tile { min-height: 64px; padding: 4px 5px 6px; }
+  /* Compact-stage spacing: clearer category gap than the old 2px, but tiles shrink a touch so all
+     28 assets still fit the fixed stage at once (scroll only kicks in on a genuinely small screen). */
+  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 6px 0 3px; }
+  .kiosk-v4.app-fit .v4m-pick-grid { gap: 4px; }
+  .kiosk-v4.app-fit .v4m-tile { min-height: 60px; padding: 4px 5px 5px; gap: 1px; }
+  .kiosk-v4.app-fit .v4m-tile .v4m-tile-icon { width: 20px; height: 20px; }
   .kiosk-v4.app-fit .v4m-tile .v4m-tile-name { font-size: 0.6rem; }
   .kiosk-v4.app-fit .v4m-sliders-head { margin-bottom: 6px; }
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
