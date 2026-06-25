@@ -243,7 +243,10 @@ export default function PhoneProfile() {
       ...glyphParams(agent.sliders),
       cell: 3,
     }, style));
-  }, [agent]);
+    // Depend on `view` too: switching to the portfolio/basket view unmounts the profile (and its
+    // glyph canvas); coming back mounts a fresh, blank canvas. Without `view` the effect wouldn't
+    // re-run (agent is unchanged), so the glyph stayed blank until a full refresh.
+  }, [agent, view]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
