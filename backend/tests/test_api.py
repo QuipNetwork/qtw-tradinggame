@@ -497,6 +497,19 @@ def test_signup_rate_limited_per_ip(monkeypatch):
         assert int(blocked.headers["retry-after"]) > 0
 
 
+def test_per_ip_limit_disabled_when_zero(monkeypatch):
+    # SIGNUP_RATE_PER_IP=0 (the booth default) turns the per-IP cap OFF — a packed
+    # conference shares one NAT IP, so per-IP would throttle the venue, not abuse. The
+    # global ceiling + one-agent-per-email + per-agent QPU budget remain the guards.
+    monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 0)
+    with TestClient(create_app()) as client:
+        body = {"name": "Crowd", "sliders": _SLIDERS, "assets": _BASKET}
+        ip = {"X-Real-IP": "5.5.5.5"}  # everyone behind one shared-venue IP
+        for i in range(25):
+            r = client.post("/agents", json={**body, "email": f"crowd{i}@example.com"}, headers=ip)
+            assert r.status_code == 200
+
+
 def test_rate_limit_keys_on_real_ip_not_spoofable_forwarded_for(monkeypatch):
     monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 2)
     with TestClient(create_app()) as client:

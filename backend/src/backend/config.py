@@ -261,10 +261,13 @@ DWAVE_SOLVER_TOPOLOGY: str = os.environ.get("DWAVE_SOLVER_TOPOLOGY", "")
 QPU_BUDGET_MAX_ATTEMPTS: int = int(os.environ.get("QPU_BUDGET_MAX_ATTEMPTS", 8))
 QPU_BUDGET_WINDOW_S: int = int(os.environ.get("QPU_BUDGET_WINDOW_S", 600))
 
-# Anti-abuse rate limit on agent creation (POST /agents). In-memory, keyed by client
-# IP (X-Forwarded-For) + a booth-wide hourly ceiling — bounds a scripted flood of
-# fresh agents (each grants a new QPU budget). Single-worker deploy → process-local.
-SIGNUP_RATE_PER_IP: int = int(os.environ.get("SIGNUP_RATE_PER_IP", 10))
+# Anti-abuse rate limit on agent creation (POST /agents). In-memory + process-local
+# (single-worker deploy). Bounds a scripted flood of fresh agents (each grants a new
+# QPU budget) via a per-IP cap and a booth-wide hourly ceiling.
+# SIGNUP_RATE_PER_IP=0 DISABLES the per-IP cap (the default): a packed conference shares
+# one NAT IP, so per-IP would throttle the whole venue, not abuse. The hourly ceiling +
+# one-agent-per-email + per-agent QPU budget remain as the real guards.
+SIGNUP_RATE_PER_IP: int = int(os.environ.get("SIGNUP_RATE_PER_IP", 0))
 SIGNUP_RATE_WINDOW_S: int = int(os.environ.get("SIGNUP_RATE_WINDOW_S", 600))
 SIGNUP_RATE_GLOBAL_PER_HOUR: int = int(os.environ.get("SIGNUP_RATE_GLOBAL_PER_HOUR", 300))
 
