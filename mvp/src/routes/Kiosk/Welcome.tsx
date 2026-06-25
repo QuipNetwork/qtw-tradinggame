@@ -18,7 +18,7 @@ import { kioskKey } from '../../api/kiosk';
 const BANKROLL = 10000;
 // Booth tablet only: how long a completed agent stays on screen before the kiosk
 // auto-returns to sign-up for the next visitor.
-const KIOSK_CYCLE_MS = 12_000;
+const KIOSK_CYCLE_MS = 30_000;
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
@@ -106,11 +106,11 @@ export default function KioskWelcome() {
   }, []);
 
   // Kiosk auto-cycle: on a booth tablet (opened via the secret ?k= link) return to the
-  // sign-up after the visitor has had ~12s with their result, so the tablet is ready for the
+  // sign-up after the visitor has had ~30s with their result, so the tablet is ready for the
   // next person without an attendant tap. Public (non-kiosk) devices are left alone — a
   // returning player keeps their completion screen, and the per-browser cap governs repeat
   // sign-ups there. Waits out the solve (loadState 'loading', up to ~10s on a QPU cold start)
-  // so the 12s always covers the visible result, not the spinner.
+  // so the 30s always covers the visible result, not the spinner.
   useEffect(() => {
     if (loadState === 'loading' || !kioskKey()) return;
     const timer = window.setTimeout(() => navigate('/kiosk', { replace: true }), KIOSK_CYCLE_MS);
