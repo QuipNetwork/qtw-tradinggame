@@ -3,6 +3,7 @@
 // rest of the app calls these via `api/index.ts`, not directly.
 
 import type {
+  AdminAgent,
   AgentConfig,
   AgentUpdate,
   AssetTicker,
@@ -53,8 +54,10 @@ const TOP_10: LeaderboardEntry[] = [
 // (e.g. /kiosk/welcome?agent=a06, /p/a06) render without needing the kiosk
 // form to have created the agent in this browser's localStorage.
 const SEEDED_AGENTS: Record<string, AgentConfig> = {
-  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 } },
-  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 } },
+  a01: { name: 'Hilbert Spaceship',      handle: '@hilbertspaceship',      sliders: { rebalanceFrequency: 95, riskPreference: 95, maxPositionSize: 85 },
+         assets: ['NVDA', 'BTC', 'IONQ', 'GOOGL', 'ETH', 'QBTS'] },
+  a02: { name: 'Bra-Ket Boy',            handle: '@braketboy',             sliders: { rebalanceFrequency: 80, riskPreference: 85, maxPositionSize: 70 },
+         assets: ['BTC', 'ETH', 'SOL', 'RGTI', 'MSFT', 'AMZN'] },
   a03: { name: 'Eigenvalue Eve',         handle: '@eigenvalueeve',         sliders: { rebalanceFrequency: 65, riskPreference: 78, maxPositionSize: 60 },
          assets: ['XRP', 'ALGO', 'IONQ', 'IBM', 'SAF', 'ARQQ'] },
   a04: { name: 'Annealing Ant',          handle: '@annealingant',          sliders: { rebalanceFrequency: 55, riskPreference: 70, maxPositionSize: 50 } },
@@ -212,6 +215,64 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return delay(tickBoard(), 120);
 }
 
+// --- Admin dashboard (mock: operates on the seeded leaderboard + a flag map) ---
+const adminFlags: Record<string, { hidden: boolean; disabled: boolean }> = {};
+
+function adminRow(entry: LeaderboardEntry, rank: number | null): AdminAgent {
+  const seeded = SEEDED_AGENTS[entry.agentId];
+  const flags = adminFlags[entry.agentId] ?? { hidden: false, disabled: false };
+  return {
+    agentId: entry.agentId,
+    name: entry.name,
+    handle: entry.handle,
+    email: `${(entry.handle ?? '@player').replace(/^@/, '')}@example.com`,
+    rank,
+    total: entry.total,
+    plUSD: entry.plUSD,
+    plPct: entry.plPct,
+    jobsSolved: entry.jobsSolved,
+    primaryProvider: entry.primaryProvider,
+    basketSize: seeded?.assets?.length ?? 0,
+    sliders: seeded?.sliders ?? { rebalanceFrequency: 50, riskPreference: 50, maxPositionSize: 50 },
+    createdAt: '2026-06-24T18:00:00.000Z',
+    lastSolvedAt: '2026-06-25T12:00:00.000Z',
+    hidden: flags.hidden,
+    disabled: flags.disabled,
+  };
+}
+
+function adminRows(): AdminAgent[] {
+  const visible = TOP_10.filter(e => !adminFlags[e.agentId]?.hidden).sort((a, b) => b.total - a.total);
+  const rankById: Record<string, number> = {};
+  visible.forEach((e, i) => { rankById[e.agentId] = i + 1; });
+  const ordered = [...TOP_10].sort((a, b) => {
+    const ah = adminFlags[a.agentId]?.hidden ? 1 : 0;
+    const bh = adminFlags[b.agentId]?.hidden ? 1 : 0;
+    return ah - bh || b.total - a.total;
+  });
+  return ordered.map(e => adminRow(e, rankById[e.agentId] ?? null));
+}
+
+export async function getAdminAgents(adminKey: string): Promise<AdminAgent[]> {
+  void adminKey; // mock ignores auth; the real adapter sends it as X-Admin-Key
+  return delay(adminRows(), 200);
+}
+
+export async function setAgentFlags(
+  _adminKey: string,
+  agentId: string,
+  patch: { hidden?: boolean; disabled?: boolean },
+): Promise<AdminAgent> {
+  const cur = adminFlags[agentId] ?? { hidden: false, disabled: false };
+  const hidden = patch.hidden ?? cur.hidden;
+  let disabled = patch.disabled ?? cur.disabled;
+  if (!hidden) disabled = false;  // mirror the backend invariant: disabled ⇒ hidden
+  adminFlags[agentId] = { hidden, disabled };
+  const entry = TOP_10.find(e => e.agentId === agentId);
+  if (!entry) throw new Error('agent not found');
+  return delay(adminRows().find(r => r.agentId === agentId) ?? adminRow(entry, null), 150);
+}
+
 // Live routing-stats simulation: a solve lands now and then; the QPU wins most.
 const routingState = { total: 10, qpuWins: 8, cpuWins: 2 };
 
@@ -224,20 +285,29 @@ export async function getRoutingStats(): Promise<RoutingStats> {
   const { total, qpuWins, cpuWins } = routingState;
   const qpuPct = Math.round((qpuWins / total) * 100);
   const cpuPct = 100 - qpuPct;
-  // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU.
+  // Recent routings feed (newest first) — mostly QPU wins, the occasional CPU. Booth-real timings
+  // (D-Wave ~0.10s chip-time, SA ~0.02–0.17s) with the classified outcome so the strip shows genuine
+  // ties instead of noise-level "X% faster": speed (winner clearly faster), tie (~same time), quality
+  // (winner's portfolio is better, may even be slower).
   const now = Date.now();
   const recent = Array.from({ length: 16 }, (_, i) => {
-    const qpu = i % 6 !== 2;                       // ~1 in 6 is a CPU win
-    const winSec = qpu ? 0.1 + Math.random() * 0.25 : 1.6 + Math.random();
-    const vsSec = qpu
-      ? 3.5 + Math.random() * 3.5
-      : Math.max(0.4, winSec - 0.5 - Math.random() * 0.3);
+    const outcome = (['speed', 'tie', 'quality', 'tie', 'speed'] as const)[i % 5];
+    const qpu = i % 6 !== 2;                        // ~1 in 6 is a CPU win
+    const winSec =
+      outcome === 'quality' ? 0.103 :              // won on portfolio (may be slower than the runner-up)
+      outcome === 'tie' ? 0.1 :                     // ~same as the runner-up
+      0.06 + Math.random() * 0.03;                  // speed: genuinely faster
+    const vsSec =
+      outcome === 'quality' ? 0.03 + Math.random() * 0.05 :          // runner-up faster but worse
+      outcome === 'tie' ? winSec + 0.004 + Math.random() * 0.008 :   // within the time tolerance
+      0.11 + Math.random() * 0.06;                                   // speed: runner-up slower
     return {
       provider: qpu ? 'dwave' : 'sa',
       providerType: (qpu ? 'QPU' : 'CPU') as 'QPU' | 'CPU',
-      solveTime: Math.round(winSec * 100) / 100,
-      vsTime: Math.round(vsSec * 100) / 100,
+      solveTime: Math.round(winSec * 1000) / 1000,
+      vsTime: Math.round(vsSec * 1000) / 1000,
       solvedAt: new Date(now - i * 47_000).toISOString(),
+      outcome,
     };
   });
   return delay({
@@ -288,6 +358,15 @@ export async function getValuationHistory(
     };
   });
   return delay(points, 120);
+}
+
+// Public (token-free) variant used by the booth TV spotlight. Same simulated
+// series as the owner-scoped history so the demo TV shows real movement too.
+export async function getPublicValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  return getValuationHistory(agentId, limit);
 }
 
 // Seeded per-agent/ticker offset so each demo agent opens with a distinct,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getLeaderboard, getRoutingStats, subscribeTvEvents } from '../../api';
+import { getLeaderboard, getPublicValuationHistory, getRoutingStats, subscribeTvEvents } from '../../api';
 import type { LeaderboardEntry, RoutingStats } from '../../api';
 import StateA from './StateA';
 import StateB from './StateB';
@@ -16,10 +16,11 @@ const TIMINGS: Record<StateName, number> = { A: 12000, B: 15000, C: 20000, D: 10
 // Live data refresh cadence. Fast enough that the board visibly moves on screen.
 const REFRESH_MS = 4000;
 
-// Rolling per-agent total buffer for the spotlight sparkline (≈ last 60 polls).
-// The /valuation-history endpoint is per-agent-token-gated, which the TV doesn't
-// hold for other agents — so the spotlight chart is built from the public
-// leaderboard feed accumulated here instead.
+// Rolling per-agent total buffer for the spotlight sparkline (≈ last 60 points).
+// Seeded from the public per-agent P&L history endpoint (token-free) the first
+// time an agent is spotlighted, then extended by each live leaderboard poll — so
+// the curve shows real movement immediately instead of only the points gathered
+// since the TV happened to load.
 const MAX_SPARK_POINTS = 60;
 
 const EMPTY_ROUTING_STATS: RoutingStats = {
@@ -53,6 +54,11 @@ export default function BoothTV() {
   // Held in a ref so the curve survives State A/B remounts across the rotation
   // (a new agent's buffer starts empty and fills in as the board polls).
   const totalsByAgentRef = useRef<Map<string, number[]>>(new Map());
+
+  // Agents whose stored P&L history we've already seeded into the buffer above
+  // (one public fetch each). A state bump forces a re-render when a seed lands.
+  const seededRef = useRef<Set<string>>(new Set());
+  const [, bumpHist] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +139,36 @@ export default function BoothTV() {
     const index = leaderboard.findIndex(row => row.agentId === spotlightAgentId);
     if (index >= 0) setSpotIndex(index);
   }, [leaderboard, spotlightAgentId]);
+
+  // The agent currently in the spotlight (rotation index or forced ?agent=).
+  const spotlightId =
+    leaderboard && leaderboard.length
+      ? (leaderboard[spotIndex % leaderboard.length] ?? leaderboard[0]).agentId
+      : null;
+
+  // Seed that agent's buffer with its REAL stored P&L history (public, token-free)
+  // the first time it's spotlighted, so the sparkline shows true movement instead
+  // of a flat line of points gathered since page load. Live polls extend it after.
+  useEffect(() => {
+    if (!spotlightId || seededRef.current.has(spotlightId)) return;
+    seededRef.current.add(spotlightId);
+    let cancelled = false;
+    getPublicValuationHistory(spotlightId, MAX_SPARK_POINTS)
+      .then(points => {
+        if (cancelled || points.length < 2) return;
+        totalsByAgentRef.current.set(
+          spotlightId,
+          points.map(point => point.total).slice(-MAX_SPARK_POINTS),
+        );
+        bumpHist(version => version + 1);
+      })
+      .catch(() => {
+        seededRef.current.delete(spotlightId);  // allow a retry on the next pass
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [spotlightId]);
 
   if (!leaderboard || leaderboard.length === 0) {
     return (

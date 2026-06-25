@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { renderGlyph, strHash, pickStyle } from '../utils/glyph';
+import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 
-// The production landing surface, in the design-doc theme (masthead + serif
-// hero + meta strip). It routes cleanly into every booth surface: the kiosk,
-// the phone profile of the agent created this session, and the TV in all its
-// states (auto-rotate plus each forced state, including the new-agent interrupt).
+// INTERNAL booth-surfaces directory (was the old public Index). Lives behind
+// TeamGate at /team?k=<key>. It routes cleanly into every booth surface: the
+// kiosk, the phone profile of the agent created this session, and the TV in all
+// its states (auto-rotate plus each forced state, including the new-agent interrupt).
 
 type SurfaceLink = { label: string; to: string; note?: string; external?: boolean };
 type Surface = { num: string; id: string; title: string; formFactor: string; blurb: string; links: SurfaceLink[] };
@@ -56,7 +56,7 @@ function buildSurfaces(latestAgentId: string | null): Surface[] {
   ];
 }
 
-export default function Index() {
+export default function Directory() {
   const surfaces = buildSurfaces(latestCreatedAgentId());
   const glyphRef = useRef<HTMLCanvasElement>(null);
 
@@ -99,15 +99,15 @@ export default function Index() {
 
       <div className="page landing-enter" id="top">
         <header className="hero">
-          <div className="kicker">Quantum.Tech World 2026 · Trading Competition</div>
+          <div className="kicker">Quantum.Tech World 2026 · Trading Competition · Internal</div>
           <div className="hero-title-row">
             <h1>The Quip Network<br /><span className="grad">Trading Competition</span></h1>
             <canvas ref={glyphRef} width={160} height={160} aria-label="Quip generative glyph"></canvas>
           </div>
           <p className="lede">
-            A booth activation where attendees name an agent, pick a watchlist from the 28-asset
-            universe, and tune three strategy sliders. Quip Network routes every re-optimization
-            across quantum and classical solvers; a leaderboard tracks P&amp;L across the conference.
+            Internal directory of every booth surface. The public landing lives at <code>/</code>;
+            this page routes the team into the kiosk, the phone profile of the agent created this
+            session, and the TV in all its states.
           </p>
 
           <div className="hero-facts">

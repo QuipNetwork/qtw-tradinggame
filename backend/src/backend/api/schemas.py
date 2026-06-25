@@ -12,6 +12,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from ..moderation import is_clean
+
 # Universe tickers are ≤6 chars; cap each list item and the list length so an oversized payload
 # can't reach validate_basket / persistence (resource-exhaustion guard). 64 tolerates duplicates
 # above the 28-asset universe (dedup happens in validate_basket).
@@ -95,6 +97,14 @@ class AgentConfig(BaseModel):
     @classmethod
     def validate_email(cls, value: str | None) -> str | None:
         return _valid_email(value)
+
+    @field_validator("name", "handle")
+    @classmethod
+    def validate_clean_display_text(cls, value: str | None) -> str | None:
+        # Name/handle are shown on the public TV + leaderboard — keep profanity off the big screen.
+        if value is not None and not is_clean(value):
+            raise ValueError("please choose a different display name")
+        return value
 
 
 ProviderType = Literal["QPU", "CPU"]
@@ -195,6 +205,9 @@ class RecentRouting(BaseModel):
     solve_time: float = Field(alias="solveTime")  # winner seconds
     vs_time: float | None = Field(default=None, alias="vsTime")  # runner-up seconds
     solved_at: str = Field(alias="solvedAt")  # ISO-8601 UTC
+    # How the winner won, so the TV shows a genuine tie instead of a noise-level "X% faster":
+    # "quality" (better portfolio) | "speed" (objective tie, faster) | "tie" (objective + speed tie).
+    outcome: Literal["quality", "speed", "tie"] = "quality"
 
     model_config = ConfigDict(populate_by_name=True)
 

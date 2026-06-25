@@ -3,20 +3,20 @@
 Attendees opt in at sign-up (AgentConfig.update_frequency = 'daily' | 'hourly')
 to receive a simple email with their agent's name + current performance.
 
-The active provider is registered at FastAPI startup. With no SMTP env present,
-NoopEmailProvider logs only and keeps local/tests side-effect-free.
+The active provider (Resend over HTTPS) is registered at FastAPI startup. With no
+RESEND_API_KEY present, NoopEmailProvider logs only and keeps local/tests
+side-effect-free.
 """
 
 from __future__ import annotations
 
 import logging
 import re
-import smtplib
-import ssl
 from dataclasses import dataclass
-from email.message import EmailMessage
 from html import escape
 from typing import Protocol
+
+import httpx
 
 logger = logging.getLogger(__name__)
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]+")
@@ -33,50 +33,35 @@ class NoopEmailProvider:
         logger.info("email (noop) skipped; recipient and subject suppressed")
 
 
-class SmtpEmailProvider:
-    """TLS SMTP provider for Proton or another SMTP relay."""
+class ResendEmailProvider:
+    """Transactional email via Resend's HTTPS API (api.resend.com, port 443).
 
-    def __init__(
-        self,
-        *,
-        host: str,
-        port: int,
-        username: str,
-        password: str,
-        sender: str,
-        timeout_s: float = 10.0,
-    ) -> None:
-        self._host = host
-        self._port = port
-        self._username = username
-        self._password = password
+    DigitalOcean blocks outbound SMTP, so this HTTPS path is the reliable sender
+    on the droplet. Synchronous to match the EmailProvider contract — the caller
+    already runs send() off the request path as a background task.
+    """
+
+    _ENDPOINT = "https://api.resend.com/emails"
+
+    def __init__(self, *, api_key: str, sender: str, timeout_s: float = 10.0) -> None:
+        self._api_key = api_key
         self._sender = sender
         self._timeout_s = timeout_s
 
     def send(self, *, to: str, subject: str, html: str, text: str) -> None:
-        msg = EmailMessage()
-        msg["Subject"] = _safe_header(subject, "subject")
-        msg["From"] = _safe_header(self._sender, "from")
-        msg["To"] = _safe_header(to, "to")
-        msg.set_content(text)
-        msg.add_alternative(html, subtype="html")
-
-        context = ssl.create_default_context()
-        if self._port == 465:
-            with smtplib.SMTP_SSL(
-                self._host,
-                self._port,
-                timeout=self._timeout_s,
-                context=context,
-            ) as server:
-                server.login(self._username, self._password)
-                server.send_message(msg)
-            return
-
-        with smtplib.SMTP(self._host, self._port, timeout=self._timeout_s) as server:
-            server.starttls(context=context)
-            server.login(self._username, self._password)
-            server.send_message(msg)
+        response = httpx.post(
+            self._ENDPOINT,
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "from": _safe_header(self._sender, "from"),
+                "to": [_safe_header(to, "to")],
+                "subject": _safe_header(subject, "subject"),
+                "html": html,
+                "text": text,
+            },
+            timeout=self._timeout_s,
+        )
+        response.raise_for_status()
 
 
 _provider: EmailProvider = NoopEmailProvider()

@@ -2,7 +2,7 @@
 
 This is the single operator document for deploying the QTW FastAPI backend,
 setting runtime environment variables, wiring the Netlify frontend, configuring
-Supabase/Postgres, and enabling Proton SMTP.
+Supabase/Postgres, and enabling Resend email.
 
 Backend dataflow: `docs/BACKEND_DAG.md`.
 CI pipeline: `.gitlab-ci.yml`.
@@ -25,7 +25,7 @@ Docker container: qtw-backend, Uvicorn, one worker, 127.0.0.1:8000
         +-> Supabase Postgres through DATABASE_URL
         +-> assets-api at https://asset-tracker.quip.network
         +-> D-Wave Leap when DWAVE_API_TOKEN is set
-        +-> Proton SMTP when SMTP_ENABLED=1
+        +-> Resend email API when RESEND_API_KEY is set
 ```
 
 Run one backend container with one Uvicorn worker for the first production
@@ -36,7 +36,7 @@ solve queue are in-process.
 
 | Surface | Put There | Never Put There |
 |---|---|---|
-| Netlify frontend env | `VITE_API_BASE`, optional `VITE_WS_BASE` | Database URLs, SMTP tokens, D-Wave tokens, Supabase service keys |
+| Netlify frontend env | `VITE_API_BASE`, optional `VITE_WS_BASE` | Database URLs, the Resend key, D-Wave tokens, Supabase service keys |
 | Droplet `/opt/qtw/backend.env` | Backend runtime env and secrets | Browser-visible values only |
 | GitLab CI/CD variables | Deploy SSH settings | Runtime app secrets unless they are needed by CI |
 | Supabase | Postgres data only | Browser direct access |
@@ -107,13 +107,8 @@ QPU_BUDGET_WINDOW_S=600
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-1-us-west-2.pooler.supabase.com:5432/postgres
 DWAVE_API_TOKEN=<Leap token>
 
-SMTP_ENABLED=1
-SMTP_HOST=smtp.protonmail.ch
-SMTP_PORT=587
-SMTP_USERNAME=qtw@quip.network
-SMTP_PASSWORD=<Proton SMTP token>
-SMTP_FROM=Quip Network <qtw@quip.network>
-SMTP_TIMEOUT_S=10
+RESEND_API_KEY=<Resend API key>
+EMAIL_FROM=Quip Network <noreply@quip.network>
 ```
 
 `MARKET_DATA_SOURCE` defaults to `assets-api`; set
@@ -138,13 +133,9 @@ production env unless deliberately running a hardware tuning pass.
 | `VALUATION_SNAPSHOT_INTERVAL_S` | no | `60` | Durable valuation history snapshot cadence. Use `0` to disable. |
 | `QPU_BUDGET_MAX_ATTEMPTS` | no | `3` | Production booth override: per-agent QPU-admitted solves per rolling window. Code fallback is `8`. |
 | `QPU_BUDGET_WINDOW_S` | no | `600` | QPU budget window in seconds. |
-| `SMTP_ENABLED` | yes for email | `1` | Explicitly registers SMTP at FastAPI startup. If unset or `0`, email stays no-op even when credential vars are present. |
-| `SMTP_HOST` | yes for email | `smtp.protonmail.ch` | Proton SMTP relay host. |
-| `SMTP_PORT` | yes for email | `587` | STARTTLS port. |
-| `SMTP_USERNAME` | yes for email | `qtw@quip.network` | Proton custom-domain sending address. |
-| `SMTP_PASSWORD` | yes for email | `<Proton SMTP token>` | Generated SMTP token, not the Proton account password. |
-| `SMTP_FROM` | yes for email | `Quip Network <qtw@quip.network>` | Display sender. |
-| `SMTP_TIMEOUT_S` | no | `10` | SMTP connect/send timeout. |
+| `RESEND_API_KEY` | yes for email | `<Resend API key>` | Registers the Resend (HTTPS) email provider at startup. If unset, email stays no-op. |
+| `EMAIL_FROM` | yes for email | `Quip Network <noreply@quip.network>` | Display sender; must be an address on a Resend-verified domain. |
+| `RESEND_TIMEOUT_S` | no | `10` | Resend API request timeout. |
 
 ## Supabase/Postgres
 
@@ -274,12 +265,17 @@ Usually leave `VITE_WS_BASE` unset; the frontend derives websocket URLs from
 Redeploy Netlify after env changes because Vite bakes `VITE_*` variables at
 build time.
 
-## Proton SMTP
+## Email (Resend)
+
+Transactional email goes through **Resend's HTTPS API** (port 443). DigitalOcean
+blocks outbound SMTP from the droplet (25/465/587 all time out), so SMTP — Proton
+or any relay on the standard ports — is not viable; Resend's API is the reliable
+sender.
 
 Current behavior:
 
 - Email sends only from the FastAPI backend container.
-- Netlify and the browser never receive SMTP credentials.
+- Netlify and the browser never receive the Resend key.
 - After `POST /agents` persists the attendee, the backend sends a signup
   confirmation to anyone who provided an email. It carries the attendee's secure
   agent link (`/p/{id}#t={token}`); when they did not opt into result emails it
@@ -289,44 +285,28 @@ Current behavior:
   most 1/h, daily = at most 1/24h). The result email is informational only — the
   secure deep link lives solely in the signup email, because only the token hash
   is stored server-side.
-- SMTP failures are logged and do not fail signup or a rebalance.
-- Note: the signup link puts the capability token in an email (Proton TLS + the
-  recipient inbox), a conscious tradeoff vs. the log-safe URL-fragment design —
-  acceptable for a short-lived, play-money booth agent.
+- Resend send failures are logged and do not fail signup or a rebalance.
+- Note: the signup link puts the capability token in an email (TLS in transit +
+  the recipient inbox), a conscious tradeoff vs. the log-safe URL-fragment design
+  — acceptable for a short-lived, play-money booth agent.
 
-Required Proton values:
+Setup:
 
-| Value | Use |
-|---|---|
-| `qtw@quip.network` | SMTP username and sender mailbox |
-| `smtp.protonmail.ch` | Proton SMTP server |
-| `587` | SMTP STARTTLS port |
-| Proton SMTP token | Backend-only `SMTP_PASSWORD` |
-
-Do not commit the token. Do not put it in Netlify. Because the token was shared
-outside the production secret store, rotate it in Proton before the final
-production deploy.
-
-To enable SMTP, add this block to `/opt/qtw/backend.env`:
+1. Create a Resend account and a **send-only** API key.
+2. Verify the `quip.network` domain in Resend (add the DKIM + SPF DNS records it
+   issues) so you can send from `noreply@quip.network`.
+3. Add to `/opt/qtw/backend.env` (backend-only — never commit, never put in Netlify):
 
 ```bash
-SMTP_ENABLED=1
-SMTP_HOST=smtp.protonmail.ch
-SMTP_PORT=587
-SMTP_USERNAME=qtw@quip.network
-SMTP_PASSWORD=<Proton SMTP token>
-SMTP_FROM=Quip Network <qtw@quip.network>
-SMTP_TIMEOUT_S=10
+RESEND_API_KEY=<Resend API key>
+EMAIL_FROM=Quip Network <noreply@quip.network>
 ```
 
-To disable SMTP:
+Do not commit the key. If it was shared outside the production secret store,
+rotate it in the Resend dashboard before the final production deploy.
 
-```bash
-SMTP_ENABLED=0
-```
-
-With `SMTP_ENABLED=0` or an unset `SMTP_ENABLED`, the backend uses the no-op email provider even if other
-SMTP variables are still present.
+To disable email, leave `RESEND_API_KEY` unset — the backend falls back to the
+no-op provider (logs only, no send).
 
 ## Applying Env Changes
 
@@ -354,18 +334,18 @@ docker run -d \
   "$IMAGE"
 ```
 
-## Proton SMTP Smoke Test
+## Email Smoke Test
 
 Check startup logs:
 
 ```bash
-docker logs --tail 120 qtw-backend | grep -E "email provider|SMTP|smtp"
+docker logs --tail 120 qtw-backend | grep -E "email provider"
 ```
 
 Expected startup log shape:
 
 ```text
-email provider: smtp host=smtp.protonmail.ch port=587 username=qtw@quip.network
+email provider: resend from=Quip Network <noreply@quip.network>
 ```
 
 Send a test signup to a real inbox you control:
@@ -374,7 +354,7 @@ Send a test signup to a real inbox you control:
 curl -fsS -X POST https://qtw.backend.quip.network/agents \
   -H 'content-type: application/json' \
   --data '{
-    "name": "SMTP Smoke",
+    "name": "Email Smoke",
     "email": "<test-inbox@example.com>",
     "updatesOptIn": true,
     "updateFrequency": "daily",
@@ -395,11 +375,12 @@ Expected result:
 
 - The API returns `200`.
 - The test inbox receives a QTW signup confirmation from
-  `Quip Network <qtw@quip.network>`.
-- If Proton rejects the send, signup still returns `200`; check
-  `docker logs --tail 120 qtw-backend` for the SMTP stack trace.
+  `Quip Network <noreply@quip.network>`.
+- If Resend rejects the send, signup still returns `200`; check
+  `docker logs --tail 120 qtw-backend` for the stack trace (a 403 usually means
+  the `quip.network` domain is not verified in Resend).
 
-The health endpoint does not expose SMTP status by design. Use logs and the
+The health endpoint does not expose email status by design. Use logs and the
 smoke-test email for delivery confirmation.
 
 ## Production Smoke Test
@@ -415,7 +396,7 @@ After backend and frontend are connected:
    hydrate from DB.
 7. Confirm `valuation_snapshots` are sampled around every 60 seconds, not every
    MTM tick.
-8. If SMTP is enabled, confirm an opted-in signup receives the confirmation email.
+8. If email is enabled, confirm an opted-in signup receives the confirmation email.
 
 ## Troubleshooting
 
@@ -431,10 +412,11 @@ After backend and frontend are connected:
   site was rebuilt after setting it.
 - QPU does not appear: confirm `DWAVE_API_TOKEN` is present in backend env and
   the container was recreated after editing env.
-- SMTP provider remains `noop`: confirm `SMTP_ENABLED=1` and the container was
-  recreated after editing env.
-- Email does not arrive: check Proton token validity, the startup SMTP log, and
-  backend logs for the send stack trace.
+- Email provider remains `noop`: confirm `RESEND_API_KEY` is set and the container
+  was recreated after editing env.
+- Email does not arrive: confirm the `quip.network` domain is verified in Resend,
+  check the startup `email provider: resend` log, and backend logs for the send
+  stack trace.
 
 ## Remaining Deployment Work
 

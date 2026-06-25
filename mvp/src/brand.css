@@ -1,0 +1,63 @@
+/* Quip Network brand fonts + tokens (from the quip.network media kit & live site).
+   The @font-face rules load globally; the brand type is OPTED INTO only under the
+   `.qpub` scope (public landing + team directory). Kiosk / phone / TV keep their
+   pixel-tuned Inter / Georgia / JetBrains stacks untouched. */
+
+@font-face {
+  font-family: 'ABC Favorit';
+  src: url('/fonts/ABCFavoritVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ABC Favorit Mono';
+  src: url('/fonts/ABCFavoritMonoVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ABC Gaisyr';
+  src: url('/fonts/ABCGaisyrVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ABC Gaisyr';
+  src: url('/fonts/ABCGaisyrVariableItalic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Brand tokens, scoped so they never override the other surfaces' palettes. */
+.qpub {
+  --font-heading: 'ABC Gaisyr', Georgia, 'Times New Roman', serif;
+  --font-body: 'ABC Favorit', 'Inter', system-ui, sans-serif;
+  --font-mono: 'ABC Favorit Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Official Quip accents (media kit primaries) */
+  --coral: #FF6C78;
+  --coral-mid: #FFE2DA;
+  --coral-soft: #FFEDEE;
+  --cyan: #4CE0FF;
+  --cyan-soft: #F3FEFF;
+  --green: #67E347;
+  --yellow: #FFDE53;
+  --pink: #FF92D5;
+  --lav: #A5C3D4;
+
+  /* P&L semantics kept distinct from the brand greens/reds for legibility */
+  --up: #059669;
+  --down: #e11d48;
+
+  /* Zinc neutral ramp (matches the live site + existing app) */
+  --z950: #0a0a0b; --z900: #18181b; --z800: #27272a; --z700: #3f3f46;
+  --z600: #52525b; --z500: #71717a; --z400: #a1a1aa; --z300: #d4d4d8;
+  --z200: #e4e4e7; --z100: #f4f4f5; --z50: #fafafa;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px;
+  --max: 1140px;
+}

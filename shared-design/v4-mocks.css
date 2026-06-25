@@ -4131,11 +4131,13 @@
   }
   /* Count turns amber while the basket is below the minimum (1–2 picked). */
   .kiosk-v4 .v4m-selector-count.under { color: #C2410C; }
-  /* "· min 3" requirement note appended to the step label. */
+  /* Watchlist requirement note — RED until the minimum is met, then cyan with a ✓. */
   .kiosk-v4 .v4m-selector-req {
-    font-weight: 400;
-    color: #a1a1aa;
+    font-weight: 600;
+    transition: color 0.18s ease;
   }
+  .kiosk-v4 .v4m-selector-req.need { color: #DC2626; }
+  .kiosk-v4 .v4m-selector-req.ok { color: #0891B2; }
   .kiosk-v4 .v4m-selector-actions {
     display: flex;
     gap: 8px;
@@ -4180,7 +4182,7 @@
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: #a1a1aa;
-    padding: 12px 0 6px;
+    padding: 18px 0 9px;
   }
   /* Asset tiles — 7-up grid (crypto 7/7, stocks 7/4), big touch targets for
      the iPad kiosk. Wide enough that company names spell out in full.
@@ -4450,6 +4452,9 @@
     color: white;
   }
   .kiosk-v4 .v4m-check-row.on .v4m-check-box { background: #0891B2; border-color: #0891B2; }
+  /* The ✓ fades + scales in when a box is ticked (consistent with the app's other motion). */
+  .kiosk-v4 .v4m-check-tick { opacity: 0; transform: scale(0.4); transition: opacity 0.16s ease, transform 0.16s ease; }
+  .kiosk-v4 .v4m-check-row.on .v4m-check-tick { opacity: 1; transform: scale(1); }
   .kiosk-v4 .v4m-check-label {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.82rem;
@@ -4671,7 +4676,8 @@
     justify-content: space-between;
     align-items: center;
   }
-  .kiosk-v4 .v4m-cta:hover { background: #0E7490; }
+  /* Only the ENABLED CTA reacts to hover — a disabled (incomplete) form stays grey. */
+  .kiosk-v4 .v4m-cta:not(:disabled):hover { background: #0E7490; }
   .kiosk-v4 .v4m-cta .v4m-cta-arrow { font-family: Georgia, serif; font-style: italic; font-size: 1.1rem; }
   .kiosk-v4 .v4m-cta-sub {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -4774,8 +4780,12 @@
   .kiosk-v4.app-fit .v4m-main-col { gap: 12px; }
   .kiosk-v4.app-fit .v4m-mega .v4m-mega-section { padding: 10px 14px; }
   .kiosk-v4.app-fit .v4m-selector-actions { padding: 6px 0; }
-  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 2px 0 1px; }
-  .kiosk-v4.app-fit .v4m-tile { min-height: 64px; padding: 4px 5px 6px; }
+  /* Compact-stage spacing: clearer category gap than the old 2px, but tiles shrink a touch so all
+     28 assets still fit the fixed stage at once (scroll only kicks in on a genuinely small screen). */
+  .kiosk-v4.app-fit .v4m-pick-group-label { padding: 6px 0 3px; }
+  .kiosk-v4.app-fit .v4m-pick-grid { gap: 4px; }
+  .kiosk-v4.app-fit .v4m-tile { min-height: 60px; padding: 4px 5px 5px; gap: 1px; }
+  .kiosk-v4.app-fit .v4m-tile .v4m-tile-icon { width: 20px; height: 20px; }
   .kiosk-v4.app-fit .v4m-tile .v4m-tile-name { font-size: 0.6rem; }
   .kiosk-v4.app-fit .v4m-sliders-head { margin-bottom: 6px; }
   .kiosk-v4.app-fit .v4m-sliders-row .v4m-slider-top { margin-bottom: 6px; }
@@ -4807,8 +4817,9 @@
 
   /* Email-frequency segmented toggle — revealed under the "Email me my portfolio
      results" opt-in. Aligned under the checkbox label; cyan = selected. */
-  .kiosk-v4 .v4m-freq { display: flex; gap: 6px; margin: 6px 0 0 27px; }
-  .kiosk-v4 .v4m-freq-opt { font-family: 'Inter', system-ui, sans-serif; font-size: 0.78rem; font-weight: 600; color: #52525b; background: white; border: 1px solid #d4d4d8; padding: 5px 14px; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease; }
+  /* Equal, full-width cadence buttons: no left indent, flex parent, children fill. */
+  .kiosk-v4 .v4m-freq { display: flex; gap: 6px; margin: 6px 0 0; }
+  .kiosk-v4 .v4m-freq-opt { width: 100%; box-sizing: border-box; text-align: center; font-family: 'Inter', system-ui, sans-serif; font-size: 0.78rem; font-weight: 600; color: #52525b; background: white; border: 1px solid #d4d4d8; padding: 5px 14px; cursor: pointer; transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease; }
   .kiosk-v4 .v4m-freq-opt:hover { border-color: #a1a1aa; }
   .kiosk-v4 .v4m-freq-opt.on { background: #0891B2; border-color: #0891B2; color: white; }
   .kiosk-v4.app-fit .v4m-freq { margin-top: 5px; }

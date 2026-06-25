@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+# Internal booth-surfaces directory — keep it out of search indexes.
+Disallow: /team

@@ -275,6 +275,12 @@ SIGNUP_RATE_GLOBAL_PER_HOUR: int = int(os.environ.get("SIGNUP_RATE_GLOBAL_PER_HO
 # gate, normal per-IP limiting (dev/tests).
 KIOSK_SIGNUP_KEY: str = os.environ.get("KIOSK_SIGNUP_KEY", "")
 
+# Admin dashboard gate. When set, the /admin/* endpoints require a matching
+# X-Admin-Key header (the operator dashboard reads every attendee's email and can
+# hide/disable agents). Unset → admin endpoints are disabled (403). Backend-only
+# secret; lives in /opt/qtw/backend.env, never in Netlify/browser env.
+ADMIN_API_KEY: str = os.environ.get("ADMIN_API_KEY", "")
+
 # -----------------------------------------------------------------------------
 # Solver deadlines (seconds)
 # -----------------------------------------------------------------------------
@@ -315,21 +321,17 @@ DB_REQUIRED_ENVS: frozenset[str] = frozenset({"production", "booth"})
 SOLVE_CONCURRENCY: int = int(os.environ.get("SOLVE_CONCURRENCY", 4))
 
 # -----------------------------------------------------------------------------
-# Email / Proton SMTP
+# Email (Resend)
 # -----------------------------------------------------------------------------
 
-# SMTP credentials are backend-only deployment secrets. In production they live
-# in `/opt/qtw/backend.env`, never in Netlify/browser env.
-SMTP_HOST: str = os.environ.get("SMTP_HOST", "")
-SMTP_PORT: int = int(os.environ.get("SMTP_PORT", 587))
-SMTP_USERNAME: str = os.environ.get("SMTP_USERNAME", "")
-SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
-SMTP_FROM: str = os.environ.get(
-    "SMTP_FROM",
-    f"Quip Network <{SMTP_USERNAME}>" if SMTP_USERNAME else "",
-)
-SMTP_TIMEOUT_S: float = float(os.environ.get("SMTP_TIMEOUT_S", 10.0))
-SMTP_ENABLED: bool = _env_bool("SMTP_ENABLED", False)
+# Resend transactional email over its HTTPS API (port 443) — the reliable sender
+# on the droplet (DigitalOcean blocks outbound SMTP). Backend-only deployment
+# secrets; in production they live in `/opt/qtw/backend.env`, never in the
+# Netlify/browser env. Email sends only when RESEND_API_KEY is set; EMAIL_FROM
+# must be a Resend-verified sender (e.g. "Quip Network <noreply@quip.network>").
+RESEND_API_KEY: str = os.environ.get("RESEND_API_KEY", "")
+EMAIL_FROM: str = os.environ.get("EMAIL_FROM", "")
+RESEND_TIMEOUT_S: float = float(os.environ.get("RESEND_TIMEOUT_S", 10.0))
 
 # -----------------------------------------------------------------------------
 # Market data source

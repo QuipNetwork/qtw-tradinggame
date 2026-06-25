@@ -2,6 +2,7 @@
 // Enabled through api/index.ts when VITE_API_BASE is set.
 
 import type {
+  AdminAgent,
   AgentConfig,
   AgentUpdate,
   LeaderboardEntry,
@@ -153,6 +154,23 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return request<LeaderboardEntry[]>('/leaderboard');
 }
 
+// --- Admin dashboard (operator-only; every call carries the X-Admin-Key header) ---
+export async function getAdminAgents(adminKey: string): Promise<AdminAgent[]> {
+  return request<AdminAgent[]>('/admin/agents', { headers: { 'x-admin-key': adminKey } });
+}
+
+export async function setAgentFlags(
+  adminKey: string,
+  agentId: string,
+  patch: { hidden?: boolean; disabled?: boolean },
+): Promise<AdminAgent> {
+  return request<AdminAgent>(`/admin/agents/${encodeURIComponent(agentId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+    headers: { 'x-admin-key': adminKey },
+  });
+}
+
 export async function getRoutingStats(): Promise<RoutingStats> {
   return request<RoutingStats>('/routing-stats');
 }
@@ -165,6 +183,19 @@ export async function getValuationHistory(
   return request<ValuationHistoryPoint[]>(
     `/agents/${encodeURIComponent(agentId)}/valuation-history?${params.toString()}`,
     { headers: authHeaders(agentId) },
+  );
+}
+
+// Public (token-free) P&L history for any leaderboard-shown agent — same series
+// as above, served by /leaderboard/{id}/history. The booth TV uses this to draw
+// a real spotlight sparkline; it holds no owner token for other agents.
+export async function getPublicValuationHistory(
+  agentId: string,
+  limit = 60,
+): Promise<ValuationHistoryPoint[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request<ValuationHistoryPoint[]>(
+    `/leaderboard/${encodeURIComponent(agentId)}/history?${params.toString()}`,
   );
 }
 

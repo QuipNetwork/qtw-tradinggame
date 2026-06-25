@@ -66,14 +66,17 @@ export default function RoutingStatsPanel({ stats, showRecent = false }: Props) 
                       r.vsTime != null && r.vsTime > r.solveTime
                         ? Math.round(((r.vsTime - r.solveTime) / r.vsTime) * 100)
                         : null;
-                    // The winner is genuinely faster → show the margin. Otherwise the
-                    // runner-up only lost on validity (it had a time = infeasible) or
-                    // never returned (no time = did not finish).
+                    // Backend-classified outcome so a quality+speed TIE never reads as a misleading
+                    // "X% faster": tie → both found the best portfolio at ~the same time; speed →
+                    // winner genuinely faster; quality → winner's portfolio is better (may be slower).
+                    // No runner-up time → it never returned a usable result (infeasible / DNF).
                     const line2 =
-                      faster != null ? (
-                        <>{faster}% faster than {altType} <span className="alt">({fmtSecs(r.vsTime)})</span></>
+                      r.outcome === 'tie' ? (
+                        <>Tied with {altType} <span className="alt">({fmtSecs(r.vsTime)})</span></>
+                      ) : r.outcome === 'speed' ? (
+                        <>{faster ?? 0}% faster than {altType} <span className="alt">({fmtSecs(r.vsTime)})</span></>
                       ) : r.vsTime != null ? (
-                        <>{altType} <span className="alt">infeasible</span></>
+                        <>Best portfolio <span className="alt">vs {altType}</span></>
                       ) : (
                         <>{altType} <span className="alt">did not finish</span></>
                       );

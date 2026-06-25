@@ -132,6 +132,27 @@ export type LeaderboardEntry = {
   primaryProvider: ProviderType;
 };
 
+// Admin dashboard row — every agent with operator-only fields (email) and the two
+// admin flags. Mirrors backend api/admin.py AdminAgent.
+export type AdminAgent = {
+  agentId: string;
+  name: string;
+  handle: string | null;
+  email: string | null;
+  rank: number | null;          // rank on the public board; null when hidden
+  total: number;
+  plUSD: number;
+  plPct: number;
+  jobsSolved: number;           // solve count (== retunes)
+  primaryProvider: ProviderType;
+  basketSize: number;
+  sliders: SliderValues;
+  createdAt: string;
+  lastSolvedAt: string | null;
+  hidden: boolean;
+  disabled: boolean;
+};
+
 export type ValuationHistoryPoint = {
   total: number;
   plUSD: number;
@@ -154,6 +175,8 @@ export type RecentRouting = {
   solveTime: number;            // winner seconds
   vsTime: number | null;        // runner-up seconds (null if unavailable)
   solvedAt: string;             // ISO-8601 UTC
+  // How the winner won, so a quality+speed tie reads as a tie, not a noise-level "X% faster".
+  outcome?: 'quality' | 'speed' | 'tie';
 };
 
 export type RoutingStats = {

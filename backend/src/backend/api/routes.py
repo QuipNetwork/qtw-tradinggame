@@ -27,6 +27,7 @@ from ..persistence.agents import AgentRecord, EmailAlreadyRegistered, get_agent_
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
+from ..solvers.router import classify_outcome
 from ..solvers.types import SolverFailed
 from .auth import new_agent_token, require_agent_token
 from .schemas import (
@@ -63,24 +64,23 @@ async def healthz() -> HealthResponse:
     )
 
 
-def _require_kiosk(request: Request) -> bool:
-    """Enforce the booth-kiosk gate. Returns True when the request carries a valid
-    X-Kiosk-Key (a trusted kiosk → the per-IP signup limit is skipped). When
-    KIOSK_SIGNUP_KEY is unset the gate is off and signups are untrusted (normal
-    per-IP limiting). A configured key with a missing/wrong header is rejected 403."""
+def _is_trusted_kiosk(request: Request) -> bool:
+    """Classify a sign-up as the trusted booth tablet vs. a public visitor. A valid X-Kiosk-Key
+    (matching KIOSK_SIGNUP_KEY, the booth's secret link) is trusted → unlimited sign-ups (the
+    per-IP cap is skipped). Everything else — keyless or wrong-key — is public: still ALLOWED,
+    just untrusted, so it stays capped by the per-IP limit and one-agent-per-email. The gate no
+    longer BLOCKS the public web; the secret key only LIFTS the limits for the booth tablet."""
     if not config.KIOSK_SIGNUP_KEY:
         return False
     provided = request.headers.get("x-kiosk-key", "")
-    if not secrets.compare_digest(provided, config.KIOSK_SIGNUP_KEY):
-        raise HTTPException(status_code=403, detail="sign-ups are limited to the booth kiosk")
-    return True
+    return secrets.compare_digest(provided, config.KIOSK_SIGNUP_KEY)
 
 
 @router.post("/agents", response_model=SubmitAgentResponse)
 async def create_agent(
     config_in: AgentConfig, request: Request, background_tasks: BackgroundTasks
 ) -> SubmitAgentResponse:
-    trusted = _require_kiosk(request)
+    trusted = _is_trusted_kiosk(request)
     retry_after = request.app.state.signup_limiter.check(_client_ip(request), trusted=trusted)
     if retry_after is not None:
         raise HTTPException(
@@ -115,7 +115,7 @@ def _send_signup_confirmation_email(record: AgentRecord, token: str) -> None:
     """Send the signup email with the secure agent link to anyone who gave an email.
 
     Transactional (the link is their way back to the agent), so it is not gated on
-    the result-email opt-in. SMTP failures are logged and never break signup.
+    the result-email opt-in. Email send failures are logged and never break signup.
     """
     if not record.email:
         return
@@ -182,6 +182,10 @@ _solve_semaphore = asyncio.Semaphore(config.SOLVE_CONCURRENCY)
 async def optimize(
     agent_id: str, background_tasks: BackgroundTasks, body: OptimizeRequest | None = None
 ) -> RoutingResult:
+    # Admin-disabled agents are cut off from solving — reject before the QPU race.
+    record = get_agent_store().get(agent_id)
+    if record is not None and record.disabled:
+        raise HTTPException(status_code=403, detail="agent is disabled")
     sliders = body.sliders if body is not None else None
     assets = body.assets if body is not None else None
     try:
@@ -225,6 +229,29 @@ async def leaderboard() -> list[LeaderboardEntry]:
     return build_leaderboard()
 
 
+@router.get(
+    "/leaderboard/{agent_id}/history",
+    response_model=list[ValuationHistoryPoint],
+)
+async def public_valuation_history(
+    agent_id: str,
+    limit: int = Query(default=60, ge=1, le=240),
+) -> list[ValuationHistoryPoint]:
+    """Public P&L history for a leaderboard-shown agent.
+
+    Same series the phone profile charts — the point type carries only
+    total/pl over time, no holdings or PII — so it reveals nothing beyond what
+    the public leaderboard already shows, just across time. This lets the booth
+    TV spotlight draw a REAL movement curve without holding the agent's owner
+    token. Hidden agents 404, matching their exclusion from the public board.
+    """
+    store = get_agent_store()
+    record = store.get(agent_id)
+    if record is None or record.hidden:
+        raise HTTPException(status_code=404, detail="agent not found")
+    return store.valuation_history(agent_id, limit=limit)
+
+
 @router.get("/routing-stats", response_model=RoutingStats)
 async def routing_stats() -> RoutingStats:
     store = get_job_store()
@@ -255,16 +282,36 @@ async def routing_stats() -> RoutingStats:
     recent: list[RecentRouting] = []
     for job in reversed(jobs[-RECENT_ROUTING_LIMIT:]):
         vs_time: float | None = None
+        outcome = "quality"
         snap = snapshots_by_job.get(job.id)
         if snap:
-            others = [
+            runs = snap.get("solver_results", [])
+            winner_provider = snap.get("winner_provider")
+            timed = [
                 run["solveTime"]
-                for run in snap.get("solver_results", [])
-                if run.get("provider") != snap.get("winner_provider")
-                and run.get("solveTime") is not None
+                for run in runs
+                if run.get("provider") != winner_provider and run.get("solveTime") is not None
             ]
-            if others:
-                vs_time = min(others)
+            if timed:
+                vs_time = min(timed)
+            # Classify HOW the winner won — same logic as the live race — so the TV reports a genuine
+            # tie instead of a misleading "X% faster" on a quality+speed tie.
+            win = next((run for run in runs if run.get("provider") == winner_provider), None)
+            scored = [
+                run
+                for run in runs
+                if run.get("provider") != winner_provider
+                and run.get("objective") is not None
+                and run.get("feasible", True)  # only a FEASIBLE runner-up is a real head-to-head
+            ]
+            runner = min(scored, key=lambda run: run["objective"]) if scored else None
+            if win is not None:
+                outcome = classify_outcome(
+                    win.get("objective"),
+                    win.get("solveTime"),
+                    runner.get("objective") if runner else None,
+                    runner.get("solveTime") if runner else None,
+                )
         recent.append(
             RecentRouting(
                 provider=job.provider,
@@ -272,6 +319,7 @@ async def routing_stats() -> RoutingStats:
                 solve_time=job.solve_time_s,
                 vs_time=vs_time,
                 solved_at=job.solved_at,
+                outcome=outcome,
             )
         )
 

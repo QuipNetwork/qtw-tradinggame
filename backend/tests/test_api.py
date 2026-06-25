@@ -352,6 +352,31 @@ def test_routing_stats_counts_recorded_winning_jobs():
         assert body["recent"][0]["vsTime"] == 0.12
 
 
+def test_routing_stats_recent_reports_tie_not_false_speed_win():
+    # The TV bug: SA and D-Wave both ~0.10s with the SAME objective (quality tie), SA marginally
+    # faster → the recent feed must report a TIE, not "3% faster than QPU" (sub-noise timing).
+    jobs = get_job_store()
+    job = jobs.record(
+        "a1",
+        ProviderProvenance(
+            provider="sa", provider_role="CPU", q_hash="c" * 64,
+            deadline_s=3.0, solve_time_s=0.103, feasible=True,
+        ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id, agent_id="a1", sliders=_SLIDERS, assets=_BASKET,
+        portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}], holdings_units={"BTC": 1.0},
+        solver_results=[
+            {"provider": "sa", "providerRole": "CPU", "solveTime": 0.103, "objective": 0.00009},
+            {"provider": "dwave", "providerRole": "QPU", "solveTime": 0.106, "objective": 0.00009},
+        ],
+        winner_provider="sa",
+    )
+    with TestClient(create_app()) as client:
+        body = client.get("/routing-stats").json()
+        assert body["recent"][0]["outcome"] == "tie"
+
+
 def test_valuation_history_returns_sampled_points_and_current_tail():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
@@ -378,6 +403,35 @@ def test_valuation_history_returns_sampled_points_and_current_tail():
         body = response.json()
         assert [point["total"] for point in body] == [10_100.0, 10_125.0]
         assert body[-1]["plPct"] == 1.25
+
+
+def test_public_valuation_history_is_token_free_and_excludes_hidden():
+    # The booth TV draws the spotlight sparkline from this PUBLIC endpoint — it
+    # holds no owner token for other agents. Same series as the token-gated route,
+    # carrying only total/pl over time (no holdings/PII).
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        store = get_agent_store()
+        store.record_valuation_snapshot(
+            agent_id,
+            AgentUpdate(plUSD=100.0, plPct=1.0, total=10_100.0, asOf="2026-06-17T12:00:00Z", holdings=[]),
+        )
+        store.set_valuation(
+            agent_id,
+            AgentUpdate(plUSD=125.0, plPct=1.25, total=10_125.0, asOf="2026-06-17T12:01:00Z", holdings=[]),
+        )
+
+        # No Authorization header → still served (unlike /agents/{id}/valuation-history).
+        client.headers.pop("Authorization", None)
+        response = client.get(f"/leaderboard/{agent_id}/history")
+        assert response.status_code == 200
+        assert [point["total"] for point in response.json()] == [10_100.0, 10_125.0]
+
+        # Admin-hidden agents 404 here too (consistent with the public leaderboard).
+        store.set_flags(agent_id, hidden=True, disabled=False)
+        assert client.get(f"/leaderboard/{agent_id}/history").status_code == 404
+        # Unknown agent → 404.
+        assert client.get("/leaderboard/does-not-exist/history").status_code == 404
 
 
 @requires_gurobi
@@ -475,14 +529,42 @@ def test_create_agent_rejects_duplicate_email():
         assert "already exists" in resp.json()["detail"]
 
 
-def test_create_agent_requires_kiosk_key_when_configured(monkeypatch):
+def test_public_signups_allowed_when_gate_configured(monkeypatch):
+    # The kiosk gate no longer BLOCKS public sign-ups. A configured KIOSK_SIGNUP_KEY only marks
+    # the booth tablet (valid X-Kiosk-Key) as trusted/unlimited; keyless and wrong-key requests
+    # are public — still allowed (capped by the per-IP limit and one-agent-per-email), not 403.
     monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
     with TestClient(create_app()) as client:
-        body = {"name": "Gated", "email": "gate@example.com", "sliders": _SLIDERS, "assets": _BASKET}
-        assert client.post("/agents", json=body).status_code == 403  # no key
-        assert client.post("/agents", json=body, headers={"X-Kiosk-Key": "wrong"}).status_code == 403
-        ok = client.post("/agents", json=body, headers={"X-Kiosk-Key": "s3cret"})
-        assert ok.status_code == 200
+        def body(email):
+            return {"name": "Visitor", "email": email, "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=body("a@example.com")).status_code == 200  # keyless public
+        assert client.post(  # wrong key → still public, allowed
+            "/agents", json=body("b@example.com"), headers={"X-Kiosk-Key": "wrong"}
+        ).status_code == 200
+        assert client.post(  # valid key → trusted booth tablet
+            "/agents", json=body("c@example.com"), headers={"X-Kiosk-Key": "s3cret"}
+        ).status_code == 200
+
+
+def test_public_signups_stay_per_ip_limited(monkeypatch):
+    # Only the trusted kiosk key lifts the per-IP cap; public (keyless) sign-ups remain limited.
+    monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
+    monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 1)
+    with TestClient(create_app()) as client:
+        body = {"name": "Visitor", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json={**body, "email": "p1@example.com"}).status_code == 200
+        assert client.post("/agents", json={**body, "email": "p2@example.com"}).status_code == 429
+
+
+def test_create_agent_rejects_profane_name():
+    # The display name lands on the public booth TV / leaderboard — reject profanity (incl. the
+    # leetspeak "sh1t") with a 422 so a slur can never reach the big screen.
+    with TestClient(create_app()) as client:
+        body = {"name": "sh1t", "email": "p@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=body).status_code == 422
+        # A clean name still goes through.
+        clean = {"name": "Quantum Cat", "email": "q@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=clean).status_code == 200
 
 
 def test_kiosk_signups_skip_per_ip_limit(monkeypatch):

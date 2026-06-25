@@ -15,6 +15,7 @@ dependencies = [
     "gurobipy>=11.0",
     "dwave-neal>=0.6",
     "dwave-system>=1.20",
+    "better-profanity>=0.7",
 ]
 
 [project.scripts]

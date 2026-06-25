@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { submitAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, IS_MOCK } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
 import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount, riskLevelPct } from '../../utils/strategy';
+import { isProfane } from '../../utils/profanity';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -83,7 +84,9 @@ export default function KioskSignUp() {
 
   const previewName = (name.trim() || 'Player');
   const previewHandle = handleFromName(previewName);
-  const nameValid = name.trim().length > 0;
+  // The name shows on the public TV/leaderboard, so block profanity (mirrors the backend 422).
+  const nameProfane = isProfane(name);
+  const nameValid = name.trim().length > 0 && !nameProfane;
   const emailValid = EMAIL_RE.test(email.trim());
 
   function updateSlider(i: number, v: number) {
@@ -164,6 +167,9 @@ export default function KioskSignUp() {
       try {
         localStorage.setItem('quip:lastAgentId', agentId);
         sessionStorage.setItem('quip:qrUrl:' + agentId, qrUrl);
+        // Persist the tokenised resume link so the public landing can send a
+        // returning visitor straight back to their agent across sessions.
+        localStorage.setItem('quip:resumeUrl', qrUrl);
       } catch {
         // Locked-down kiosk browsers may block storage; token.ts keeps an in-memory token.
       }
@@ -207,6 +213,11 @@ export default function KioskSignUp() {
             placeholder="Your name"
             onChange={e => setName(e.target.value)}
           />
+          {nameProfane && (
+            <div className="v4m-field-hint" style={{ color: '#DC2626' }}>
+              Please choose a different display name.
+            </div>
+          )}
         </div>
         <div className="v4m-field">
           <label htmlFor="kiosk-email">Email (required)</label>
@@ -228,7 +239,7 @@ export default function KioskSignUp() {
           aria-pressed={updatesOptIn}
           onClick={() => setUpdatesOptIn(v => !v)}
         >
-          <span className="v4m-check-box" aria-hidden="true">{updatesOptIn ? '✓' : ''}</span>
+          <span className="v4m-check-box" aria-hidden="true"><span className="v4m-check-tick">✓</span></span>
           <span className="v4m-check-label">Email me my portfolio results</span>
         </button>
         {updatesOptIn && (
@@ -257,7 +268,7 @@ export default function KioskSignUp() {
                 aria-pressed={reachOut.has(o.value)}
                 onClick={() => toggleReachOut(o.value)}
               >
-                <span className="v4m-check-box" aria-hidden="true">{reachOut.has(o.value) ? '✓' : ''}</span>
+                <span className="v4m-check-box" aria-hidden="true"><span className="v4m-check-tick">✓</span></span>
                 <span className="v4m-check-label">{o.label}</span>
               </button>
             ))}
@@ -292,7 +303,7 @@ export default function KioskSignUp() {
           <div className="v4m-mega v4m-selector-mega" aria-label="Asset selector">
             <div className="v4m-mega-section v4m-selector-section">
               <div className="v4m-selector-head">
-                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">1</span>Pick your watchlist <span className="v4m-selector-req">· min {MIN_ASSETS}</span></span>
+                <span className="v4m-section-eyebrow eyebrow-step" role="heading" aria-level={2}><span className="v4m-step-chip" aria-hidden="true">1</span>Pick your watchlist <span className={`v4m-selector-req${selected.size >= MIN_ASSETS ? ' ok' : ' need'}`}>{selected.size >= MIN_ASSETS ? `· ✓ ${selected.size} selected` : `· please pick at least ${MIN_ASSETS}`}</span></span>
                 <span className={`v4m-selector-count${selected.size > 0 && selected.size < MIN_ASSETS ? ' under' : ''}`}>{selected.size}/{ASSETS.length}</span>
               </div>
               <div className="v4m-selector-actions">
@@ -416,7 +427,9 @@ export default function KioskSignUp() {
             ? error
             : selected.size < MIN_ASSETS
               ? `Select at least ${MIN_ASSETS} assets to launch`
-              : !nameValid
+              : nameProfane
+                ? 'Please choose a different display name'
+                : !nameValid
                 ? 'Enter a player name to launch'
                 : !emailValid
                   ? 'Enter your email to launch'
