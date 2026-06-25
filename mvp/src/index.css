@@ -74,6 +74,21 @@ html.kiosk-locked .kiosk-stage textarea {
 }
 
 @media (max-width: 480px) {
+  /* Touch page-lock — PhoneProfile adds .phone-locked. Stop iOS Safari rubber-banding the
+     page behind the fixed phone view; the active view scrolls internally instead. (No text
+     inputs on this route — only range sliders — so a fixed body won't trap a keyboard.) */
+  html.phone-locked,
+  html.phone-locked body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  html.phone-locked body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    touch-action: manipulation;        /* kill double-tap-zoom + the 300ms tap delay */
+  }
   .phone-live-root {
     padding: 0;
     align-items: stretch;
@@ -254,6 +269,8 @@ html.kiosk-locked .kiosk-stage textarea {
 .phone-v4 .v4m-basket-scroll {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* legacy Edge */
+  overscroll-behavior: contain;        /* inner scroll doesn't chain to the locked page */
+  -webkit-overflow-scrolling: touch;   /* momentum scroll on iOS */
 }
 .phone-v4 .v4m-phone-view::-webkit-scrollbar,
 .phone-v4 .v4m-portfolio-scroll::-webkit-scrollbar,
