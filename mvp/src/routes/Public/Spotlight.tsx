@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { getAgent, assetColor, ASSET_BY_TICKER, type AssetTicker, type LeaderboardEntry } from '../../api';
+import { assetColor, ASSET_BY_TICKER, type AssetTicker, type LeaderboardEntry } from '../../api';
 import { fmtUsd } from '../../utils/format';
 
 // Top-10 spotlight — the #1 agent as a trophy card. P&L / total / holdings come
@@ -14,19 +13,12 @@ function deriveAllocation(assets: AssetTicker[]) {
 }
 
 export default function Spotlight({ agent }: { agent: LeaderboardEntry | null }) {
-  const [assets, setAssets] = useState<AssetTicker[] | null>(null);
-
-  useEffect(() => {
-    if (!agent) return;
-    let alive = true;
-    getAgent(agent.agentId).then(cfg => { if (alive) setAssets(cfg?.assets ?? []); }).catch(() => {});
-    return () => { alive = false; };
-  }, [agent]);
-
   if (!agent) return null;
   const pos = agent.plPct >= 0;
   const sign = agent.plPct > 0 ? '+' : agent.plPct < 0 ? '−' : '';
-  const alloc = assets && assets.length ? deriveAllocation(assets) : [];
+  // Assets come from the public leaderboard entry — never a token-gated /agents/{id}
+  // fetch (the public page has no owner token, so that would 401 in a loop).
+  const alloc = agent.assets && agent.assets.length ? deriveAllocation(agent.assets) : [];
 
   return (
     <section className="qpub-section qpub-spot" data-reveal>

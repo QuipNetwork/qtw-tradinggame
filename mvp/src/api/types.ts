@@ -130,6 +130,7 @@ export type LeaderboardEntry = {
   plPct: number;                // +1.42
   jobsSolved: number;
   primaryProvider: ProviderType;
+  assets?: AssetTicker[] | null;   // top agent's basket, for the public spotlight allocation (optional)
 };
 
 // Admin dashboard row — every agent with operator-only fields (email) and the two
