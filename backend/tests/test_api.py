@@ -556,6 +556,17 @@ def test_public_signups_stay_per_ip_limited(monkeypatch):
         assert client.post("/agents", json={**body, "email": "p2@example.com"}).status_code == 429
 
 
+def test_create_agent_rejects_profane_name():
+    # The display name lands on the public booth TV / leaderboard — reject profanity (incl. the
+    # leetspeak "sh1t") with a 422 so a slur can never reach the big screen.
+    with TestClient(create_app()) as client:
+        body = {"name": "sh1t", "email": "p@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=body).status_code == 422
+        # A clean name still goes through.
+        clean = {"name": "Quantum Cat", "email": "q@example.com", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=clean).status_code == 200
+
+
 def test_kiosk_signups_skip_per_ip_limit(monkeypatch):
     monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
     monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 1)

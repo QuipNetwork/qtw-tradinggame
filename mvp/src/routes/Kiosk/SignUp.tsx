@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { submitAgent, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, IS_MOCK } from '../../api';
 import type { SliderValues, AssetTicker, AssetInfo } from '../../api';
 import { maxPositionCapPct, labelFor, holdCountDefault, holdCountMax, clampHoldCount, riskLevelPct } from '../../utils/strategy';
+import { isProfane } from '../../utils/profanity';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -83,7 +84,9 @@ export default function KioskSignUp() {
 
   const previewName = (name.trim() || 'Player');
   const previewHandle = handleFromName(previewName);
-  const nameValid = name.trim().length > 0;
+  // The name shows on the public TV/leaderboard, so block profanity (mirrors the backend 422).
+  const nameProfane = isProfane(name);
+  const nameValid = name.trim().length > 0 && !nameProfane;
   const emailValid = EMAIL_RE.test(email.trim());
 
   function updateSlider(i: number, v: number) {
@@ -210,6 +213,11 @@ export default function KioskSignUp() {
             placeholder="Your name"
             onChange={e => setName(e.target.value)}
           />
+          {nameProfane && (
+            <div className="v4m-field-hint" style={{ color: '#DC2626' }}>
+              Please choose a different display name.
+            </div>
+          )}
         </div>
         <div className="v4m-field">
           <label htmlFor="kiosk-email">Email (required)</label>
@@ -419,7 +427,9 @@ export default function KioskSignUp() {
             ? error
             : selected.size < MIN_ASSETS
               ? `Select at least ${MIN_ASSETS} assets to launch`
-              : !nameValid
+              : nameProfane
+                ? 'Please choose a different display name'
+                : !nameValid
                 ? 'Enter a player name to launch'
                 : !emailValid
                   ? 'Enter your email to launch'
