@@ -64,24 +64,23 @@ async def healthz() -> HealthResponse:
     )
 
 
-def _require_kiosk(request: Request) -> bool:
-    """Enforce the booth-kiosk gate. Returns True when the request carries a valid
-    X-Kiosk-Key (a trusted kiosk → the per-IP signup limit is skipped). When
-    KIOSK_SIGNUP_KEY is unset the gate is off and signups are untrusted (normal
-    per-IP limiting). A configured key with a missing/wrong header is rejected 403."""
+def _is_trusted_kiosk(request: Request) -> bool:
+    """Classify a sign-up as the trusted booth tablet vs. a public visitor. A valid X-Kiosk-Key
+    (matching KIOSK_SIGNUP_KEY, the booth's secret link) is trusted → unlimited sign-ups (the
+    per-IP cap is skipped). Everything else — keyless or wrong-key — is public: still ALLOWED,
+    just untrusted, so it stays capped by the per-IP limit and one-agent-per-email. The gate no
+    longer BLOCKS the public web; the secret key only LIFTS the limits for the booth tablet."""
     if not config.KIOSK_SIGNUP_KEY:
         return False
     provided = request.headers.get("x-kiosk-key", "")
-    if not secrets.compare_digest(provided, config.KIOSK_SIGNUP_KEY):
-        raise HTTPException(status_code=403, detail="sign-ups are limited to the booth kiosk")
-    return True
+    return secrets.compare_digest(provided, config.KIOSK_SIGNUP_KEY)
 
 
 @router.post("/agents", response_model=SubmitAgentResponse)
 async def create_agent(
     config_in: AgentConfig, request: Request, background_tasks: BackgroundTasks
 ) -> SubmitAgentResponse:
-    trusted = _require_kiosk(request)
+    trusted = _is_trusted_kiosk(request)
     retry_after = request.app.state.signup_limiter.check(_client_ip(request), trusted=trusted)
     if retry_after is not None:
         raise HTTPException(

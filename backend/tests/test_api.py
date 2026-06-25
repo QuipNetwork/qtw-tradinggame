@@ -529,14 +529,31 @@ def test_create_agent_rejects_duplicate_email():
         assert "already exists" in resp.json()["detail"]
 
 
-def test_create_agent_requires_kiosk_key_when_configured(monkeypatch):
+def test_public_signups_allowed_when_gate_configured(monkeypatch):
+    # The kiosk gate no longer BLOCKS public sign-ups. A configured KIOSK_SIGNUP_KEY only marks
+    # the booth tablet (valid X-Kiosk-Key) as trusted/unlimited; keyless and wrong-key requests
+    # are public — still allowed (capped by the per-IP limit and one-agent-per-email), not 403.
     monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
     with TestClient(create_app()) as client:
-        body = {"name": "Gated", "email": "gate@example.com", "sliders": _SLIDERS, "assets": _BASKET}
-        assert client.post("/agents", json=body).status_code == 403  # no key
-        assert client.post("/agents", json=body, headers={"X-Kiosk-Key": "wrong"}).status_code == 403
-        ok = client.post("/agents", json=body, headers={"X-Kiosk-Key": "s3cret"})
-        assert ok.status_code == 200
+        def body(email):
+            return {"name": "Visitor", "email": email, "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json=body("a@example.com")).status_code == 200  # keyless public
+        assert client.post(  # wrong key → still public, allowed
+            "/agents", json=body("b@example.com"), headers={"X-Kiosk-Key": "wrong"}
+        ).status_code == 200
+        assert client.post(  # valid key → trusted booth tablet
+            "/agents", json=body("c@example.com"), headers={"X-Kiosk-Key": "s3cret"}
+        ).status_code == 200
+
+
+def test_public_signups_stay_per_ip_limited(monkeypatch):
+    # Only the trusted kiosk key lifts the per-IP cap; public (keyless) sign-ups remain limited.
+    monkeypatch.setattr(config, "KIOSK_SIGNUP_KEY", "s3cret")
+    monkeypatch.setattr(config, "SIGNUP_RATE_PER_IP", 1)
+    with TestClient(create_app()) as client:
+        body = {"name": "Visitor", "sliders": _SLIDERS, "assets": _BASKET}
+        assert client.post("/agents", json={**body, "email": "p1@example.com"}).status_code == 200
+        assert client.post("/agents", json={**body, "email": "p2@example.com"}).status_code == 429
 
 
 def test_kiosk_signups_skip_per_ip_limit(monkeypatch):

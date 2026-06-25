@@ -13,8 +13,12 @@ import TickValue from '../../components/TickValue';
 import { WHOLE_USD, fmtUsd } from '../../utils/format';
 import KioskStage from './Stage';
 import ResetControl from './ResetControl';
+import { kioskKey } from '../../api/kiosk';
 
 const BANKROLL = 10000;
+// Booth tablet only: how long a completed agent stays on screen before the kiosk
+// auto-returns to sign-up for the next visitor.
+const KIOSK_CYCLE_MS = 12_000;
 
 export default function KioskWelcome() {
   const [params] = useSearchParams();
@@ -100,6 +104,18 @@ export default function KioskWelcome() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  // Kiosk auto-cycle: on a booth tablet (opened via the secret ?k= link) return to the
+  // sign-up after the visitor has had ~12s with their result, so the tablet is ready for the
+  // next person without an attendant tap. Public (non-kiosk) devices are left alone — a
+  // returning player keeps their completion screen, and the per-browser cap governs repeat
+  // sign-ups there. Waits out the solve (loadState 'loading', up to ~10s on a QPU cold start)
+  // so the 12s always covers the visible result, not the spinner.
+  useEffect(() => {
+    if (loadState === 'loading' || !kioskKey()) return;
+    const timer = window.setTimeout(() => navigate('/kiosk', { replace: true }), KIOSK_CYCLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [loadState, navigate]);
 
   if (!agentId) return <Navigate to="/kiosk" replace />;
   if (loadState === 'notfound') {
