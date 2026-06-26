@@ -336,6 +336,11 @@ RESEND_API_KEY: str = os.environ.get("RESEND_API_KEY", "")
 EMAIL_FROM: str = os.environ.get("EMAIL_FROM", "")
 RESEND_TIMEOUT_S: float = float(os.environ.get("RESEND_TIMEOUT_S", 10.0))
 
+# Kill-switch for the throttled per-rebalance result emails (the opt-in cadence). Set
+# RESULT_EMAILS_ENABLED=0 to stop them (e.g. at booth wind-down) while still allowing the
+# transactional signup email and the one-shot send-off (see notifications/seeoff.py).
+RESULT_EMAILS_ENABLED: bool = _env_bool("RESULT_EMAILS_ENABLED", default=True)
+
 # -----------------------------------------------------------------------------
 # Market data source
 # -----------------------------------------------------------------------------
