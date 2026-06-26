@@ -182,14 +182,14 @@ def render_seeoff_email(insights: SeeoffInsights) -> PortfolioEmail:
     )
     text = (
         f"Hi {display_name},\n\n"
-        "Thanks for racing a portfolio on a real quantum computer at Quantum.Tech World. "
+        "Thanks for optimizing a portfolio on a real quantum computer at Quantum.Tech World. "
         "Here's how your agent finished:\n\n"
         f"  Final P&L:     {sign}${abs(pl):,.0f} ({sign}{abs(pct):.2f}%)\n"
         f"  Leaderboard:   #{insights.rank} of {insights.total_agents} — top {insights.top_percent}%\n"
         f"  Peak:          +{insights.peak_pct:.2f}% (low {insights.trough_pct:+.2f}%)\n"
         f"  Optimizations: {insights.jobs_solved}, {insights.qpu_win_pct}% won by the quantum computer\n\n"
-        "Thanks for playing — see you in the quantum future.\n\n"
-        "— the Quip Network team · quip.network @ Postquant Labs"
+        "We hope you had fun playing and see you again at a future event. If you have any feedback, please let us know!\n\n"
+        "— Quip Network"
     )
     row = (
         '<tr><td style="color:#71717B;padding-right:18px;white-space:nowrap">{k}</td>'
@@ -197,7 +197,7 @@ def render_seeoff_email(insights: SeeoffInsights) -> PortfolioEmail:
     )
     inner = (
         f'<p style="margin:0 0 16px">Hi {html_name},</p>'
-        '<p style="margin:0 0 14px">Thanks for racing a portfolio on a real quantum computer at '
+        '<p style="margin:0 0 14px">Thanks for optimizing a portfolio on a real quantum computer at '
         "<strong>Quantum.Tech World</strong>. Here's how your agent finished:</p>"
         '<table role="presentation" cellpadding="0" cellspacing="0" '
         f'style="font-family:{_MONO_FONT};font-size:15px;line-height:1.9">'
@@ -222,10 +222,10 @@ def render_seeoff_email(insights: SeeoffInsights) -> PortfolioEmail:
             "quantum computer</strong>",
         )
         + "</table>"
-        '<p style="margin:18px 0 0">Thanks for playing — see you in the quantum future.</p>'
+        '<p style="margin:18px 0 0">We hope you had fun playing and see you again at a future '
+        "event. If you have any feedback, please let us know!</p>"
         f'<p style="margin:26px 0 0;color:#A9A9A9;font-size:13px;font-family:{_MONO_FONT}">'
-        '— the Quip Network team · <a href="https://quip.network" style="color:#A9A9A9">'
-        "quip.network</a> @ Postquant Labs</p>"
+        "— Quip Network</p>"
     )
     return PortfolioEmail(subject=subject, html=_branded_html(inner), text=text)
 

@@ -90,9 +90,9 @@ def test_recipients_and_render_end_to_end():
     assert "Hilbert Spaceship" in email.text
     assert "+14.18%" in email.text
     assert "75% won by the quantum computer" in email.text
-    assert "see you in the quantum future" in email.text
-    assert "Postquant Labs" in email.text
-    assert "https://quip.network" in email.html  # linked in the signature
+    assert "had fun playing" in email.text
+    assert "any feedback" in email.text
+    assert "— Quip Network" in email.text
     assert "top 50%" in email.subject  # rank 1 of 2
 
 
