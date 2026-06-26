@@ -14,9 +14,12 @@ import logging
 import re
 from dataclasses import dataclass
 from html import escape
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import httpx
+
+if TYPE_CHECKING:
+    from .seeoff import SeeoffInsights
 
 logger = logging.getLogger(__name__)
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]+")
@@ -158,6 +161,69 @@ def render_portfolio_email(
         f'<span style="color:{color};font-family:{_MONO_FONT}">({sign}${pl_abs:,.0f} · '
         f"{sign}{abs(pl_pct):.2f}%)</span>.</p>"
         '<p style="margin:16px 0 0">Track it live and retune anytime from your profile.</p>'
+        f'<p style="margin:26px 0 0;color:#A9A9A9;font-size:13px;font-family:{_MONO_FONT}">'
+        "— Quip Network</p>"
+    )
+    return PortfolioEmail(subject=subject, html=_branded_html(inner), text=text)
+
+
+def render_seeoff_email(insights: SeeoffInsights) -> PortfolioEmail:
+    """Personalised booth send-off: final P&L, leaderboard percentile, peak, solves, QPU win-rate."""
+    display_name = _clean_display(insights.name) or "there"
+    html_name = escape(display_name)
+    pl = insights.final_pl_usd
+    pct = insights.final_pl_pct
+    sign = "+" if pl >= 0 else "−"
+    color = "#0A832E" if pl >= 0 else "#FF6C78"
+    subject = _safe_header(
+        f"{display_name}: your quantum agent finished top {insights.top_percent}% "
+        f"({sign}{abs(pct):.2f}%)",
+        "subject",
+    )
+    text = (
+        f"Hi {display_name},\n\n"
+        "Thanks for optimizing a portfolio on a real quantum computer at Quantum.Tech World. "
+        "Here's how your agent finished:\n\n"
+        f"  Final P&L:     {sign}${abs(pl):,.0f} ({sign}{abs(pct):.2f}%)\n"
+        f"  Leaderboard:   #{insights.rank} of {insights.total_agents} — top {insights.top_percent}%\n"
+        f"  Peak:          +{insights.peak_pct:.2f}% (low {insights.trough_pct:+.2f}%)\n"
+        f"  Optimizations: {insights.jobs_solved}, {insights.qpu_win_pct}% won by the quantum computer\n\n"
+        "We hope you had fun playing and see you again at a future event. If you have any feedback, please let us know!\n\n"
+        "— Quip Network"
+    )
+    row = (
+        '<tr><td style="color:#71717B;padding-right:18px;white-space:nowrap">{k}</td>'
+        '<td>{v}</td></tr>'
+    )
+    inner = (
+        f'<p style="margin:0 0 16px">Hi {html_name},</p>'
+        '<p style="margin:0 0 14px">Thanks for optimizing a portfolio on a real quantum computer at '
+        "<strong>Quantum.Tech World</strong>. Here's how your agent finished:</p>"
+        '<table role="presentation" cellpadding="0" cellspacing="0" '
+        f'style="font-family:{_MONO_FONT};font-size:15px;line-height:1.9">'
+        + row.format(
+            k="Final P&amp;L",
+            v=f'<span style="color:{color};font-weight:600">{sign}${abs(pl):,.0f} · '
+            f"{sign}{abs(pct):.2f}%</span>",
+        )
+        + row.format(
+            k="Leaderboard",
+            v=f"#{insights.rank} of {insights.total_agents} — "
+            f"<strong>top {insights.top_percent}%</strong>",
+        )
+        + row.format(
+            k="Peak",
+            v=f'+{insights.peak_pct:.2f}% <span style="color:#A1A1AA">'
+            f"(low {insights.trough_pct:+.2f}%)</span>",
+        )
+        + row.format(
+            k="Optimizations",
+            v=f"{insights.jobs_solved}, <strong>{insights.qpu_win_pct}% won by the "
+            "quantum computer</strong>",
+        )
+        + "</table>"
+        '<p style="margin:18px 0 0">We hope you had fun playing and see you again at a future '
+        "event. If you have any feedback, please let us know!</p>"
         f'<p style="margin:26px 0 0;color:#A9A9A9;font-size:13px;font-family:{_MONO_FONT}">'
         "— Quip Network</p>"
     )

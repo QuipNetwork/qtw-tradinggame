@@ -338,6 +338,36 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--assets", default=None, help="comma-separated basket, e.g. BTC,ETH,IONQ")
 
 
+def cmd_seeoff(args: argparse.Namespace) -> None:
+    from .notifications.email import get_email_provider, render_seeoff_email
+    from .notifications.seeoff import seeoff_recipients, send_seeoff
+
+    store = get_agent_store()
+    recipients = seeoff_recipients(store)
+    if args.limit is not None:
+        recipients = recipients[: args.limit]
+    provider = type(get_email_provider()).__name__
+    print(f"provider={provider}  opted-in recipients={len(recipients)}")
+    for r in recipients:
+        i = r.insights
+        print(
+            f"  {i.name[:22]:22}  {r.email[:30]:30}  {i.final_pl_pct:+6.2f}%  "
+            f"#{i.rank}/{i.total_agents} top{i.top_percent}%  peak{i.peak_pct:+.1f}%  "
+            f"solves={i.jobs_solved}  qpu{i.qpu_win_pct}%"
+        )
+    if recipients and args.show_email:
+        sample = render_seeoff_email(recipients[0].insights)
+        print(f"\n--- sample email ---\nSubject: {sample.subject}\n\n{sample.text}\n")
+    if args.send:
+        summary = send_seeoff(store, send=True, limit=args.limit)
+        print(
+            f"\nSENT: sent={summary.sent} already_sent={summary.already_sent} "
+            f"failed={summary.failed} (state file: seeoff_sent.json)"
+        )
+    else:
+        print("\nDRY RUN — nothing sent. Re-run with --send to deliver.")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="backend.cli", description="QTW backend test CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -359,6 +389,14 @@ def main(argv: list[str] | None = None) -> None:
     )
     _add_common_args(p_verify)
     p_verify.set_defaults(func=cmd_verify_dwave)
+
+    p_seeoff = sub.add_parser(
+        "seeoff", help="preview/send the one-shot booth send-off email to opted-in agents"
+    )
+    p_seeoff.add_argument("--send", action="store_true", help="actually send (default: dry-run)")
+    p_seeoff.add_argument("--limit", type=int, default=None, help="cap to N recipients (testing)")
+    p_seeoff.add_argument("--show-email", action="store_true", help="print a sample rendered email")
+    p_seeoff.set_defaults(func=cmd_seeoff)
 
     args = parser.parse_args(argv)
     try:

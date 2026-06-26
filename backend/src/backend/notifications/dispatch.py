@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
+from .. import config
 from ..persistence.agents import AgentRecord, AgentStore
 from .email import send_portfolio_update
 
@@ -39,6 +40,8 @@ def _email_due(record: AgentRecord, now: datetime) -> bool:
 
 def maybe_send_update_email(record: AgentRecord, *, now: datetime, store: AgentStore) -> None:
     """Send a throttled portfolio-result email after a solve; never raise."""
+    if not config.RESULT_EMAILS_ENABLED:
+        return
     if not record.email or record.updates_opt_in is not True:
         return
     if not _email_due(record, now):
