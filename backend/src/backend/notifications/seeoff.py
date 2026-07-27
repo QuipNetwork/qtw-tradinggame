@@ -17,7 +17,6 @@ from pathlib import Path
 
 from ..persistence.agents import AgentStore, get_agent_store
 from ..persistence.jobs import JobStore, get_job_store
-from ..persistence.leaderboard import build_leaderboard
 from .email import get_email_provider, render_seeoff_email
 
 logger = logging.getLogger(__name__)
@@ -55,7 +54,7 @@ def compute_seeoff_insights(
     (incl. the final mark, so a flat/empty history still yields sane peak == trough), and the
     share of the agent's solves the quantum computer won."""
     pcts = list(history_pcts) + [final_pl_pct]
-    top_percent = max(1, math.ceil(rank / total_agents * 100)) if total_agents > 0 else 100
+    top_percent = min(100, max(1, math.ceil(rank / total_agents * 100))) if total_agents > 0 else 100
     qpu_win_pct = round(qpu_wins / total_solves * 100) if total_solves > 0 else 0
     return SeeoffInsights(
         name=name,
@@ -81,10 +80,10 @@ class Recipient:
 def seeoff_recipients(
     store: AgentStore | None = None, jobs: JobStore | None = None
 ) -> list[Recipient]:
-    """Every opted-in agent that has an email, each with computed insights. Rank/percentile come
-    from the same (non-hidden) leaderboard the booth showed; an agent absent from it (hidden) is
-    ranked just past last so it still gets an honest, if humble, percentile. The QPU win-rate is
-    tallied from each agent's winning solves in the job log."""
+    """Every opted-in agent that has an email, each with computed insights. Rank/percentile rank
+    the agent by its true total against ALL agents (including admin-hidden ones — they still
+    competed and deserve an honest standing, e.g. a hidden agent that placed #3 overall). The QPU
+    win-rate is tallied from each agent's winning solves in the job log."""
     store = store or get_agent_store()
     jobs = jobs or get_job_store()
     qpu_wins: dict[str, int] = {}
@@ -93,11 +92,11 @@ def seeoff_recipients(
         total_solves[job.agent_id] = total_solves.get(job.agent_id, 0) + 1
         if job.provider_role == "QPU":
             qpu_wins[job.agent_id] = qpu_wins.get(job.agent_id, 0) + 1
-    board = build_leaderboard(store)
-    total = len(board)
-    rank_by_id = {entry.agent_id: entry.rank for entry in board}
+    ranked = sorted(store.all(), key=lambda r: (-r.total, r.id))
+    total = len(ranked)
+    rank_by_id = {record.id: index + 1 for index, record in enumerate(ranked)}
     out: list[Recipient] = []
-    for record in store.all():
+    for record in ranked:
         if record.updates_opt_in is not True or not record.email:
             continue
         history = store.valuation_history(record.id, limit=_HISTORY_LIMIT)

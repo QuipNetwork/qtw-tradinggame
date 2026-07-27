@@ -34,6 +34,7 @@ def test_top_percent_rounds_up_and_floors_at_1():
     assert top(1, 60) == 2
     assert top(1, 200) == 1
     assert top(60, 60) == 100
+    assert top(107, 106) == 100  # rank past the pool (defensive) → capped at 100, never >100
 
 
 def test_peak_trough_default_to_final_when_no_history():
