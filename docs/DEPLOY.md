@@ -1,5 +1,29 @@
 # QTW Backend Deploy Runbook
 
+> ## ⚠ SUPERSEDED 2026-07-27 — do not follow the deploy steps in this document
+>
+> `qtw.backend.quip.network` **no longer runs on DigitalOcean.** It moved to a single-instance
+> Flux Orbit app on 2026-07-27 (QUI-875), and the droplet has been stopped.
+>
+> Three sections here describe a mechanism that **does not exist**: "Deploy", "GitLab CI/CD
+> Variables", and "Applying Env Changes" are all built around a manual GitLab `backend:deploy`
+> job using `DEPLOY_HOST` / `DEPLOY_SSH_PRIVATE_KEY`. **That job was deleted in commit `14395ea`.**
+> Following them will not deploy anything. "Remaining Deployment Work" also still reads as though
+> the droplet were unprovisioned.
+>
+> Nor did that job ever reflect reality — the droplet was actually deployed by a hand-run
+> build-on-the-box procedure that was never documented until it was reconstructed from the box's
+> own artifacts.
+>
+> - **How the DO box was really deployed, and why this doc diverged:** `docs/DEPLOY-DO-HISTORICAL.md`
+> - **How it is deployed now:** QUI-875, and the same historical doc's closing section
+>
+> What remains **accurate and useful** here: the runtime env reference, the Supabase/Postgres notes,
+> the Resend email setup, the Netlify frontend wiring, and the smoke tests. The env vars themselves
+> are unchanged apart from the pruning recorded in QUI-875 — `DWAVE_API_TOKEN` was removed
+> deliberately, and 13 further variables were dropped as either duplicating a code default or
+> vestigial (all seven `SMTP_*` are read by nothing).
+
 This is the single operator document for deploying the QTW FastAPI backend,
 setting runtime environment variables, wiring the Netlify frontend, configuring
 Supabase/Postgres, and enabling Resend email.
