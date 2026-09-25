@@ -2,7 +2,7 @@
 name = "qtw-tradinggame-backend"
 version = "0.0.1"
 description = "Backend for QTW 2026 Trading Competition — Quip Network booth activation"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "numpy>=1.24",
     "scipy>=1.10",
@@ -15,6 +15,7 @@ dependencies = [
     "gurobipy>=11.0",
     "dwave-neal>=0.6",
     "dwave-system>=1.20",
+    "xqsa[quip,dwave]==0.4.1b1",
     "better-profanity>=0.7",
 ]
 
@@ -30,6 +31,9 @@ dev = [
 
 [tool.uv]
 package = true
+# xqsa's beta pins its sibling packages to the same pre-release; naming them here
+# lets uv accept those two pre-releases without allowing pre-releases globally.
+constraint-dependencies = ["xqvm-py==0.4.1b1", "xqffi==0.4.1b1"]
 
 [build-system]
 requires = ["hatchling"]
@@ -44,7 +48,7 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B"]

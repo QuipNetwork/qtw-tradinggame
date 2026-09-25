@@ -259,6 +259,7 @@ async def routing_stats() -> RoutingStats:
     total = len(jobs)
     qpu_wins = sum(1 for job in jobs if job.provider_role == "QPU")
     cpu_wins = sum(1 for job in jobs if job.provider_role == "CPU")
+    network_wins = sum(1 for job in jobs if job.provider_role == "NETWORK")
     provider_counts: dict[tuple[str, str], int] = {}
     for job in jobs:
         key = (job.provider, job.provider_role)
@@ -327,8 +328,10 @@ async def routing_stats() -> RoutingStats:
         total=total,
         qpu_wins=qpu_wins,
         cpu_wins=cpu_wins,
+        network_wins=network_wins,
         qpu_pct=_pct(qpu_wins, total),
         cpu_pct=_pct(cpu_wins, total),
+        network_pct=_pct(network_wins, total),
         providers=providers,
         recent=recent,
     )

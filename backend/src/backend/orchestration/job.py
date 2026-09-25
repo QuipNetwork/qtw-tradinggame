@@ -32,6 +32,7 @@ from ..persistence.qpu_budget import (
     get_qpu_budget_store,
 )
 from ..solvers.providers import dwave
+from ..solvers.providers.xquad import remote_requested, selected_backend
 from ..solvers.router import SolverRun, race
 from ..solvers.types import ProviderProvenance, Solution
 
@@ -39,6 +40,9 @@ _PROVIDER_LABELS = {
     "gurobi": "Gurobi",
     "sa": "Simulated Annealing",
     "dwave": "D-Wave Advantage",
+    "xquad-quip": "Quip testnet (xquad)",
+    "xquad-dwave-qpu": "D-Wave via xquad",
+    "xquad-dwave-cpu": "Local CPU via xquad",
 }
 
 
@@ -82,7 +86,7 @@ def run_optimization(
     candidate_sliders = sliders if sliders is not None else agent.sliders
     tickers = validate_basket(assets if assets is not None else agent.assets)
     params = map_sliders(candidate_sliders, len(tickers))
-    include_qpu = dwave.is_configured()
+    include_qpu = remote_requested() or (selected_backend() is None and dwave.is_configured())
     if include_qpu:
         status = qpu_budget.status(agent_id)
         if status.used >= status.limit:
@@ -219,6 +223,7 @@ def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
         objective=run.objective,
         bestObjective=run.best_objective,
         error=run.error,
+        orderId=run.order_id,
     )
 
 
@@ -233,4 +238,5 @@ def _solver_run_summary(run: SolverRun) -> dict:
         "objective": run.objective,
         "bestObjective": run.best_objective,
         "error": run.error,
+        "orderId": run.order_id,
     }

@@ -217,6 +217,18 @@ RACE_WINNER_OBJECTIVE_TOL: float = float(os.environ.get("RACE_WINNER_OBJECTIVE_T
 # better objective is always a QUALITY win regardless of time.
 RACE_TIME_TIE_TOL: float = float(os.environ.get("RACE_TIME_TIE_TOL", 0.15))
 
+# Explicit experimental xquad route. The Quip chain is slower than the 10 s
+# direct-QPU race, so a Quip-enabled race waits long enough for its SDK timeout.
+XQUAD_TIMEOUT_S: float = float(os.environ.get("XQUAD_TIMEOUT_S", 120))
+QUIP_RPC_URL: str = os.environ.get("QUIP_RPC_URL", "wss://bootnode-1.aglais.quip.network:20049/rpc")
+# The faucet belongs to the RPC's chain: the Aglais faucet is the default only
+# alongside the default Aglais RPC; a custom QUIP_RPC_URL uses QUIP_FAUCET_URL or none.
+QUIP_FAUCET_URL: str | None = (
+    os.environ.get("QUIP_FAUCET_URL")
+    if "QUIP_RPC_URL" in os.environ
+    else "https://faucet.aglais.quip.network"
+)
+
 # -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------

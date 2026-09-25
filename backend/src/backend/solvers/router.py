@@ -22,6 +22,7 @@ from .feasibility import check_feasibility
 from .providers import dwave
 from .providers.gurobi import GurobiProvider
 from .providers.sa import SAProvider
+from .providers.xquad import XquadProvider, selected_backend
 from .types import QuboMatrix, Solution, SolverFailed
 
 SolverStatus = Literal["winner", "feasible", "infeasible", "failed", "timeout"]
@@ -37,6 +38,7 @@ class SolverRun:
     race_time_s: float | None
     objective: float | None
     error: str | None = None
+    order_id: str | None = None
     # The winner is the FASTEST feasible solver (status="winner"); this separately
     # flags the feasible solver with the BEST (lowest) objective — they may differ, so
     # the UI can show "fastest" and "best portfolio" without conflating them.
@@ -72,7 +74,10 @@ def build_providers(*, include_qpu: bool = True) -> list:
     the D-Wave QPU when a Leap token is set."""
     providers: list = [GurobiProvider()] if config.GUROBI_IN_RACE else []
     providers.append(SAProvider())
-    if include_qpu and dwave.is_configured():
+    backend = selected_backend()
+    if backend and (include_qpu or backend == "dwave-cpu"):
+        providers.append(XquadProvider(backend))
+    elif backend is None and include_qpu and dwave.is_configured():
         providers.append(dwave.DWaveProvider())
     return providers
 
@@ -86,6 +91,25 @@ def _dispatch(provider: object, problem: PortfolioProblem, qubo: QuboMatrix, dea
     return solution, time.perf_counter() - started
 
 
+def race_deadlines(
+    deadline_s: float | None = None, *, include_qpu: bool = True
+) -> tuple[float, float]:
+    """(overall, per-solver) race deadlines. A Quip-enabled race waits for the SDK timeout,
+    because a chain order takes far longer than the 10 s direct-QPU race."""
+    quip_enabled = selected_backend() == "quip" and include_qpu
+    overall_deadline = (
+        deadline_s
+        if deadline_s is not None
+        else max(config.RACE_OVERALL_DEADLINE_S, config.XQUAD_TIMEOUT_S + 5)
+        if quip_enabled
+        else config.RACE_OVERALL_DEADLINE_S
+    )
+    per_solver_deadline = (
+        overall_deadline if quip_enabled else min(config.SOLVER_DEADLINE_S, overall_deadline)
+    )
+    return overall_deadline, per_solver_deadline
+
+
 def race(
     problem: PortfolioProblem,
     deadline_s: float | None = None,
@@ -93,8 +117,7 @@ def race(
     include_qpu: bool = True,
 ) -> RaceResult:
     """Run the race; raise SolverFailed if nothing feasible arrives in time."""
-    overall_deadline = deadline_s if deadline_s is not None else config.RACE_OVERALL_DEADLINE_S
-    per_solver_deadline = min(config.SOLVER_DEADLINE_S, overall_deadline)
+    overall_deadline, per_solver_deadline = race_deadlines(deadline_s, include_qpu=include_qpu)
 
     qubo = encode_qubo(problem)
     q_h = qubo_hash(qubo)
@@ -131,6 +154,7 @@ def race(
                             race_time_s=None,
                             objective=None,
                             error=str(exc),
+                            order_id=str(exc.order_id) if hasattr(exc, "order_id") else None,
                         )
                     )
                     continue
@@ -151,6 +175,7 @@ def race(
                         solve_time_s=solution.solve_time_s,
                         race_time_s=race_time_s,
                         objective=solution.objective,
+                        order_id=solution.order_id,
                     )
                 )
         except FuturesTimeoutError:

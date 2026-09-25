@@ -7,12 +7,11 @@ Python backend for the booth trading competition. Reads market data from the
 
 ## Setup
 
-Use the backend `.venv`:
+Use Python 3.13 and uv:
 
 ```bash
 cd backend
-python3.12 -m venv .venv                 # first time only
-.venv/bin/python -m pip install -e . pytest httpx
+uv sync --group dev
 ```
 
 Gurobi (`gurobipy`) and SA (`dwave-neal`) install from PyPI with a free trial
@@ -21,8 +20,54 @@ license that comfortably fits this problem size.
 ## Run the automated tests
 
 ```bash
-.venv/bin/python -m pytest -q             # full backend suite
+uv run pytest -q                          # full backend suite
 ```
+
+## Experimental xquad integration
+
+`XQUAD_BACKEND` selects one additional solver in the ordinary backend race:
+`quip` (testnet), `dwave-qpu` (D-Wave Leap directly through xquad), or
+`dwave-cpu` (fully local xquad simulated annealing). Unset/`off` preserves the
+current direct D-Wave behavior. For the two remote modes, the existing per-agent
+QPU admission budget applies. A Quip race uses `XQUAD_TIMEOUT_S` (default 120 s)
+plus five seconds for the outer deadline; clients and proxies must permit this
+response time. The local CLI below bypasses the race and budget so it can test
+the adapter in isolation:
+
+```bash
+cd backend
+MARKET_DATA_SOURCE=synthetic uv run qtw xquad --provider dwave-cpu
+DWAVE_API_TOKEN=... MARKET_DATA_SOURCE=synthetic uv run qtw xquad --provider dwave-qpu
+QUIP_KEYSTORE=~/.quip/keystore.json MARKET_DATA_SOURCE=synthetic uv run qtw xquad --provider quip
+# The whole race (Gurobi, SA, Quip) on one problem:
+XQUAD_BACKEND=quip QUIP_KEYSTORE=~/.quip/keystore.json MARKET_DATA_SOURCE=synthetic \
+  uv run qtw race --hold-count 8
+# Minimal end-to-end testnet check with a two-variable model:
+QUIP_KEYSTORE=~/.quip/keystore.json uv run qtw xquad-smoke
+```
+
+The backend defaults to the public Aglais endpoint
+`wss://bootnode-1.aglais.quip.network:20049/rpc` and its faucet
+`https://faucet.aglais.quip.network`. Set `QUIP_RPC_URL` to use another bootnode
+or a local devnet; a custom RPC uses `QUIP_FAUCET_URL` if set and otherwise no
+faucet. The signer comes from `QUIP_SIGNER_SEED` or `QUIP_KEYSTORE`; a keystore
+path that does not exist yet is generated on first use. An account that cannot
+cover a job draws one faucet drip automatically (`QUIP_AUTOFUND=0` disables
+this). A job reserves `QUIP_REWARD` planck (default: the chain's `MinReward`,
+1 AGLS on Aglais) plus a fee; the reward is returned only if no miner answers.
+
+The portfolio QUBO couples every basket asset to every other, so no registered
+hardware topology can host it. The provider submits it over its own coupling
+graph (`xqsa` native topology mode). CPU and GPU simulated-annealing miners
+answer these orders; D-Wave miners on the network do not, because they do not
+embed. `SolverQuip` submits an on-chain order, so a timeout after submission
+can leave a live order; the `QuipTimeoutError` names its order ID, and
+`SolverQuip.query(order_id, model, topology="native")` reads it back once final.
+
+Live check on 2026-09-25 with `xqsa 0.4.1b1`, synthetic data, the full
+28-asset basket and `--hold-count 8`: Aglais orders took 75–80 s and
+returned the same selection as local SA (objective −0.00087 against Gurobi's
+−0.00088), with `energy_matches_chain` true.
 
 What each suite covers:
 

@@ -107,7 +107,7 @@ class AgentConfig(BaseModel):
         return value
 
 
-ProviderType = Literal["QPU", "CPU"]
+ProviderType = Literal["QPU", "CPU", "NETWORK"]
 
 
 class PortfolioEntry(BaseModel):
@@ -128,6 +128,7 @@ class SolverResult(BaseModel):
     # leader, which may differ from the speed winner (status="winner").
     best_objective: bool = Field(default=False, alias="bestObjective")
     error: str | None = None
+    order_id: str | None = Field(default=None, alias="orderId")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -201,7 +202,7 @@ class RecentRouting(BaseModel):
     """One solved routing for the TV "recent routings" feed (newest first)."""
 
     provider: str  # raw key: 'dwave' | 'sa' | 'gurobi' (frontend maps to label)
-    provider_type: ProviderType = Field(alias="providerType")  # 'QPU' | 'CPU'
+    provider_type: ProviderType = Field(alias="providerType")
     solve_time: float = Field(alias="solveTime")  # winner seconds
     vs_time: float | None = Field(default=None, alias="vsTime")  # runner-up seconds
     solved_at: str = Field(alias="solvedAt")  # ISO-8601 UTC
@@ -216,8 +217,10 @@ class RoutingStats(BaseModel):
     total: int
     qpu_wins: int = Field(alias="qpuWins")
     cpu_wins: int = Field(alias="cpuWins")
+    network_wins: int = Field(default=0, alias="networkWins")
     qpu_pct: float = Field(alias="qpuPct")
     cpu_pct: float = Field(alias="cpuPct")
+    network_pct: float = Field(default=0, alias="networkPct")
     providers: list[RoutingProviderStat]
     recent: list[RecentRouting] = Field(default_factory=list)
 

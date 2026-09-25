@@ -26,8 +26,10 @@ from .financial.types import PortfolioProblem, correlation_matrix
 from .orchestration.job import run_optimization
 from .persistence.agents import get_agent_store
 from .solvers.feasibility import check_feasibility
-from .solvers.router import build_providers, pick_winner
+from .solvers.providers.xquad import XquadProvider, selected_backend
+from .solvers.router import build_providers, pick_winner, race_deadlines
 from .solvers.types import SolverFailed
+from .solvers.xquad_model import smoke_xqmx
 
 
 def _sliders(args: argparse.Namespace) -> SliderValues:
@@ -159,7 +161,9 @@ def cmd_race(args: argparse.Namespace) -> None:
     qubo = encode_qubo(problem)
     providers = build_providers()
     note = (
-        "" if any(p.role == "QPU" for p in providers) else " (set DWAVE_API_TOKEN to add the QPU)"
+        ""
+        if any(p.role in ("QPU", "NETWORK") for p in providers) or selected_backend()
+        else " (set DWAVE_API_TOKEN to add the QPU)"
     )
     by_quality = config.RACE_WINNER_BY == "objective"
     print(
@@ -168,10 +172,12 @@ def cmd_race(args: argparse.Namespace) -> None:
         flush=True,
     )
 
+    _, per_solver_deadline = race_deadlines()
+
     def dispatch(provider):
         if provider.name == "gurobi":
-            return provider.solve_qp(problem, config.SOLVER_DEADLINE_S)
-        return provider.solve_qubo(qubo, problem, config.SOLVER_DEADLINE_S)
+            return provider.solve_qp(problem, per_solver_deadline)
+        return provider.solve_qubo(qubo, problem, per_solver_deadline)
 
     results = []
     with ThreadPoolExecutor(max_workers=len(providers)) as executor:
@@ -180,7 +186,7 @@ def cmd_race(args: argparse.Namespace) -> None:
             provider = futures[future]
             try:
                 solution = future.result()
-            except SolverFailed as exc:
+            except Exception as exc:  # noqa: BLE001 — one failed solver must not end the race
                 print(f"  {provider.name:<8}{provider.role:<5} failed: {exc}", flush=True)
                 continue
             feas = check_feasibility(
@@ -368,6 +374,38 @@ def cmd_seeoff(args: argparse.Namespace) -> None:
         print("\nDRY RUN — nothing sent. Re-run with --send to deliver.")
 
 
+def cmd_xquad(args: argparse.Namespace) -> None:
+    """Submit one portfolio QUBO through xquad, without running the race."""
+    tickers = _basket(args)
+    problem = _build_problem(tickers, args)
+    qubo = encode_qubo(problem)
+    provider = XquadProvider(args.provider)
+    print(f"submitting {qubo.n}-variable QUBO via {provider.name}", flush=True)
+    solution = provider.solve_qubo(qubo, problem, args.timeout)
+    feas = check_feasibility(
+        solution.weights, problem.w_max, problem.w_min, cardinality_k=problem.cardinality_k
+    )
+    _print_solution(provider.name, provider.role, solution, feas, tickers)
+    if solution.order_id:
+        print(f"  Quip order ID: {solution.order_id}")
+
+
+def cmd_xquad_smoke(args: argparse.Namespace) -> None:
+    """Submit a minimal model to verify the complete Aglais protocol path."""
+    from xqsa import SolverQuip
+
+    print(f"submitting two-variable smoke model to {config.QUIP_RPC_URL}", flush=True)
+    result = SolverQuip(
+        url=config.QUIP_RPC_URL, faucet=config.QUIP_FAUCET_URL, timeout=args.timeout
+    ).solve(smoke_xqmx())
+    sample = [result.sample.get_linear(i) for i in range(result.sample.size)]
+    print(
+        f"solved in {result.timing:.1f}s  order={result.metadata.get('order_id')}  "
+        f"sample={sample}  energy_matches_chain={result.metadata.get('energy_matches_chain')}",
+        flush=True,
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="backend.cli", description="QTW backend test CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -383,6 +421,16 @@ def main(argv: list[str] | None = None) -> None:
     p_race = sub.add_parser("race", help="run one solver race and show all results")
     _add_common_args(p_race)
     p_race.set_defaults(func=cmd_race)
+
+    p_xquad = sub.add_parser("xquad", help="submit one QUBO through xquad (no solver race)")
+    _add_common_args(p_xquad)
+    p_xquad.add_argument("--provider", choices=("quip", "dwave-qpu", "dwave-cpu"), required=True)
+    p_xquad.add_argument("--timeout", type=float, default=config.XQUAD_TIMEOUT_S)
+    p_xquad.set_defaults(func=cmd_xquad)
+
+    p_xquad_smoke = sub.add_parser("xquad-smoke", help="submit a minimal model to the Quip testnet")
+    p_xquad_smoke.add_argument("--timeout", type=float, default=config.XQUAD_TIMEOUT_S)
+    p_xquad_smoke.set_defaults(func=cmd_xquad_smoke)
 
     p_verify = sub.add_parser(
         "verify-dwave", help="submit one QUBO to Leap; report embedding + timing"
@@ -401,7 +449,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     try:
         args.func(args)
-    except ValueError as exc:
+    except (ValueError, SolverFailed) as exc:
         parser.error(str(exc))
     except AssetsApiError as exc:
         parser.error(f"{exc}\n(start assets-api, or run with MARKET_DATA_SOURCE=synthetic)")
