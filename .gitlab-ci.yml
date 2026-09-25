@@ -9,7 +9,7 @@ variables:
 
 backend:test:
   stage: test
-  image: python:3.12-slim
+  image: python:3.13-slim
   cache:
     key: "pip-$CI_COMMIT_REF_SLUG"
     paths:
