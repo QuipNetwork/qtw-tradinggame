@@ -30,7 +30,7 @@ export default function RoutingStatsPanel({ stats, showRecent = false }: Props) 
       <div className="v4-section">
         <div className="v3-panel-head">
           <span className="v3-panel-eyebrow">All solves · win rate</span>
-          <span className="v3-panel-hero">Quantum <span className="accent">vs</span> classical.</span>
+          <span className="v3-panel-hero">{stats.networkWins ? 'Network, quantum & classical.' : <>Quantum <span className="accent">vs</span> classical.</>}</span>
         </div>
         <div className="v3-panel-body">
           <div className="v3-qc">
@@ -46,6 +46,7 @@ export default function RoutingStatsPanel({ stats, showRecent = false }: Props) 
               <span className="q" style={{ width: `${qpuWidth}%` }}></span>
               <span className="c" style={{ width: `${cpuWidth}%` }}></span>
             </div>
+            {!!stats.networkWins && <div>Quip network: {stats.networkWins} wins ({Math.round(stats.networkPct ?? 0)}%)</div>}
           </div>
         </div>
       </div>
@@ -61,7 +62,7 @@ export default function RoutingStatsPanel({ stats, showRecent = false }: Props) 
               <div className="v4-feed">
                 <div className="v4-feed-rows">
                   {recent.slice(0, DETAIL_ROWS).map((r, i) => {
-                    const altType = r.providerType === 'QPU' ? 'CPU' : 'QPU';
+                    const altType = r.providerType === 'NETWORK' ? 'another solver' : r.providerType === 'CPU' ? 'QPU' : 'CPU';
                     const faster =
                       r.vsTime != null && r.vsTime > r.solveTime
                         ? Math.round(((r.vsTime - r.solveTime) / r.vsTime) * 100)

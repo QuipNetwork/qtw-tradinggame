@@ -29,7 +29,7 @@ export default function Spotlight({ agent }: { agent: LeaderboardEntry | null })
           <h3>{agent.name}</h3>
           <div className={`qpub-spot-pnl ${pos ? 'up' : 'dn'}`}>{sign}{Math.abs(agent.plPct).toFixed(2)}%</div>
           <span className="qpub-spot-meta">
-            {fmtUsd(agent.total)} · {agent.jobsSolved} jobs solved · {agent.primaryProvider === 'QPU' ? 'quantum-led' : 'classical-led'}
+            {fmtUsd(agent.total)} · {agent.jobsSolved} jobs solved · {agent.primaryProvider === 'QPU' ? 'quantum-led' : agent.primaryProvider === 'NETWORK' ? 'network-led' : 'classical-led'}
           </span>
         </div>
         <div className="qpub-spot-alloc">

@@ -43,7 +43,7 @@ export type OptimizePatch = {
   assets?: AssetTicker[];
 };
 
-export type ProviderType = 'QPU' | 'CPU';
+export type ProviderType = 'QPU' | 'CPU' | 'NETWORK';
 
 export type QpuBudgetStatus = {
   used: number;
@@ -100,6 +100,7 @@ export type SolverResult = {
   objective?: number | null;
   bestObjective?: boolean;      // quality leader (lowest objective); may differ from winner
   error?: string | null;
+  orderId?: string | null;
 };
 
 export type RoutingResult = {
@@ -172,7 +173,7 @@ export type RoutingProviderStat = {
 // One solved routing for the TV "recent routings" feed (newest first).
 export type RecentRouting = {
   provider: string;             // raw key: 'dwave' | 'sa' | 'gurobi'
-  providerType: ProviderType;   // 'QPU' | 'CPU'
+  providerType: ProviderType;
   solveTime: number;            // winner seconds
   vsTime: number | null;        // runner-up seconds (null if unavailable)
   solvedAt: string;             // ISO-8601 UTC
@@ -184,8 +185,10 @@ export type RoutingStats = {
   total: number;
   qpuWins: number;
   cpuWins: number;
+  networkWins?: number;
   qpuPct: number;
   cpuPct: number;
+  networkPct?: number;
   providers: RoutingProviderStat[];
   recent: RecentRouting[];
 };

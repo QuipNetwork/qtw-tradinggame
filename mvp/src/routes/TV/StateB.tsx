@@ -95,7 +95,7 @@ export default function StateB({
             <div className="spot-lastsolve">
               <div className={`v4-pr ${agent.primaryProvider === 'QPU' ? 'q' : 'c'}`}>
                 <span className="type">{agent.primaryProvider}</span>
-                <span className="nm">Solved by {agent.primaryProvider === 'QPU' ? 'D-Wave Advantage' : 'Simulated Annealing'}</span>
+                <span className="nm">Solved by {agent.primaryProvider === 'QPU' ? 'D-Wave Advantage' : agent.primaryProvider === 'NETWORK' ? 'Quip testnet' : 'Simulated Annealing'}</span>
               </div>
             </div>
           </div>
