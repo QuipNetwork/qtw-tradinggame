@@ -88,7 +88,8 @@ export type HoldingUpdate = {
   pct: number;
 };
 
-export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout';
+// 'pending': a Quip network order still open on chain when the race returned.
+export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout' | 'pending';
 
 export type SolverResult = {
   provider: string;
@@ -173,7 +174,7 @@ export type RoutingProviderStat = {
 // One solved routing for the TV "recent routings" feed (newest first).
 export type RecentRouting = {
   provider: string;             // raw key: 'dwave' | 'sa' | 'gurobi'
-  providerType: ProviderType;
+  providerType: ProviderType;   // 'QPU' | 'CPU'
   solveTime: number;            // winner seconds
   vsTime: number | null;        // runner-up seconds (null if unavailable)
   solvedAt: string;             // ISO-8601 UTC
@@ -185,10 +186,8 @@ export type RoutingStats = {
   total: number;
   qpuWins: number;
   cpuWins: number;
-  networkWins?: number;
   qpuPct: number;
   cpuPct: number;
-  networkPct?: number;
   providers: RoutingProviderStat[];
   recent: RecentRouting[];
 };
