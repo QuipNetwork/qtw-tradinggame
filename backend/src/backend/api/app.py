@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -23,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .. import config
 from ..events.bus import get_bus
 from ..orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
+from ..solvers.providers.xquad import selected_backend
 from . import admin, routes, ws
 from .ratelimit import SignupRateLimiter
 
@@ -58,6 +60,15 @@ def _check_required_config() -> None:
             f"APP_ENV={config.APP_ENV!r} requires DATABASE_URL "
             "(refusing in-memory persistence for a real deploy — data would be lost "
             "on restart). Set DATABASE_URL, or use a local APP_ENV for in-memory."
+        )
+    # Without a configured signer, xqsa generates ~/.quip/keystore.json: inside a container
+    # that is a fresh empty account on every redeploy, funded anew from the faucet.
+    if selected_backend() == "quip" and not (
+        os.environ.get("QUIP_SIGNER_SEED") or os.environ.get("QUIP_KEYSTORE")
+    ):
+        raise RuntimeError(
+            "XQUAD_BACKEND=quip requires QUIP_SIGNER_SEED, or QUIP_KEYSTORE pointing at a "
+            "keystore on a persistent volume, so every Quip order is signed by one account."
         )
 
 

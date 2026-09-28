@@ -1,12 +1,11 @@
-"""xquad 0.4.0 solver adapter for Quip testnet and local direct providers."""
+"""xquad 0.4.1 solver adapter for the Quip testnet and local/direct D-Wave providers."""
 
 from __future__ import annotations
 
 import os
 import time
+from types import SimpleNamespace
 from typing import Literal
-
-import numpy as np
 
 from ... import config
 from ...financial.types import PortfolioProblem
@@ -41,7 +40,21 @@ def remote_requested() -> bool:
     return selected_backend() in ("quip", "dwave-qpu")
 
 
+def quip_solver(**kwargs):
+    """A SolverQuip on QUIP_RPC_URL (and QUIP_FAUCET_URL) when set, else the Aglais preset.
+
+    xqsa reads the signer from QUIP_SIGNER_SEED or QUIP_KEYSTORE.
+    """
+    from xqsa import SolverQuip
+
+    if os.environ.get("QUIP_RPC_URL"):
+        return SolverQuip(**kwargs)
+    return SolverQuip.for_network("aglais", **kwargs)
+
+
 class XquadProvider:
+    """One xquad backend. The solver is built on first use and reused by later solves."""
+
     def __init__(self, backend: XquadBackend, *, solver=None) -> None:
         if backend not in BACKENDS:
             raise ValueError(f"unknown xquad backend: {backend}")
@@ -50,19 +63,15 @@ class XquadProvider:
         self.role = _ROLES[backend]
         self._solver = solver
 
-    def _make_solver(self, deadline_s: float):
-        from xqsa import SolverDWaveCPU, SolverDWaveQPU, SolverQuip
-
+    def _make_solver(self):
         if self.backend == "quip":
             # The portfolio QUBO is dense (a clique over the basket), so it is
             # submitted over its own coupling graph rather than placed on a
             # hardware topology. Only embedding-free (SA/Gibbs) miners answer it.
-            return SolverQuip(
-                url=config.QUIP_RPC_URL,
-                faucet=config.QUIP_FAUCET_URL,
-                topology="native",
-                timeout=max(1.0, min(deadline_s - 5.0, config.XQUAD_TIMEOUT_S)),
-            )
+            return quip_solver(topology="native", timeout=config.XQUAD_TIMEOUT_S)
+
+        from xqsa import SolverDWaveCPU, SolverDWaveQPU
+
         if self.backend == "dwave-qpu":
             return SolverDWaveQPU(num_reads=config.DWAVE_NUM_READS)
         return SolverDWaveCPU(num_reads=config.DWAVE_NUM_READS)
@@ -71,9 +80,10 @@ class XquadProvider:
         self, qubo: QuboMatrix, problem: PortfolioProblem, deadline_s: float
     ) -> Solution:
         model, _scale = to_xqmx(qubo)
-        solver = self._solver if self._solver is not None else self._make_solver(deadline_s)
+        if self._solver is None:
+            self._solver = self._make_solver()
         started = time.perf_counter()
-        result = solver.solve(model)
+        result = self._solver.solve(model)
         elapsed = time.perf_counter() - started
         sample = result.sample
         if sample.size != qubo.n:
@@ -81,13 +91,9 @@ class XquadProvider:
         values = [sample.get_linear(i) for i in range(qubo.n)]
         if any(value not in (0, 1) for value in values):
             raise ValueError("xquad returned a non-binary sample")
-        bits = np.array(values, dtype=np.int8)
-
-        class _SingleSample:
-            def samples(self):
-                return [{i: int(bit) for i, bit in enumerate(bits)}]
-
-        weights, bits = select_solution(_SingleSample(), qubo, problem)
+        # select_solution reads a sampleset; xquad returns the one best sample.
+        sampleset = SimpleNamespace(samples=lambda: [dict(enumerate(values))])
+        weights, bits = select_solution(sampleset, qubo, problem)
         return Solution(
             weights=weights,
             objective=problem.objective(weights),

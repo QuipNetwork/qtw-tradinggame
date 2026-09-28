@@ -10,9 +10,12 @@ from .types import QuboMatrix
 def to_xqmx(qubo: QuboMatrix):
     """Return (model, scale), bounding Ising biases after binary-to-spin conversion.
 
-    xquad 0.4.0 uses integer coefficients; the Quip codec multiplies spin
-    biases by 1000 and stores them as i32. A per-instance scale retains useful
-    QUBO precision without overflowing a dense model's incident field sums.
+    xquad uses integer coefficients; the Quip codec multiplies spin biases by
+    1000 and stores them as i32, so a natural coefficient must stay within
+    xqsa.quip_codec.MAX_NATURAL_COEFFICIENT (2_147_483). The binary-to-spin
+    transform (h_i = a_i/2 + sum_j b_ij/4, J_ij = b_ij/4) puts at most half a
+    variable's incident sum on its spin field, so scaling the largest incident
+    sum to 1e6 keeps every coefficient well inside that range.
     """
     from xqvm_py.xqmx import XQMX
 
@@ -27,8 +30,7 @@ def to_xqmx(qubo: QuboMatrix):
     peak = max(incident, default=0.0)
     if peak == 0:
         raise ValueError("QUBO has no nonzero coefficients")
-    # Leave generous room for rounding and the binary->spin transform.
-    scale = min(1_000_000_000.0, 1_000.0 / peak)
+    scale = min(1_000_000_000.0, 1_000_000.0 / peak)
     model = XQMX.binary_model(qubo.n)
     retained = 0
     for (i, j), coefficient in terms.items():

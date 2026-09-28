@@ -636,6 +636,17 @@ class DbJobStore(JobStore):
                 },
             )
 
+    def update_solver_result(self, job_id: str, result: dict[str, Any]) -> list[dict[str, Any]]:
+        results = super().update_solver_result(job_id, result)
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(solve_snapshots_table)
+                .where(solve_snapshots_table.c.job_id == job_id)
+                .where(solve_snapshots_table.c.environment == self._environment)
+                .values(solver_results=results)
+            )
+        return results
+
     def reset(self) -> None:
         super().reset()
         if not self._allow_reset:

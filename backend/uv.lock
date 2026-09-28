@@ -2,12 +2,6 @@ version = 1
 revision = 3
 requires-python = ">=3.13"
 
-[manifest]
-constraints = [
-    { name = "xqffi", specifier = "==0.4.1b1" },
-    { name = "xqvm-py", specifier = "==0.4.1b1" },
-]
-
 [[package]]
 name = "annotated-doc"
 version = "0.0.5"
@@ -1571,7 +1565,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.10" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27" },
-    { name = "xqsa", extras = ["quip", "dwave"], specifier = "==0.4.1b1" },
+    { name = "xqsa", extras = ["quip", "dwave"], specifier = "==0.4.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -2141,25 +2135,25 @@ wheels = [
 
 [[package]]
 name = "xqffi"
-version = "0.4.1b1"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/da/d7/18e727a58da5f70587294030ad5975b12d1d1c3e9afe1924d59d7f166010/xqffi-0.4.1b1.tar.gz", hash = "sha256:3543b8ba4225af40f2a67eb91f559c7e4345d50d06dbe821ef6ee449cfdfc42d", size = 220785, upload-time = "2026-09-24T22:39:49.192Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/92/32c83a247cc4643eb6e0c102a4f0192bc1c900c05b583ade2dcda6d23a35/xqffi-0.4.1.tar.gz", hash = "sha256:cf82c3cacb6146644880e28d75c0be7f3c363ebb6a4d6c7d728d674ea48aa700", size = 220748, upload-time = "2026-09-25T15:34:43.99Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/c8/0c0ea9eb12839c137b5ec6276417fe2160e7277d3341cd0f7dc478addacc/xqffi-0.4.1b1-cp313-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3b87c72abb28ac0821902b4cf4ae29acc5efb75c554e1f512ac19a0571bc05a7", size = 438330, upload-time = "2026-09-24T22:39:46.833Z" },
-    { url = "https://files.pythonhosted.org/packages/83/b7/00acfb1028c539a5ac46016190d342058843c04b1b807a0ba85ec7ecdd9f/xqffi-0.4.1b1-cp313-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:092424f4630b66f35778e3aedfbe7ec4845712e56c2dfd9d1a908a396bf344ab", size = 449941, upload-time = "2026-09-24T22:39:47.983Z" },
+    { url = "https://files.pythonhosted.org/packages/49/78/44338294901426d3d6afc49ba6175f86297b79fa48bcb6959c0024a25985/xqffi-0.4.1-cp313-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4ba306bbc5dcc01b2e934ab40056d720f1d54f92aa9c971b5427070360093cd6", size = 438296, upload-time = "2026-09-25T15:34:41.737Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/a2/6d0b20aba14a0d49ab0de5a7ded23cbd0238da7590c85f1a2009be37ab3e/xqffi-0.4.1-cp313-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:b4f4c29f32101394aaf12d068424dfb479076130d3ea58f969539f6a1f170091", size = 449911, upload-time = "2026-09-25T15:34:42.913Z" },
 ]
 
 [[package]]
 name = "xqsa"
-version = "0.4.1b1"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dwave-samplers" },
     { name = "xqvm-py" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/00/9f/e7ccf96a5346e843e3d42be9e44ddf62f6caa6ab4b00ec41dd4960cf9427/xqsa-0.4.1b1.tar.gz", hash = "sha256:0f684d9a929271b80e69ac0905babecbcf47a4fd8c6deb725014199a2726411a", size = 140651, upload-time = "2026-09-24T22:39:57.311Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/20/23/e5a688e68c0e0e12d27274465ca332c40b1a633a6eeac1a98a665d51ffb3/xqsa-0.4.1.tar.gz", hash = "sha256:2dcebffbff12bf23458c4cd14f13bf9fa2f144908362dc4c758bf10ba772d38d", size = 142218, upload-time = "2026-09-25T15:34:51.794Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/44/71a279e104c215ef81f8d78132ddc0383eacf9b870a9850a09037710b291/xqsa-0.4.1b1-py3-none-any.whl", hash = "sha256:bdcb8782fadc3ff22ec47927839e699ceb14eb9b6c743c7f3bc985df5e251655", size = 82991, upload-time = "2026-09-24T22:39:56.121Z" },
+    { url = "https://files.pythonhosted.org/packages/87/ee/2be080e855299646d2daecdd26b9d1de7931cb717caacb8c200f35702131/xqsa-0.4.1-py3-none-any.whl", hash = "sha256:ad302cfc1e42a4dc3ecfcd4412800efa17d033212003ab13a38363e1340c234c", size = 83636, upload-time = "2026-09-25T15:34:50.838Z" },
 ]
 
 [package.optional-dependencies]
@@ -2174,14 +2168,14 @@ quip = [
 
 [[package]]
 name = "xqvm-py"
-version = "0.4.1b1"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "xqffi" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/07/de5f50147e8880df77be8226e4c1c7b5ab53a42276c4230f1aa35d5988f6/xqvm_py-0.4.1b1.tar.gz", hash = "sha256:15e93fa17b9f18552bc48805f5925597c0164bf0e46f84e2d3a05209a5d50338", size = 94166, upload-time = "2026-09-24T22:39:51.83Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/63/a8b8a19aa2747c9027fd7d4b5c9c997bfcc77ba13ca24f96ec1524e47c16/xqvm_py-0.4.1.tar.gz", hash = "sha256:238bb9131586d5a2fb87e3955ebddbcc01a01f7a492b8b4455d484a75fa28c13", size = 94153, upload-time = "2026-09-25T15:34:46.768Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/d6/f70b4267995ad010f1f51c917d758010f4f68f565d77f8f05826e256cbf8/xqvm_py-0.4.1b1-py3-none-any.whl", hash = "sha256:aca2e30a1282cd67e92548e7abf9bef935f6d13c3d7aedb1500f4adaabed30e0", size = 58934, upload-time = "2026-09-24T22:39:50.93Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/be/fe6b2c78e688c47f44e04e164ca4a998fae0d71460b808ab41009339fac6/xqvm_py-0.4.1-py3-none-any.whl", hash = "sha256:3f82320518621cc70da2b0da5dcf938a849d78cd77005a03471f01f84a7ce897", size = 58915, upload-time = "2026-09-25T15:34:45.807Z" },
 ]
 
 [[package]]

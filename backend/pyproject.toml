@@ -15,7 +15,7 @@ dependencies = [
     "gurobipy>=11.0",
     "dwave-neal>=0.6",
     "dwave-system>=1.20",
-    "xqsa[quip,dwave]==0.4.1b1",
+    "xqsa[quip,dwave]==0.4.1",
     "better-profanity>=0.7",
 ]
 
@@ -31,9 +31,6 @@ dev = [
 
 [tool.uv]
 package = true
-# xqsa's beta pins its sibling packages to the same pre-release; naming them here
-# lets uv accept those two pre-releases without allowing pre-releases globally.
-constraint-dependencies = ["xqvm-py==0.4.1b1", "xqffi==0.4.1b1"]
 
 [build-system]
 requires = ["hatchling"]

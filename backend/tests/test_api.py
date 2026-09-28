@@ -628,6 +628,24 @@ def test_required_config_allows_local_memory(monkeypatch, env):
     _check_required_config()  # no raise
 
 
+def test_quip_backend_refuses_to_start_without_a_signer(monkeypatch):
+    """A container without a signer would sign with a fresh throwaway keystore per deploy."""
+    monkeypatch.setattr(config, "APP_ENV", "local")
+    monkeypatch.setenv("XQUAD_BACKEND", "quip")
+    monkeypatch.delenv("QUIP_SIGNER_SEED", raising=False)
+    monkeypatch.delenv("QUIP_KEYSTORE", raising=False)
+    with pytest.raises(RuntimeError, match="QUIP_SIGNER_SEED"):
+        _check_required_config()
+    monkeypatch.setenv("QUIP_KEYSTORE", "/data/quip/keystore.json")
+    _check_required_config()  # no raise
+    monkeypatch.delenv("QUIP_KEYSTORE")
+    monkeypatch.setenv("QUIP_SIGNER_SEED", "00" * 32)
+    _check_required_config()  # no raise
+    monkeypatch.setenv("XQUAD_BACKEND", "dwave-cpu")
+    monkeypatch.delenv("QUIP_SIGNER_SEED")
+    _check_required_config()  # other backends need no signer
+
+
 def test_api_explorer_disabled_for_real_deploys(monkeypatch):
     monkeypatch.setattr(config, "APP_ENV", "booth")
     assert create_app().openapi_url is None  # no /openapi.json, /docs, /redoc in prod

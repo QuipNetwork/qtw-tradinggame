@@ -4,20 +4,23 @@ Opt-in, because each run proposes one on-chain order (about 1 AGLS reward plus f
 
     QTW_QUIP_LIVE=1 QUIP_KEYSTORE=~/.quip/keystore.json uv run pytest -q -s tests/test_quip_live.py
 
-The test drives the real FastAPI app over HTTP with XQUAD_BACKEND=quip, then reads the order
-the race reported back from the chain with a separate SolverQuip client, so the proof does not
-rest on the adapter's own view of the result.
+The test drives the real FastAPI app over HTTP with XQUAD_BACKEND=quip. Optimize returns on the
+local solvers with the Quip order pending; the test waits for the order's result to land in the
+job's solve snapshot, then reads the order back from the chain with a separate SolverQuip
+client, so the proof does not rest on the adapter's own view of the result.
 """
 
 from __future__ import annotations
 
 import os
+import time
 
 import pytest
 from fastapi.testclient import TestClient
 
 from backend import config
 from backend.api.app import create_app
+from backend.persistence.jobs import get_job_store
 from backend.solvers.providers import xquad
 
 pytestmark = pytest.mark.skipif(
@@ -34,6 +37,16 @@ _UNIVERSE = [
     "IBM", "GOOGL", "NVDA", "MSFT", "AMZN", "HON", "SAF", "SPCX",
 ]  # fmt: skip
 _HOLD = 8
+
+
+def _final_quip_result(job_id: str, timeout_s: float) -> dict:
+    deadline = time.monotonic() + timeout_s
+    while True:
+        snapshot = next(s for s in get_job_store().solve_snapshots() if s["job_id"] == job_id)
+        result = next(r for r in snapshot["solver_results"] if r["provider"] == "xquad-quip")
+        if result["status"] != "pending" or time.monotonic() > deadline:
+            return result
+        time.sleep(1)
 
 
 def test_optimize_solves_the_portfolio_on_the_quip_testnet(monkeypatch):
@@ -65,39 +78,42 @@ def test_optimize_solves_the_portfolio_on_the_quip_testnet(monkeypatch):
         )
         assert signup.status_code == 200, signup.text
         agent = signup.json()
+        started = time.monotonic()
         response = client.post(
             f"/agents/{agent['agentId']}/optimize",
             headers={"Authorization": f"Bearer {agent['token']}"},
         )
+        optimize_s = time.monotonic() - started
     assert response.status_code == 200, response.text
     result = response.json()
 
-    runs = {run["provider"]: run for run in result["solverResults"]}
-    print("\nsolver results:")
+    print(f"\noptimize returned in {optimize_s:.2f}s; solver results:")
     for run in result["solverResults"]:
         print(
             f"  {run['provider']:<24} {run['providerType']:<8} {run['status']:<9} "
-            f"solve={run['solveTime']} objective={run['objective']} order={run.get('orderId')}"
+            f"solve={run['solveTime']} objective={run['objective']}"
         )
-
-    quip = runs["Quip testnet (xquad)"]
-    assert quip["providerType"] == "NETWORK"
-    assert quip["status"] in ("winner", "feasible"), quip
-    assert quip["feasible"] is True
-    assert quip["orderId"] is not None
+    pending = next(r for r in result["solverResults"] if r["providerType"] == "NETWORK")
+    assert pending["status"] == "pending"
+    assert optimize_s < config.RACE_OVERALL_DEADLINE_S  # returns on the local solvers
 
     held = [entry for entry in result["portfolio"] if entry["pct"] > 0]
     assert len(held) == _HOLD
     assert sum(entry["pct"] for entry in result["portfolio"]) == pytest.approx(100, abs=1e-3)
 
-    # Independent read-back: a fresh client re-derives the order from chain state.
-    from xqsa import SolverQuip
+    quip = _final_quip_result(result["jobId"], timeout_s=config.XQUAD_TIMEOUT_S + 60)
+    print(
+        f"quip order: status={quip['status']} order={quip['orderId']} "
+        f"solve={quip['solveTime']} objective={quip['objective']}"
+    )
+    assert quip["status"] == "feasible", quip
+    assert quip["orderId"] is not None
 
+    # Independent read-back: a fresh client re-derives the order from chain state.
     assert len(submitted) == 1
     model = submitted[0]
     assert model.size == len(_UNIVERSE)
-    reader = SolverQuip(url=config.QUIP_RPC_URL, faucet=config.QUIP_FAUCET_URL)
-    onchain = reader.query(int(quip["orderId"]), model, topology="native")
+    onchain = xquad.quip_solver().query(int(quip["orderId"]), model, topology="native")
     assert onchain is not None, "order is not final on chain"
     print(
         f"chain read-back: order={onchain.metadata['order_id']} energy={onchain.energy} "

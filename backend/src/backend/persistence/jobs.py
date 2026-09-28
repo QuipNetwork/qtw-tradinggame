@@ -85,6 +85,25 @@ class JobStore:
                 }
             )
 
+    def update_solver_result(self, job_id: str, result: dict[str, Any]) -> list[dict[str, Any]]:
+        """Replace the job snapshot's entry for `result["provider"]` (a solver that finishes
+        after the race, e.g. a Quip order); return the snapshot's updated solver results.
+
+        Raises KeyError if the job has no snapshot or the snapshot has no such provider.
+        """
+        with self._lock:
+            snapshot = next((s for s in self._solve_snapshots if s["job_id"] == job_id), None)
+            if snapshot is None:
+                raise KeyError(f"no solve snapshot for job {job_id!r}")
+            results = snapshot["solver_results"]
+            index = next(
+                (i for i, r in enumerate(results) if r["provider"] == result["provider"]), None
+            )
+            if index is None:
+                raise KeyError(f"job {job_id!r} has no {result['provider']!r} result")
+            results[index] = dict(result)
+            return list(results)
+
     def solve_snapshots(self) -> list[dict[str, Any]]:
         with self._lock:
             return list(self._solve_snapshots)

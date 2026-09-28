@@ -31,6 +31,7 @@ from ..persistence.qpu_budget import (
     QpuBudgetStore,
     get_qpu_budget_store,
 )
+from ..solvers import quip_orders
 from ..solvers.providers import dwave
 from ..solvers.providers.xquad import remote_requested, selected_backend
 from ..solvers.router import SolverRun, race
@@ -114,6 +115,10 @@ def run_optimization(
     )
     race_result = race(problem, deadline_s=deadline_s, include_qpu=include_qpu)
     winner = race_result.winner
+    # A Quip order runs outside the race: the response reports it pending, and its result
+    # replaces that entry in the job's solve snapshot once the order finalizes.
+    quip_order = include_qpu and selected_backend() == "quip"
+    late_results = [quip_orders.pending_result()] if quip_order else []
 
     # Liquidate everything at spot, reallocate the full value by the winner's
     # weights. The spot snapshot covers old and new holdings alike.
@@ -161,7 +166,8 @@ def run_optimization(
         solver_results=[
             _solver_run_result(run, winner_provider=winner.provider)
             for run in race_result.solver_runs
-        ],
+        ]
+        + [_late_solver_result(summary) for summary in late_results],
         outcome=race_result.outcome,
         kind="first" if is_first else "retune",
         job_id=job.id,
@@ -181,9 +187,11 @@ def run_optimization(
         assets=tickers,
         portfolio=[entry.model_dump() for entry in result.portfolio],
         holdings_units=holdings_units,
-        solver_results=[_solver_run_summary(run) for run in race_result.solver_runs],
+        solver_results=[_solver_run_summary(run) for run in race_result.solver_runs] + late_results,
         winner_provider=winner.provider,
     )
+    if quip_order:
+        quip_orders.submit(problem, lambda result: jobs.update_solver_result(job.id, result))
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
     update.next_rebalance_at = scheduled_agent.next_rebalance_at if scheduled_agent else None
@@ -224,6 +232,22 @@ def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
         bestObjective=run.best_objective,
         error=run.error,
         orderId=run.order_id,
+    )
+
+
+def _late_solver_result(summary: dict) -> SolverResult:
+    """A solver that finishes after the race (its snapshot summary) as a response row."""
+    return SolverResult(
+        provider=_PROVIDER_LABELS.get(summary["provider"], summary["provider"]),
+        providerType=summary["providerRole"],
+        status=summary["status"],
+        feasible=summary["feasible"],
+        solveTime=summary["solveTime"],
+        raceTime=summary["raceTime"],
+        objective=summary["objective"],
+        bestObjective=summary["bestObjective"],
+        error=summary["error"],
+        orderId=summary["orderId"],
     )
 
 
