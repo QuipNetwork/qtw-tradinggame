@@ -19,8 +19,9 @@ const STATUS_ORDER: Record<SolverResult['status'], number> = {
   feasible: 1,
   infeasible: 2,
   pending: 3,
-  failed: 4,
-  timeout: 5,
+  skipped: 4,
+  failed: 5,
+  timeout: 6,
 };
 
 export function solverRaceRows(result: RoutingResult | null): SolverRaceRow[] {
@@ -118,6 +119,7 @@ function displaySeconds(row: SolverResult): number {
 
 function timeLabelFor(row: SolverResult): string {
   if (row.status === 'pending') return 'on chain…';
+  if (row.status === 'skipped') return 'skipped';
   if (row.status === 'timeout') return 'timeout';
   if (row.status === 'failed') return 'failed';
   const seconds = row.solveTime;

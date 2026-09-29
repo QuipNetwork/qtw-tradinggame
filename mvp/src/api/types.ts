@@ -88,8 +88,16 @@ export type HoldingUpdate = {
   pct: number;
 };
 
-// 'pending': a Quip network order still open on chain when the race returned.
-export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout' | 'pending';
+// A Quip network order finishes after the race returns: 'pending' while it is open on chain,
+// 'skipped' when too many orders were already pending to propose one.
+export type SolverStatus =
+  | 'winner'
+  | 'feasible'
+  | 'infeasible'
+  | 'failed'
+  | 'timeout'
+  | 'pending'
+  | 'skipped';
 
 export type SolverResult = {
   provider: string;
