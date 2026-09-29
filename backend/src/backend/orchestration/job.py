@@ -33,7 +33,7 @@ from ..persistence.qpu_budget import (
 )
 from ..solvers import quip_orders
 from ..solvers.providers import dwave
-from ..solvers.providers.xquad import remote_requested, selected_backend
+from ..solvers.providers.xquad import selected_backend
 from ..solvers.router import SolverRun, race
 from ..solvers.types import ProviderProvenance, Solution
 
@@ -87,7 +87,13 @@ def run_optimization(
     candidate_sliders = sliders if sliders is not None else agent.sliders
     tickers = validate_basket(assets if assets is not None else agent.assets)
     params = map_sliders(candidate_sliders, len(tickers))
-    include_qpu = remote_requested() or (selected_backend() is None and dwave.is_configured())
+    backend = selected_backend()
+    # A Quip order is paid and slow, so only a manual solve proposes one; it runs outside the
+    # race (solvers/quip_orders.py). Scheduled rebalances race the local solvers only.
+    quip_order = backend == "quip" and source == "manual"
+    include_qpu = (
+        quip_order or backend == "dwave-qpu" or (backend is None and dwave.is_configured())
+    )
     if include_qpu:
         status = qpu_budget.status(agent_id)
         if status.used >= status.limit:
@@ -115,9 +121,8 @@ def run_optimization(
     )
     race_result = race(problem, deadline_s=deadline_s, include_qpu=include_qpu)
     winner = race_result.winner
-    # A Quip order runs outside the race: the response reports it pending, and its result
-    # replaces that entry in the job's solve snapshot once the order finalizes.
-    quip_order = include_qpu and selected_backend() == "quip"
+    # The response reports the Quip order pending; its result replaces that entry in the
+    # job's solve snapshot once the order finalizes.
     late_results = [quip_orders.pending_result()] if quip_order else []
 
     # Liquidate everything at spot, reallocate the full value by the winner's
@@ -191,7 +196,13 @@ def run_optimization(
         winner_provider=winner.provider,
     )
     if quip_order:
-        quip_orders.submit(problem, lambda result: jobs.update_solver_result(job.id, result))
+        submitted = quip_orders.submit(
+            problem, lambda quip_result: jobs.update_solver_result(job.id, quip_result)
+        )
+        if submitted is None:  # too many orders pending: this solve proposes none
+            skipped = quip_orders.skipped_result()
+            jobs.update_solver_result(job.id, skipped)
+            result.solver_results[-1] = _late_solver_result(skipped)
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
     update.next_rebalance_at = scheduled_agent.next_rebalance_at if scheduled_agent else None

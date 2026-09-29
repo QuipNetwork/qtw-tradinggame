@@ -32,14 +32,23 @@ testnet as well. Unset/`off` keeps the direct D-Wave solver, which races when
 `DWAVE_API_TOKEN` is set. For `dwave-qpu` and `quip`, the existing per-agent QPU
 admission budget applies.
 
-A Quip order takes over a minute to finalize, so it does not race. Optimize
-returns as soon as the local solvers finish, with the Quip row reported as
-`pending`. The order runs on one background worker that submits one order at a
-time with one shared `SolverQuip`, so concurrent solves never sign with the same
-account nonce. When the order finalizes, its result (status, objective, order
-ID) replaces the `pending` entry in that job's solve snapshot. It never changes
-the agent's portfolio. `XQUAD_TIMEOUT_S` (default 120 s) is how long the worker
-waits for a proposed order to finalize.
+A Quip order takes over a minute to finalize, so it does not race. Only a
+manual solve proposes one; scheduled rebalances race the local solvers only and
+spend no admission budget. Optimize returns as soon as the local solvers
+finish, with the Quip row reported as `pending`. The order runs on one
+background worker that submits one order at a time with one shared
+`SolverQuip`, so concurrent solves never sign with the same account nonce. When
+the order finalizes, its result (status, objective, order ID) replaces the
+`pending` entry in that job's solve snapshot. It never changes the agent's
+portfolio. `XQUAD_TIMEOUT_S` (default 120 s) is how long the worker waits for a
+proposed order to finalize.
+
+At most `QUIP_MAX_PENDING_ORDERS` orders (default 3) are queued or in flight at
+once; a solve beyond that records its Quip row as `skipped`, so no order goes
+out long after the problem it was built from. The queue lives in memory. On
+shutdown the worker drops queued orders and abandons an in-flight one rather
+than holding the process open, and at startup any result still `pending` is
+marked `failed`.
 
 The local CLI bypasses the race and budget so it can test the adapter in
 isolation:

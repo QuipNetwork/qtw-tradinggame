@@ -1,14 +1,18 @@
 """xquad adapter tests: integer QUBO, backend selection, and sample decoding."""
 
 import argparse
+import logging
 import sys
+import threading
 import time
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from fastapi.testclient import TestClient
 
 from backend import config
+from backend.api.app import create_app
 from backend.api.schemas import AgentConfig, SliderValues
 from backend.cli import _build_problem
 from backend.financial.basket import TICKERS
@@ -165,15 +169,20 @@ def test_smoke_model_fits_one_hardware_edge():
 
 
 class _FakeQuipOrder:
-    """Solves on the calling thread like SolverQuip.solve, selecting every variable."""
+    """Solves on the calling thread like SolverQuip.solve, selecting every variable.
 
-    def __init__(self, order_id=92, error=None):
+    With `release`, each solve blocks until the event is set, holding the worker busy."""
+
+    def __init__(self, order_id=92, error=None, release=None):
         self.order_id = order_id
         self.error = error
+        self.release = release
         self.calls = 0
 
     def solve(self, model):
         self.calls += 1
+        if self.release is not None:
+            assert self.release.wait(10)
         if self.error is not None:
             raise self.error
         sample = type(model).binary_sample(model.size)
@@ -222,12 +231,63 @@ def test_quip_order_timeout_keeps_its_order_id(monkeypatch, synthetic_problem_3a
     assert quip_orders._provider is None  # the next order reconnects
 
 
-def test_optimize_returns_before_the_quip_order_finalizes(monkeypatch):
-    monkeypatch.setenv("XQUAD_BACKEND", "quip")
-    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
-    order = _FakeQuipOrder()
+def test_quip_orders_are_capped_while_pending(monkeypatch, synthetic_problem_3assets):
+    monkeypatch.setattr(config, "QUIP_MAX_PENDING_ORDERS", 2)
+    release = threading.Event()
+    order = _FakeQuipOrder(release=release)
     monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=order))
-    agent = get_agent_store().create(
+
+    accepted = [quip_orders.submit(synthetic_problem_3assets, lambda _: None) for _ in range(2)]
+    refused = quip_orders.submit(synthetic_problem_3assets, lambda _: None)
+    release.set()
+    for future in accepted:
+        future.result(timeout=10)
+
+    assert refused is None
+    assert order.calls == 2
+    assert quip_orders.submit(synthetic_problem_3assets, lambda _: None).result(timeout=10) is None
+
+
+def test_shutdown_drops_queued_orders_and_refuses_new_ones(monkeypatch, synthetic_problem_3assets):
+    release = threading.Event()
+    order = _FakeQuipOrder(release=release)
+    monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=order))
+    in_flight = quip_orders.submit(synthetic_problem_3assets, lambda _: None)
+    deadline = time.monotonic() + 10
+    while order.calls == 0 and time.monotonic() < deadline:
+        time.sleep(0.01)
+    queued = quip_orders.submit(synthetic_problem_3assets, lambda _: None)
+
+    try:
+        quip_orders.shutdown()
+        assert queued.cancelled()
+        assert quip_orders.submit(synthetic_problem_3assets, lambda _: None) is None
+    finally:
+        quip_orders.start()
+        release.set()
+    in_flight.result(timeout=10)
+    assert order.calls == 1
+    assert quip_orders.submit(synthetic_problem_3assets, lambda _: None).result(timeout=10) is None
+
+
+def test_a_failing_result_callback_is_logged(monkeypatch, caplog, synthetic_problem_3assets):
+    monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=_FakeQuipOrder()))
+
+    def lost(_result):
+        raise KeyError("no solve snapshot")
+
+    with caplog.at_level(logging.ERROR, logger="backend.solvers.quip_orders"):
+        quip_orders.submit(synthetic_problem_3assets, lost).result(timeout=10)
+
+    assert "recording quip order result failed order_id=92" in caplog.text
+    assert "no solve snapshot" in caplog.text  # the traceback is logged
+    results = []
+    quip_orders.submit(synthetic_problem_3assets, results.append).result(timeout=10)
+    assert [r["orderId"] for r in results] == ["92"]  # the worker survives
+
+
+def _quip_agent():
+    return get_agent_store().create(
         AgentConfig(
             name="Quanta",
             email="q@example.com",
@@ -239,19 +299,76 @@ def test_optimize_returns_before_the_quip_order_finalizes(monkeypatch):
         bankroll=10_000.0,
     )
 
-    result = run_optimization(agent.id).result
+
+def _quip_row(result):
+    return next(r for r in result.solver_results if r.provider_type == "NETWORK")
+
+
+def _snapshot_quip_result():
+    [snapshot] = get_job_store().solve_snapshots()
+    return next(r for r in snapshot["solver_results"] if r["provider"] == "xquad-quip")
+
+
+def test_optimize_returns_before_the_quip_order_finalizes(monkeypatch):
+    monkeypatch.setenv("XQUAD_BACKEND", "quip")
+    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
+    monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=_FakeQuipOrder()))
+
+    result = run_optimization(_quip_agent().id).result
 
     assert result.provider == "Simulated Annealing"
-    quip = next(r for r in result.solver_results if r.provider_type == "NETWORK")
+    quip = _quip_row(result)
     assert (quip.status, quip.order_id, quip.solve_time) == ("pending", None, None)
-
     deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        [snapshot] = get_job_store().solve_snapshots()
-        final = next(r for r in snapshot["solver_results"] if r["provider"] == "xquad-quip")
-        if final["status"] != "pending":
-            break
+    while _snapshot_quip_result()["status"] == "pending" and time.monotonic() < deadline:
         time.sleep(0.05)
-    assert snapshot["job_id"] == result.job_id
+    final = _snapshot_quip_result()
     assert final["status"] in ("feasible", "infeasible")
     assert final["orderId"] == "92"
+
+
+def test_optimize_records_a_skipped_order_when_too_many_are_pending(monkeypatch):
+    monkeypatch.setenv("XQUAD_BACKEND", "quip")
+    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
+    monkeypatch.setattr(quip_orders, "submit", lambda problem, on_done: None)
+
+    quip = _quip_row(run_optimization(_quip_agent().id).result)
+
+    assert quip.status == "skipped"
+    assert "already pending" in quip.error
+    assert _snapshot_quip_result()["status"] == "skipped"
+
+
+def test_scheduled_rebalances_propose_no_quip_order(monkeypatch):
+    monkeypatch.setenv("XQUAD_BACKEND", "quip")
+    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
+    submitted = []
+    monkeypatch.setattr(quip_orders, "submit", lambda *args: submitted.append(args))
+    agent = _quip_agent()
+
+    result = run_optimization(agent.id, source="scheduled").result
+
+    assert submitted == []
+    assert all(r.provider_type != "NETWORK" for r in result.solver_results)
+    assert result.qpu_budget.used == 0  # no paid order, no admission budget spent
+
+
+def test_startup_fails_quip_results_left_pending(monkeypatch):
+    jobs = get_job_store()
+    jobs.record_solve_snapshot(
+        job_id="job1",
+        agent_id="agent1",
+        sliders={},
+        assets=["BTC"],
+        portfolio=[],
+        holdings_units={},
+        solver_results=[{"provider": "sa", "status": "winner"}, quip_orders.pending_result()],
+        winner_provider="sa",
+    )
+
+    with TestClient(create_app()):
+        pass
+
+    final = _snapshot_quip_result()
+    assert final["status"] == "failed"
+    assert "restarted" in final["error"]

@@ -104,6 +104,20 @@ class JobStore:
             results[index] = dict(result)
             return list(results)
 
+    def fail_pending_results(self, error: str) -> dict[str, list[dict[str, Any]]]:
+        """Mark every `pending` solver result as `failed` with `error`; return the changed
+        snapshots' solver results by job id. Run at startup: a pending result belongs to an
+        order the previous process never finished recording."""
+        changed: dict[str, list[dict[str, Any]]] = {}
+        with self._lock:
+            for snapshot in self._solve_snapshots:
+                results = snapshot["solver_results"]
+                for index, result in enumerate(results):
+                    if result.get("status") == "pending":
+                        results[index] = {**result, "status": "failed", "error": error}
+                        changed[snapshot["job_id"]] = list(results)
+        return changed
+
     def solve_snapshots(self) -> list[dict[str, Any]]:
         with self._lock:
             return list(self._solve_snapshots)

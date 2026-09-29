@@ -24,6 +24,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .. import config
 from ..events.bus import get_bus
 from ..orchestration.scheduler import run_mtm_loop, run_scheduled_rebalance_loop
+from ..persistence.jobs import get_job_store
+from ..solvers import quip_orders
 from ..solvers.providers.xquad import selected_backend
 from . import admin, routes, ws
 from .ratelimit import SignupRateLimiter
@@ -99,11 +101,22 @@ def _configure_email_provider() -> None:
     log.info("email provider: resend from=%s", config.EMAIL_FROM)
 
 
+def _fail_stale_quip_orders() -> None:
+    """Quip orders queue in memory, so a result still pending at startup will never arrive."""
+    changed = get_job_store().fail_pending_results(
+        "the backend restarted before this Quip order's result was recorded"
+    )
+    if changed:
+        log.warning("marked pending quip results failed after restart jobs=%d", len(changed))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     _check_required_config()
     _configure_email_provider()
     _check_market_source()
+    _fail_stale_quip_orders()
+    quip_orders.start()
     stop = asyncio.Event()
     bus = get_bus()
     tasks = [
@@ -113,6 +126,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        quip_orders.shutdown()
         stop.set()
         for task in tasks:
             task.cancel()

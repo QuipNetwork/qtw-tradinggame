@@ -36,10 +36,6 @@ def selected_backend() -> XquadBackend | None:
     return value
 
 
-def remote_requested() -> bool:
-    return selected_backend() in ("quip", "dwave-qpu")
-
-
 def quip_solver(**kwargs):
     """A SolverQuip on QUIP_RPC_URL (and QUIP_FAUCET_URL) when set, else the Aglais preset.
 

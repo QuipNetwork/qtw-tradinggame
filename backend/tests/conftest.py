@@ -13,6 +13,7 @@ from backend.persistence.qpu_budget import (
     get_qpu_budget_store,
     set_qpu_budget_store,
 )
+from backend.solvers import quip_orders
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +32,7 @@ def isolated_state():
     get_job_store().reset()
     get_qpu_budget_store().reset()
     set_source(SyntheticMarketSource(clock=lambda: 1000.0))
+    quip_orders.start()  # an app lifespan teardown in an earlier test shuts the worker down
     yield
     set_source(None)
     get_agent_store().reset()

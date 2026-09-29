@@ -119,8 +119,9 @@ class PortfolioEntry(BaseModel):
 class SolverResult(BaseModel):
     provider: str
     provider_type: ProviderType = Field(alias="providerType")
-    # "pending": a Quip order still open on chain; it finishes after the race returns.
-    status: Literal["winner", "feasible", "infeasible", "failed", "timeout", "pending"]
+    # A Quip order finishes after the race returns: "pending" while it is open on chain,
+    # "skipped" when too many orders were already pending to propose one.
+    status: Literal["winner", "feasible", "infeasible", "failed", "timeout", "pending", "skipped"]
     feasible: bool
     solve_time: float | None = Field(default=None, alias="solveTime")
     race_time: float | None = Field(default=None, alias="raceTime")
