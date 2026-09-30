@@ -7,12 +7,11 @@ Python backend for the booth trading competition. Reads market data from the
 
 ## Setup
 
-Use the backend `.venv`:
+Use Python 3.13 and uv:
 
 ```bash
 cd backend
-python3.12 -m venv .venv                 # first time only
-.venv/bin/python -m pip install -e . pytest httpx
+uv sync --group dev
 ```
 
 Gurobi (`gurobipy`) and SA (`dwave-neal`) install from PyPI with a free trial
@@ -21,8 +20,74 @@ license that comfortably fits this problem size.
 ## Run the automated tests
 
 ```bash
-.venv/bin/python -m pytest -q             # full backend suite
+uv run pytest -q                          # full backend suite
 ```
+
+## Experimental xquad integration
+
+`XQUAD_BACKEND` replaces the direct D-Wave solver with one xquad solver:
+`dwave-qpu` (D-Wave Leap through xquad) or `dwave-cpu` (local xquad simulated
+annealing) races beside SA and Gurobi, and `quip` sends each solve to the Quip
+testnet as well. Unset/`off` keeps the direct D-Wave solver, which races when
+`DWAVE_API_TOKEN` is set. For `dwave-qpu` and `quip`, the existing per-agent QPU
+admission budget applies.
+
+A Quip order takes over a minute to finalize, so it does not race. Only a
+manual solve proposes one; scheduled rebalances race the local solvers only and
+spend no admission budget. Optimize returns as soon as the local solvers
+finish, with the Quip row reported as `pending`. The order runs on one
+background worker that submits one order at a time with one shared
+`SolverQuip`, so concurrent solves never sign with the same account nonce. When
+the order finalizes, its result (status, objective, order ID) replaces the
+`pending` entry in that job's solve snapshot. It never changes the agent's
+portfolio. `XQUAD_TIMEOUT_S` (default 120 s) is how long the worker waits for a
+proposed order to finalize.
+
+At most `QUIP_MAX_PENDING_ORDERS` orders (default 3) are queued or in flight at
+once; a solve beyond that records its Quip row as `skipped`, so no order goes
+out long after the problem it was built from. The queue lives in memory. On
+shutdown the worker drops queued orders and abandons an in-flight one rather
+than holding the process open, and at startup any result still `pending` is
+marked `failed`.
+
+The local CLI bypasses the race and budget so it can test the adapter in
+isolation:
+
+```bash
+cd backend
+MARKET_DATA_SOURCE=synthetic uv run qtw xquad --provider dwave-cpu
+DWAVE_API_TOKEN=... MARKET_DATA_SOURCE=synthetic uv run qtw xquad --provider dwave-qpu
+QUIP_KEYSTORE=~/.quip/keystore.json MARKET_DATA_SOURCE=synthetic uv run qtw xquad --provider quip
+# The race (Gurobi, SA) plus a Quip order on the same problem, waiting for all of them:
+XQUAD_BACKEND=quip QUIP_KEYSTORE=~/.quip/keystore.json MARKET_DATA_SOURCE=synthetic \
+  uv run qtw race --hold-count 8
+# Minimal end-to-end testnet check with a two-variable model:
+QUIP_KEYSTORE=~/.quip/keystore.json uv run qtw xquad-smoke
+# Live end-to-end test through the API (proposes one order):
+QTW_QUIP_LIVE=1 QUIP_KEYSTORE=~/.quip/keystore.json uv run pytest -q -s tests/test_quip_live.py
+```
+
+Without `QUIP_RPC_URL`, the backend uses xqsa's `aglais` network preset (the
+public Aglais RPC and its faucet). Set `QUIP_RPC_URL` to use another bootnode or
+a local devnet; xqsa then uses `QUIP_FAUCET_URL` if set and otherwise no faucet.
+An account that cannot cover a job draws one faucet drip automatically
+(`QUIP_AUTOFUND=0` disables this). A job reserves `QUIP_REWARD` planck (default:
+the chain's `MinReward`, 1 AGLS on Aglais) plus a fee; the reward is returned
+only if no miner answers.
+
+**Deploying with `XQUAD_BACKEND=quip`:** the server refuses to start unless
+`QUIP_SIGNER_SEED` or `QUIP_KEYSTORE` is set. Point `QUIP_KEYSTORE` at a file on
+a persistent volume: the keystore is the account. Without either, xqsa would
+generate `~/.quip/keystore.json` inside the container, so every redeploy would
+sign with a fresh, empty account funded anew from the faucet.
+
+The portfolio QUBO couples every basket asset to every other, so no registered
+hardware topology can host it. The provider submits it over its own coupling
+graph (`xqsa` native topology mode). CPU and GPU simulated-annealing miners
+answer these orders; D-Wave miners on the network do not, because they do not
+embed. An order that times out after submission stays live on chain; its
+snapshot entry keeps the order ID, and
+`SolverQuip.query(order_id, model, topology="native")` reads it back once final.
 
 What each suite covers:
 

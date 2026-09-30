@@ -107,7 +107,7 @@ class AgentConfig(BaseModel):
         return value
 
 
-ProviderType = Literal["QPU", "CPU"]
+ProviderType = Literal["QPU", "CPU", "NETWORK"]
 
 
 class PortfolioEntry(BaseModel):
@@ -119,7 +119,9 @@ class PortfolioEntry(BaseModel):
 class SolverResult(BaseModel):
     provider: str
     provider_type: ProviderType = Field(alias="providerType")
-    status: Literal["winner", "feasible", "infeasible", "failed", "timeout"]
+    # A Quip order finishes after the race returns: "pending" while it is open on chain,
+    # "skipped" when too many orders were already pending to propose one.
+    status: Literal["winner", "feasible", "infeasible", "failed", "timeout", "pending", "skipped"]
     feasible: bool
     solve_time: float | None = Field(default=None, alias="solveTime")
     race_time: float | None = Field(default=None, alias="raceTime")
@@ -128,6 +130,7 @@ class SolverResult(BaseModel):
     # leader, which may differ from the speed winner (status="winner").
     best_objective: bool = Field(default=False, alias="bestObjective")
     error: str | None = None
+    order_id: str | None = Field(default=None, alias="orderId")
 
     model_config = ConfigDict(populate_by_name=True)
 

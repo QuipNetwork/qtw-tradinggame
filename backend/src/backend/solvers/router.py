@@ -22,6 +22,7 @@ from .feasibility import check_feasibility
 from .providers import dwave
 from .providers.gurobi import GurobiProvider
 from .providers.sa import SAProvider
+from .providers.xquad import XquadProvider, selected_backend
 from .types import QuboMatrix, Solution, SolverFailed
 
 SolverStatus = Literal["winner", "feasible", "infeasible", "failed", "timeout"]
@@ -37,6 +38,7 @@ class SolverRun:
     race_time_s: float | None
     objective: float | None
     error: str | None = None
+    order_id: str | None = None
     # The winner is the FASTEST feasible solver (status="winner"); this separately
     # flags the feasible solver with the BEST (lowest) objective — they may differ, so
     # the UI can show "fastest" and "best portfolio" without conflating them.
@@ -68,11 +70,15 @@ class RaceResult:
 
 
 def build_providers(*, include_qpu: bool = True) -> list:
-    """The race field: SA always, Gurobi unless disabled for production,
-    the D-Wave QPU when a Leap token is set."""
+    """The race field: SA always, Gurobi unless disabled for production, and either
+    XQUAD_BACKEND's solver or, without one, the D-Wave QPU when a Leap token is set.
+    A Quip order takes over a minute, so it runs outside the race (see quip_orders)."""
     providers: list = [GurobiProvider()] if config.GUROBI_IN_RACE else []
     providers.append(SAProvider())
-    if include_qpu and dwave.is_configured():
+    backend = selected_backend()
+    if backend in ("dwave-qpu", "dwave-cpu") and (include_qpu or backend == "dwave-cpu"):
+        providers.append(XquadProvider(backend))
+    elif backend is None and include_qpu and dwave.is_configured():
         providers.append(dwave.DWaveProvider())
     return providers
 
@@ -131,6 +137,7 @@ def race(
                             race_time_s=None,
                             objective=None,
                             error=str(exc),
+                            order_id=str(exc.order_id) if hasattr(exc, "order_id") else None,
                         )
                     )
                     continue
@@ -151,6 +158,7 @@ def race(
                         solve_time_s=solution.solve_time_s,
                         race_time_s=race_time_s,
                         objective=solution.objective,
+                        order_id=solution.order_id,
                     )
                 )
         except FuturesTimeoutError:

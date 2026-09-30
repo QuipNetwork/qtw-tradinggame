@@ -31,7 +31,9 @@ from ..persistence.qpu_budget import (
     QpuBudgetStore,
     get_qpu_budget_store,
 )
+from ..solvers import quip_orders
 from ..solvers.providers import dwave
+from ..solvers.providers.xquad import selected_backend
 from ..solvers.router import SolverRun, race
 from ..solvers.types import ProviderProvenance, Solution
 
@@ -39,6 +41,9 @@ _PROVIDER_LABELS = {
     "gurobi": "Gurobi",
     "sa": "Simulated Annealing",
     "dwave": "D-Wave Advantage",
+    "xquad-quip": "Quip testnet (xquad)",
+    "xquad-dwave-qpu": "D-Wave via xquad",
+    "xquad-dwave-cpu": "Local CPU via xquad",
 }
 
 
@@ -82,7 +87,13 @@ def run_optimization(
     candidate_sliders = sliders if sliders is not None else agent.sliders
     tickers = validate_basket(assets if assets is not None else agent.assets)
     params = map_sliders(candidate_sliders, len(tickers))
-    include_qpu = dwave.is_configured()
+    backend = selected_backend()
+    # A Quip order is paid and slow, so only a manual solve proposes one; it runs outside the
+    # race (solvers/quip_orders.py). Scheduled rebalances race the local solvers only.
+    quip_order = backend == "quip" and source == "manual"
+    include_qpu = (
+        quip_order or backend == "dwave-qpu" or (backend is None and dwave.is_configured())
+    )
     if include_qpu:
         status = qpu_budget.status(agent_id)
         if status.used >= status.limit:
@@ -110,6 +121,9 @@ def run_optimization(
     )
     race_result = race(problem, deadline_s=deadline_s, include_qpu=include_qpu)
     winner = race_result.winner
+    # The response reports the Quip order pending; its result replaces that entry in the
+    # job's solve snapshot once the order finalizes.
+    late_results = [quip_orders.pending_result()] if quip_order else []
 
     # Liquidate everything at spot, reallocate the full value by the winner's
     # weights. The spot snapshot covers old and new holdings alike.
@@ -157,7 +171,8 @@ def run_optimization(
         solver_results=[
             _solver_run_result(run, winner_provider=winner.provider)
             for run in race_result.solver_runs
-        ],
+        ]
+        + [_late_solver_result(summary) for summary in late_results],
         outcome=race_result.outcome,
         kind="first" if is_first else "retune",
         job_id=job.id,
@@ -177,9 +192,17 @@ def run_optimization(
         assets=tickers,
         portfolio=[entry.model_dump() for entry in result.portfolio],
         holdings_units=holdings_units,
-        solver_results=[_solver_run_summary(run) for run in race_result.solver_runs],
+        solver_results=[_solver_run_summary(run) for run in race_result.solver_runs] + late_results,
         winner_provider=winner.provider,
     )
+    if quip_order:
+        submitted = quip_orders.submit(
+            problem, lambda quip_result: jobs.update_solver_result(job.id, quip_result)
+        )
+        if submitted is None:  # too many orders pending: this solve proposes none
+            skipped = quip_orders.skipped_result()
+            jobs.update_solver_result(job.id, skipped)
+            result.solver_results[-1] = _late_solver_result(skipped)
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
     update.next_rebalance_at = scheduled_agent.next_rebalance_at if scheduled_agent else None
@@ -219,6 +242,23 @@ def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
         objective=run.objective,
         bestObjective=run.best_objective,
         error=run.error,
+        orderId=run.order_id,
+    )
+
+
+def _late_solver_result(summary: dict) -> SolverResult:
+    """A solver that finishes after the race (its snapshot summary) as a response row."""
+    return SolverResult(
+        provider=_PROVIDER_LABELS.get(summary["provider"], summary["provider"]),
+        providerType=summary["providerRole"],
+        status=summary["status"],
+        feasible=summary["feasible"],
+        solveTime=summary["solveTime"],
+        raceTime=summary["raceTime"],
+        objective=summary["objective"],
+        bestObjective=summary["bestObjective"],
+        error=summary["error"],
+        orderId=summary["orderId"],
     )
 
 
@@ -233,4 +273,5 @@ def _solver_run_summary(run: SolverRun) -> dict:
         "objective": run.objective,
         "bestObjective": run.best_objective,
         "error": run.error,
+        "orderId": run.order_id,
     }

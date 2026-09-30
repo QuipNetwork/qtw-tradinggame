@@ -2,7 +2,7 @@
 name = "qtw-tradinggame-backend"
 version = "0.0.1"
 description = "Backend for QTW 2026 Trading Competition — Quip Network booth activation"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "numpy>=1.24",
     "scipy>=1.10",
@@ -15,6 +15,7 @@ dependencies = [
     "gurobipy>=11.0",
     "dwave-neal>=0.6",
     "dwave-system>=1.20",
+    "xqsa[quip,dwave]==0.4.1",
     "better-profanity>=0.7",
 ]
 
@@ -44,7 +45,7 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B"]

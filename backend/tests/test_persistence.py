@@ -260,6 +260,92 @@ def test_db_job_store_records_jobs_and_solve_snapshots(tmp_path):
     assert rows[0]["assets"] == ["BTC", "ETH"]
 
 
+def test_db_job_store_replaces_a_late_solver_result(tmp_path):
+    url = f"sqlite:///{tmp_path / 'late.db'}"
+    agents = DbAgentStore(url, environment="local", allow_reset=True)
+    jobs = DbJobStore(url, environment="local", allow_reset=True)
+    agent = agents.create(_config("Eve"), bankroll=10_000.0)
+    job = jobs.record(
+        agent.id,
+        ProviderProvenance(
+            provider="sa",
+            provider_role="CPU",
+            q_hash="a" * 64,
+            deadline_s=3.0,
+            solve_time_s=0.12,
+            feasible=True,
+        ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id=agent.id,
+        sliders=_config("Eve").sliders.model_dump(by_alias=True),
+        assets=["BTC", "ETH"],
+        portfolio=[{"ticker": "BTC", "pct": 50.0, "usd": 5_000.0}],
+        holdings_units={"BTC": 0.1},
+        solver_results=[
+            {"provider": "sa", "status": "winner"},
+            {"provider": "xquad-quip", "status": "pending", "orderId": None},
+        ],
+        winner_provider="sa",
+    )
+
+    jobs.update_solver_result(
+        job.id, {"provider": "xquad-quip", "status": "feasible", "orderId": "92"}
+    )
+
+    reloaded = DbJobStore(url, environment="local", allow_reset=True)
+    assert reloaded.solve_snapshots()[0]["solver_results"] == [
+        {"provider": "sa", "status": "winner"},
+        {"provider": "xquad-quip", "status": "feasible", "orderId": "92"},
+    ]
+    with pytest.raises(KeyError):
+        jobs.update_solver_result(job.id, {"provider": "dwave", "status": "feasible"})
+    with pytest.raises(KeyError):
+        jobs.update_solver_result("missing", {"provider": "xquad-quip"})
+
+
+def test_db_job_store_fails_results_left_pending(tmp_path):
+    url = f"sqlite:///{tmp_path / 'stale.db'}"
+    agents = DbAgentStore(url, environment="local", allow_reset=True)
+    jobs = DbJobStore(url, environment="local", allow_reset=True)
+    agent = agents.create(_config("Eve"), bankroll=10_000.0)
+    job = jobs.record(
+        agent.id,
+        ProviderProvenance(
+            provider="sa",
+            provider_role="CPU",
+            q_hash="a" * 64,
+            deadline_s=3.0,
+            solve_time_s=0.12,
+            feasible=True,
+        ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id=agent.id,
+        sliders=_config("Eve").sliders.model_dump(by_alias=True),
+        assets=["BTC"],
+        portfolio=[],
+        holdings_units={},
+        solver_results=[
+            {"provider": "sa", "status": "winner"},
+            {"provider": "xquad-quip", "status": "pending", "error": None},
+        ],
+        winner_provider="sa",
+    )
+
+    changed = jobs.fail_pending_results("restarted")
+
+    assert list(changed) == [job.id]
+    reloaded = DbJobStore(url, environment="local", allow_reset=True)
+    assert reloaded.solve_snapshots()[0]["solver_results"] == [
+        {"provider": "sa", "status": "winner"},
+        {"provider": "xquad-quip", "status": "failed", "error": "restarted"},
+    ]
+    assert reloaded.fail_pending_results("restarted") == {}
+
+
 def test_db_agent_store_records_sampled_valuation_snapshots(tmp_path):
     url = f"sqlite:///{tmp_path / 'valuations.db'}"
     store = DbAgentStore(url, environment="local", allow_reset=True)

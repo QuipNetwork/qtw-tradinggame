@@ -43,7 +43,7 @@ export type OptimizePatch = {
   assets?: AssetTicker[];
 };
 
-export type ProviderType = 'QPU' | 'CPU';
+export type ProviderType = 'QPU' | 'CPU' | 'NETWORK';
 
 export type QpuBudgetStatus = {
   used: number;
@@ -88,7 +88,16 @@ export type HoldingUpdate = {
   pct: number;
 };
 
-export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout';
+// A Quip network order finishes after the race returns: 'pending' while it is open on chain,
+// 'skipped' when too many orders were already pending to propose one.
+export type SolverStatus =
+  | 'winner'
+  | 'feasible'
+  | 'infeasible'
+  | 'failed'
+  | 'timeout'
+  | 'pending'
+  | 'skipped';
 
 export type SolverResult = {
   provider: string;
@@ -100,6 +109,7 @@ export type SolverResult = {
   objective?: number | null;
   bestObjective?: boolean;      // quality leader (lowest objective); may differ from winner
   error?: string | null;
+  orderId?: string | null;
 };
 
 export type RoutingResult = {
