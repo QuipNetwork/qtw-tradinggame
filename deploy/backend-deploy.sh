@@ -37,8 +37,7 @@ start_container() {
 }
 
 check_health() {
-  local attempt
-  for attempt in $(seq 1 30); do
+  for _ in $(seq 1 30); do
     if curl -fsS "$HEALTH_URL" >/dev/null; then
       return 0
     fi
@@ -57,7 +56,9 @@ fi
 
 OLD_IMAGE=""
 if container_exists; then
-  OLD_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$CONTAINER_NAME")"
+  # The image ID, not its tag: pulling a reused tag (main, latest) repoints it at
+  # the new image, so rolling back by tag would restart the failing image.
+  OLD_IMAGE="$(docker inspect --format '{{.Image}}' "$CONTAINER_NAME")"
 fi
 
 echo "pulling $IMAGE"
