@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK, getAgentToken } from '../../api';
+import { getAgent, getLatestResult, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK, getAgentToken } from '../../api';
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
@@ -56,15 +56,9 @@ export default function KioskWelcome() {
         setAgent(a);
         setQrUrl(secureQrUrl ?? `${window.location.origin}/p/${agentId}`);
 
-        const cachedRaw = readSessionItem('quip:lastResult:' + agentId);
-        if (cachedRaw) {
-          try {
-            setResult(JSON.parse(cachedRaw) as RoutingResult);
-            setLoadState('ready');
-            return;
-          } catch { /* fall through to a fresh solve */ }
-        }
-        const r = await requestOptimization(agentId);
+        // Only the first visit solves; a refresh shows the agent's latest race instead of
+        // spending another QPU-budget slot and Quip order.
+        const r = (await getLatestResult(agentId)) ?? (await requestOptimization(agentId));
         if (cancelled) return;
         setResult(r);
         setLoadState('ready');
@@ -152,8 +146,7 @@ export default function KioskWelcome() {
     );
   }
   // Hold the loader until BOTH the agent config AND the first solve are in. The config fetch is
-  // fast, but the solve takes ~1–10s — without `!result` here the hero would render mid-solve with
-  // a null result, flashing the "D-Wave Advantage 0.42s" placeholder before the real winner lands.
+  // fast, but the solve takes ~1–10s; the hero needs the real winner.
   if (!agent || !result) {
     return (
       <KioskStage>
