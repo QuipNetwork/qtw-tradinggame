@@ -206,7 +206,11 @@ class RecentRouting(BaseModel):
     provider: str  # raw key: 'dwave' | 'sa' | 'gurobi' (frontend maps to label)
     provider_type: ProviderType = Field(alias="providerType")  # 'QPU' | 'CPU'
     solve_time: float = Field(alias="solveTime")  # winner seconds
+    # The best feasible race runner-up the winner is compared against (a Quip order runs
+    # outside the race, so it is never one); all three are None when there is none.
     vs_time: float | None = Field(default=None, alias="vsTime")  # runner-up seconds
+    vs_provider: str | None = Field(default=None, alias="vsProvider")  # display label
+    vs_provider_type: ProviderType | None = Field(default=None, alias="vsProviderType")
     solved_at: str = Field(alias="solvedAt")  # ISO-8601 UTC
     # How the winner won, so the TV shows a genuine tie instead of a noise-level "X% faster":
     # "quality" (better portfolio) | "speed" (objective tie, faster) | "tie" (objective + speed tie).

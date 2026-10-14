@@ -332,8 +332,14 @@ def test_routing_stats_counts_recorded_winning_jobs():
         portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
         holdings_units={"BTC": 1.0},
         solver_results=[
-            {"provider": "sa", "solveTime": 0.21},
-            {"provider": "dwave", "solveTime": 0.12},
+            {"provider": "sa", "providerRole": "CPU", "solveTime": 0.21, "objective": 0.0001},
+            {
+                "provider": "dwave",
+                "providerRole": "QPU",
+                "feasible": True,
+                "solveTime": 0.12,
+                "objective": 0.0002,
+            },
         ],
         winner_provider="sa",
     )
@@ -350,6 +356,93 @@ def test_routing_stats_counts_recorded_winning_jobs():
         assert {provider["provider"] for provider in body["providers"]} == {"dwave", "sa"}
         assert body["recent"][0]["provider"] == "sa"
         assert body["recent"][0]["vsTime"] == 0.12
+        assert body["recent"][0]["vsProvider"] == "D-Wave Advantage"
+        assert body["recent"][0]["vsProviderType"] == "QPU"
+
+
+def _record_sa_win(solver_results):
+    jobs = get_job_store()
+    job = jobs.record(
+        "a1",
+        ProviderProvenance(
+            provider="sa",
+            provider_role="CPU",
+            q_hash="e" * 64,
+            deadline_s=3.0,
+            solve_time_s=0.02,
+            feasible=True,
+        ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id="a1",
+        sliders=_SLIDERS,
+        assets=_BASKET,
+        portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
+        holdings_units={"BTC": 1.0},
+        solver_results=[
+            {
+                "provider": "sa",
+                "providerRole": "CPU",
+                "feasible": True,
+                "solveTime": 0.02,
+                "objective": 0.0001,
+            },
+            *solver_results,
+        ],
+        winner_provider="sa",
+    )
+
+
+_FINISHED_QUIP_ROW = {
+    "provider": "xquad-quip",
+    "providerRole": "NETWORK",
+    "status": "feasible",
+    "feasible": True,
+    "solveTime": 78.75,
+    "objective": 0.00001,  # better than the winner, but the order ran outside the race
+}
+
+
+def test_routing_stats_compares_against_the_race_runner_up_not_the_quip_order():
+    _record_sa_win(
+        [
+            {
+                "provider": "dwave",
+                "providerRole": "QPU",
+                "feasible": True,
+                "solveTime": 0.12,
+                "objective": 0.0003,
+            },
+            _FINISHED_QUIP_ROW,
+        ]
+    )
+    with TestClient(create_app()) as client:
+        recent = client.get("/routing-stats").json()["recent"][0]
+        assert recent["vsTime"] == 0.12
+        assert recent["vsProvider"] == "D-Wave Advantage"
+        assert recent["vsProviderType"] == "QPU"
+        assert recent["outcome"] == "quality"
+
+
+def test_routing_stats_reports_no_runner_up_when_only_the_quip_order_finished():
+    _record_sa_win(
+        [
+            {
+                "provider": "dwave",
+                "providerRole": "QPU",
+                "feasible": False,
+                "solveTime": 0.12,
+                "objective": 0.0003,
+            },
+            _FINISHED_QUIP_ROW,
+        ]
+    )
+    with TestClient(create_app()) as client:
+        recent = client.get("/routing-stats").json()["recent"][0]
+        assert recent["vsTime"] is None
+        assert recent["vsProvider"] is None
+        assert recent["vsProviderType"] is None
 
 
 def test_routing_stats_recent_reports_tie_not_false_speed_win():
