@@ -1,4 +1,4 @@
-import type { RoutingResult, SolverResult } from '../api';
+import type { RoutingResult, SolverResult, SolverResultsFrame } from '../api';
 
 export type SolverRaceRow = SolverResult & {
   label: string;
@@ -23,6 +23,16 @@ const STATUS_ORDER: Record<SolverResult['status'], number> = {
   failed: 5,
   timeout: 6,
 };
+
+// Late solver results replace the rows of the race they belong to; a frame for an older
+// job (the agent re-solved meanwhile) leaves the shown race alone.
+export function applySolverResults(
+  result: RoutingResult | null,
+  frame: SolverResultsFrame,
+): RoutingResult | null {
+  if (!result?.jobId || result.jobId !== frame.jobId) return result;
+  return { ...result, solverResults: frame.solverResults };
+}
 
 export function solverRaceRows(result: RoutingResult | null): SolverRaceRow[] {
   if (!result) return [];

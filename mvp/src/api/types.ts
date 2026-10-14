@@ -221,8 +221,17 @@ export type AgentUpdate = {
 // or set directly by the mock simulator.
 export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'closed';
 
+// Pushed on the agent channel when a solver finishes after the race (a Quip order):
+// every solver row of that job, final where known.
+export type SolverResultsFrame = {
+  type: 'solver-results';
+  jobId: string;
+  solverResults: SolverResult[];
+};
+
 export type SubscribeOptions = {
   onStatus?: (status: ConnectionStatus) => void;
+  onSolverResults?: (frame: SolverResultsFrame) => void;
 };
 
 // Booth-wide TV events (WS /tv/events): a new agent's first solve triggers the
