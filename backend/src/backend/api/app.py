@@ -116,9 +116,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     _configure_email_provider()
     _check_market_source()
     _fail_stale_quip_orders()
+    bus = get_bus()
+    bus.bind_loop(asyncio.get_running_loop())  # the Quip worker publishes from its thread
     quip_orders.start()
     stop = asyncio.Event()
-    bus = get_bus()
     tasks = [
         asyncio.create_task(run_mtm_loop(bus, stop)),
         asyncio.create_task(run_scheduled_rebalance_loop(bus, stop)),
@@ -127,6 +128,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         quip_orders.shutdown()
+        bus.bind_loop(None)
         stop.set()
         for task in tasks:
             task.cancel()

@@ -8,8 +8,9 @@ update supersedes it).
 V0 is single-process and in-memory. Fan-out across processes (multiple uvicorn
 workers) would need Redis pub/sub or Postgres LISTEN/NOTIFY here — see
 docs/TODO.md.
-All publish/subscribe calls happen on the server event loop, so the queues stay
-loop-safe without extra locking.
+The queues are only touched on the server event loop, so they stay loop-safe without
+extra locking. Worker threads (the Quip order worker) publish through
+`publish_threadsafe`, which hands the publish to the loop the server bound at startup.
 """
 
 from __future__ import annotations
@@ -21,6 +22,22 @@ from collections import defaultdict
 class EventBus:
     def __init__(self) -> None:
         self._subscribers: dict[str, set[asyncio.Queue]] = defaultdict(set)
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def bind_loop(self, loop: asyncio.AbstractEventLoop | None) -> None:
+        """Set (or clear, with None) the loop that `publish_threadsafe` publishes on."""
+        self._loop = loop
+
+    def publish_threadsafe(self, channel: str, payload: object) -> None:
+        """Publish from a thread other than the loop's. Dropped when no loop is bound or
+        the loop has closed, as a publish with no subscribers would be."""
+        loop = self._loop
+        if loop is None:
+            return
+        try:
+            loop.call_soon_threadsafe(self.publish, channel, payload)
+        except RuntimeError:
+            pass  # the loop closed during shutdown
 
     def publish(self, channel: str, payload: object) -> None:
         for queue in tuple(self._subscribers.get(channel, ())):
