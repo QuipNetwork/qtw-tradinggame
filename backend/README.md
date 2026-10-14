@@ -86,8 +86,10 @@ hardware topology can host it. The provider submits it over its own coupling
 graph (`xqsa` native topology mode). CPU and GPU simulated-annealing miners
 answer these orders; D-Wave miners on the network do not, because they do not
 embed. An order that times out after submission stays live on chain; its
-snapshot entry keeps the order ID, and
-`SolverQuip.query(order_id, model, topology="native")` reads it back once final.
+snapshot entry keeps the order ID. `SolverQuip.get_receipt(order_id)` follows it
+to finality, and `SolverQuip.query(order_id, model, topology="native")` decodes
+its winning sample once final (deprecated since xqsa 0.4.3, with no replacement
+yet).
 
 What each suite covers:
 

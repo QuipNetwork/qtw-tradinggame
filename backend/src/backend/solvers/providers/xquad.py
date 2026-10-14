@@ -1,4 +1,4 @@
-"""xquad 0.4.1 solver adapter for the Quip testnet and local/direct D-Wave providers."""
+"""xquad 0.4.3 solver adapter for the Quip testnet and local/direct D-Wave providers."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def quip_solver(**kwargs):
 
     xqsa reads the signer from QUIP_SIGNER_SEED or QUIP_KEYSTORE.
     """
-    from xqsa import SolverQuip
+    from xqsa.quip import SolverQuip
 
     if os.environ.get("QUIP_RPC_URL"):
         return SolverQuip(**kwargs)

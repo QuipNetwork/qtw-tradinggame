@@ -84,7 +84,7 @@ class _FakeSolverQuip:
 
 
 def _quip_solver(monkeypatch):
-    monkeypatch.setitem(sys.modules, "xqsa", SimpleNamespace(SolverQuip=_FakeSolverQuip))
+    monkeypatch.setitem(sys.modules, "xqsa.quip", SimpleNamespace(SolverQuip=_FakeSolverQuip))
     return XquadProvider("quip")._make_solver()
 
 
@@ -107,7 +107,7 @@ def test_quip_rpc_url_bypasses_the_preset(monkeypatch):
 
 
 def test_full_universe_qubo_encodes_as_a_native_quip_order():
-    from xqsa.quip_codec import model_to_ising, native_placement
+    from xqsa.quip.codec import model_to_ising, native_placement
 
     args = argparse.Namespace(rebalance=50, risk=50, max_position=50, hold_count=8, assets=None)
     qubo = encode_qubo(_build_problem(list(TICKERS), args))
@@ -216,7 +216,7 @@ def test_quip_orders_share_one_solver(monkeypatch, synthetic_problem_3assets):
 
 
 def test_quip_order_timeout_keeps_its_order_id(monkeypatch, synthetic_problem_3assets):
-    from xqsa import QuipTimeoutError
+    from xqsa.quip import QuipTimeoutError
 
     order = _FakeQuipOrder(error=QuipTimeoutError(93))
     monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=order))

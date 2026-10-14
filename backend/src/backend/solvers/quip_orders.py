@@ -112,7 +112,7 @@ def _work() -> None:
 
 
 def _run(problem: PortfolioProblem, on_done: OnDone) -> None:
-    from xqsa import QuipTimeoutError
+    from xqsa.quip import QuipTimeoutError
 
     global _provider
     if _provider is None:
