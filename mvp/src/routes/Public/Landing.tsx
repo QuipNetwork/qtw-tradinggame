@@ -17,11 +17,22 @@ import './landing.css';
 export default function Landing() {
   useReveal();
   const { redirecting, resumeUrl } = useReturningAgent();
-  const [board, setBoard] = useState<LeaderboardEntry[]>([]);
+  // null until the first poll answers; a failed poll keeps the last good board.
+  const [board, setBoard] = useState<LeaderboardEntry[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    const pull = () => getLeaderboard().then(b => { if (alive) setBoard(b); }).catch(() => {});
+    const pull = () =>
+      getLeaderboard()
+        .then(b => {
+          if (!alive) return;
+          setBoard(b);
+          setFailed(false);
+        })
+        .catch(() => {
+          if (alive) setFailed(true);
+        });
     pull();
     const t = setInterval(pull, 5000);
     return () => { alive = false; clearInterval(t); };
@@ -43,8 +54,8 @@ export default function Landing() {
       <main className="qpub-page">
         <Hero resumeUrl={resumeUrl} />
         <HowItWorks />
-        <LiveLeaderboard rows={board} />
-        <Spotlight agent={board[0] ?? null} />
+        <LiveLeaderboard rows={board} failed={failed} />
+        <Spotlight agent={board?.[0] ?? null} />
 
         <section className="qpub-band" data-reveal>
           <h2>Your agent is one tap away.</h2>
