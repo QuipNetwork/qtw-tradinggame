@@ -68,6 +68,9 @@ echo "restarting $CONTAINER_NAME"
 stop_and_remove
 if ! start_container "$IMAGE"; then
   echo "failed to start new backend container" >&2
+  # docker run creates the container before starting it, so a failed start leaves
+  # one behind that would block the rollback by name.
+  stop_and_remove
   if [ -n "$OLD_IMAGE" ]; then
     echo "rolling back to $OLD_IMAGE" >&2
     start_container "$OLD_IMAGE" || true
