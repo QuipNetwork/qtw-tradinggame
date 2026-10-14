@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .. import config
-from ..api.schemas import RoutingResult, SliderValues, SolverResult
+from ..api.schemas import PortfolioEntry, RoutingResult, SliderValues, SolverResult
 from ..financial.basket import get_asset, validate_basket
 from ..financial.estimators.covariance import covariance
 from ..financial.estimators.expected_return import expected_return
@@ -24,7 +24,7 @@ from ..financial.qubo_encoder import resolve_frustration_beta
 from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
 from ..persistence.agents import AgentStore, get_agent_store
-from ..persistence.jobs import JobStore, get_job_store
+from ..persistence.jobs import JobRecord, JobStore, get_job_store
 from ..persistence.qpu_budget import (
     QpuBudgetExceeded,
     QpuBudgetSource,
@@ -34,7 +34,7 @@ from ..persistence.qpu_budget import (
 from ..solvers import quip_orders
 from ..solvers.providers import dwave
 from ..solvers.providers.xquad import selected_backend
-from ..solvers.router import SolverRun, race
+from ..solvers.router import SolverRun, classify_outcome, race
 from ..solvers.types import ProviderProvenance, Solution
 
 _PROVIDER_LABELS = {
@@ -163,7 +163,7 @@ def run_optimization(
     job = jobs.record(agent_id, provenance)
 
     result = RoutingResult(
-        provider=_PROVIDER_LABELS.get(winner.provider, winner.provider),
+        provider=provider_label(winner.provider),
         provider_type=winner.provider_role,
         solve_time=winner.solve_time_s,
         vs_classical=race_result.vs_classical,
@@ -172,7 +172,7 @@ def run_optimization(
             _solver_run_result(run, winner_provider=winner.provider)
             for run in race_result.solver_runs
         ]
-        + [_late_solver_result(summary) for summary in late_results],
+        + [_snapshot_solver_result(summary) for summary in late_results],
         outcome=race_result.outcome,
         kind="first" if is_first else "retune",
         job_id=job.id,
@@ -202,7 +202,7 @@ def run_optimization(
         if submitted is None:  # too many orders pending: this solve proposes none
             skipped = quip_orders.skipped_result()
             jobs.update_solver_result(job.id, skipped)
-            result.solver_results[-1] = _late_solver_result(skipped)
+            result.solver_results[-1] = _snapshot_solver_result(skipped)
 
     update = mark_to_market(holdings_units, spot, agent.bankroll)
     update.next_rebalance_at = scheduled_agent.next_rebalance_at if scheduled_agent else None
@@ -233,7 +233,7 @@ def run_optimization(
 
 def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
     return SolverResult(
-        provider=_PROVIDER_LABELS.get(run.provider, run.provider),
+        provider=provider_label(run.provider),
         providerType=run.provider_role,
         status="winner" if run.provider == winner_provider else run.status,
         feasible=run.feasible,
@@ -246,19 +246,70 @@ def _solver_run_result(run: SolverRun, *, winner_provider: str) -> SolverResult:
     )
 
 
-def _late_solver_result(summary: dict) -> SolverResult:
-    """A solver that finishes after the race (its snapshot summary) as a response row."""
+def provider_label(provider: str) -> str:
+    """The display name of a provider key, e.g. "sa" → "Simulated Annealing"."""
+    return _PROVIDER_LABELS.get(provider, provider)
+
+
+def _snapshot_solver_result(summary: dict) -> SolverResult:
+    """A snapshot summary row as a response row. Rows written before late results existed
+    lack bestObjective and orderId, so the optional fields default."""
     return SolverResult(
-        provider=_PROVIDER_LABELS.get(summary["provider"], summary["provider"]),
+        provider=provider_label(summary["provider"]),
         providerType=summary["providerRole"],
         status=summary["status"],
         feasible=summary["feasible"],
-        solveTime=summary["solveTime"],
-        raceTime=summary["raceTime"],
-        objective=summary["objective"],
-        bestObjective=summary["bestObjective"],
-        error=summary["error"],
-        orderId=summary["orderId"],
+        solveTime=summary.get("solveTime"),
+        raceTime=summary.get("raceTime"),
+        objective=summary.get("objective"),
+        bestObjective=summary.get("bestObjective", False),
+        error=summary.get("error"),
+        orderId=summary.get("orderId"),
+    )
+
+
+def race_comparison(runs: list[dict], winner_provider: str | None) -> tuple[str, dict | None]:
+    """How the winner won against its best feasible race runner-up, from snapshot rows.
+
+    A Quip order runs outside the race, so its row is never the runner-up. Returns the
+    outcome (see classify_outcome) and the runner-up row, or None when there is none.
+    """
+    win = next((run for run in runs if run.get("provider") == winner_provider), None)
+    scored = [
+        run
+        for run in runs
+        if run.get("provider") != winner_provider
+        and run.get("providerRole") != quip_orders.ROLE
+        and run.get("objective") is not None
+        and run.get("feasible", True)
+    ]
+    runner = min(scored, key=lambda run: run["objective"]) if scored else None
+    if win is None:
+        return "quality", runner
+    outcome = classify_outcome(
+        win.get("objective"),
+        win.get("solveTime"),
+        runner.get("objective") if runner else None,
+        runner.get("solveTime") if runner else None,
+    )
+    return outcome, runner
+
+
+def routing_result_from_snapshot(job: JobRecord, snapshot: dict) -> RoutingResult:
+    """Rebuild a stored solve as the optimize response, minus the fields that describe the
+    agent now rather than the solve (rebalance schedule, QPU budget)."""
+    rows = snapshot["solver_results"]
+    outcome, _runner = race_comparison(rows, snapshot["winner_provider"])
+    return RoutingResult(
+        provider=provider_label(job.provider),
+        provider_type=job.provider_role,
+        solve_time=job.solve_time_s,
+        vs_classical=1.0,  # legacy field; not recorded with the snapshot
+        portfolio=[PortfolioEntry(**entry) for entry in snapshot["portfolio"]],
+        solver_results=[_snapshot_solver_result(row) for row in rows],
+        outcome=outcome,
+        job_id=job.id,
+        solved_at=job.solved_at,
     )
 
 

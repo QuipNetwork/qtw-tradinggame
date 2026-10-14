@@ -305,6 +305,51 @@ def test_db_job_store_replaces_a_late_solver_result(tmp_path):
         jobs.update_solver_result("missing", {"provider": "xquad-quip"})
 
 
+def test_db_job_store_finds_the_newest_snapshot_after_reload(tmp_path):
+    url = f"sqlite:///{tmp_path / 'latest.db'}"
+    agents = DbAgentStore(url, environment="local", allow_reset=True)
+    jobs = DbJobStore(url, environment="local", allow_reset=True)
+    eve = agents.create(_config("Eve"), bankroll=10_000.0)
+    bob = agents.create(_config("Bob"), bankroll=10_000.0)
+    assert jobs.latest_solve_snapshot(eve.id) is None
+
+    def solve(agent_id: str, ticker: str) -> str:
+        job = jobs.record(
+            agent_id,
+            ProviderProvenance(
+                provider="sa",
+                provider_role="CPU",
+                q_hash="a" * 64,
+                deadline_s=3.0,
+                solve_time_s=0.12,
+                feasible=True,
+            ),
+        )
+        jobs.record_solve_snapshot(
+            job_id=job.id,
+            agent_id=agent_id,
+            sliders=_config("Eve").sliders.model_dump(by_alias=True),
+            assets=[ticker],
+            portfolio=[{"ticker": ticker, "pct": 100.0, "usd": 10_000.0}],
+            holdings_units={ticker: 1.0},
+            solver_results=[{"provider": "sa", "status": "winner"}],
+            winner_provider="sa",
+        )
+        return job.id
+
+    solve(eve.id, "BTC")
+    newest = solve(eve.id, "ETH")
+    solve(bob.id, "SOL")
+
+    reloaded = DbJobStore(url, environment="local", allow_reset=True)
+    latest = reloaded.latest_solve_snapshot(eve.id)
+    assert latest["job_id"] == newest
+    assert latest["assets"] == ["ETH"]
+    # The copy's rows are its own: a late result replacing a row does not reach it.
+    reloaded.update_solver_result(newest, {"provider": "sa", "status": "feasible"})
+    assert latest["solver_results"] == [{"provider": "sa", "status": "winner"}]
+
+
 def test_db_job_store_fails_results_left_pending(tmp_path):
     url = f"sqlite:///{tmp_path / 'stale.db'}"
     agents = DbAgentStore(url, environment="local", allow_reset=True)

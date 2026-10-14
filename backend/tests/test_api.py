@@ -594,6 +594,124 @@ def test_kiosk_signups_skip_per_ip_limit(monkeypatch):
         assert r2.status_code == 200
 
 
+def test_latest_result_is_404_before_the_first_solve():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        response = client.get(f"/agents/{agent_id}/latest-result")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "no solve yet"
+        assert client.get("/agents/nope/latest-result").status_code == 404
+
+
+def test_latest_result_requires_the_owner_token():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        client.post(f"/agents/{agent_id}/optimize", json={})
+        del client.headers["Authorization"]
+        assert client.get(f"/agents/{agent_id}/latest-result").status_code == 401
+        wrong = {"Authorization": "Bearer wrong"}
+        assert client.get(f"/agents/{agent_id}/latest-result", headers=wrong).status_code == 403
+
+
+def test_latest_result_returns_the_newest_solve_as_optimize_did(monkeypatch):
+    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        client.post(f"/agents/{agent_id}/optimize", json={})
+        solved = client.post(f"/agents/{agent_id}/optimize", json={"assets": _ALT_BASKET}).json()
+
+        response = client.get(f"/agents/{agent_id}/latest-result")
+
+        assert response.status_code == 200
+        latest = response.json()
+        for field in (
+            "provider",
+            "providerType",
+            "solveTime",
+            "portfolio",
+            "solverResults",
+            "outcome",
+            "jobId",
+            "solvedAt",
+            "nextRebalanceAt",
+            "rebalanceIntervalHours",
+        ):
+            assert latest[field] == solved[field], field
+        assert {entry["ticker"] for entry in latest["portfolio"]} == set(_ALT_BASKET)
+        assert latest["qpuBudget"] is not None
+
+
+def test_latest_result_reads_old_rows_and_keeps_the_quip_order_out_of_the_comparison():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        jobs = get_job_store()
+        job = jobs.record(
+            agent_id,
+            ProviderProvenance(
+                provider="sa",
+                provider_role="CPU",
+                q_hash="d" * 64,
+                deadline_s=3.0,
+                solve_time_s=0.10,
+                feasible=True,
+            ),
+        )
+        jobs.record_solve_snapshot(
+            job_id=job.id,
+            agent_id=agent_id,
+            sliders=_SLIDERS,
+            assets=_BASKET,
+            portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
+            holdings_units={"BTC": 1.0},
+            solver_results=[
+                # Written before bestObjective and orderId existed.
+                {
+                    "provider": "sa",
+                    "providerRole": "CPU",
+                    "status": "winner",
+                    "feasible": True,
+                    "solveTime": 0.10,
+                    "raceTime": 0.10,
+                    "objective": 0.00009,
+                    "error": None,
+                },
+                {
+                    "provider": "dwave",
+                    "providerRole": "QPU",
+                    "status": "feasible",
+                    "feasible": True,
+                    "solveTime": 0.106,
+                    "raceTime": 0.106,
+                    "objective": 0.00009,
+                    "error": None,
+                },
+                # A finished Quip order with a better objective is not a race runner-up.
+                {
+                    "provider": "xquad-quip",
+                    "providerRole": "NETWORK",
+                    "status": "feasible",
+                    "feasible": True,
+                    "solveTime": 78.75,
+                    "raceTime": None,
+                    "objective": 0.00001,
+                    "bestObjective": False,
+                    "error": None,
+                    "orderId": "357",
+                },
+            ],
+            winner_provider="sa",
+        )
+
+        latest = client.get(f"/agents/{agent_id}/latest-result").json()
+
+        assert latest["provider"] == "Simulated Annealing"
+        assert latest["outcome"] == "tie"  # against D-Wave, not the Quip order
+        rows = {row["provider"]: row for row in latest["solverResults"]}
+        assert rows["Simulated Annealing"]["bestObjective"] is False
+        assert rows["Simulated Annealing"]["orderId"] is None
+        assert rows["Quip testnet (xquad)"]["orderId"] == "357"
+
+
 @requires_gurobi
 def test_optimize_accepts_a_new_basket():
     with TestClient(create_app()) as client:
