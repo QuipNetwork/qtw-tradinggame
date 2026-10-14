@@ -21,6 +21,8 @@ export class ReconnectingSocket<T> {
   constructor(
     private readonly url: string,
     private readonly handlers: Handlers<T>,
+    // Sec-WebSocket-Protocol values; the agent channel carries its token here.
+    private readonly protocols?: string[],
   ) {
     this.connect();
   }
@@ -29,7 +31,7 @@ export class ReconnectingSocket<T> {
     this.handlers.onStatus?.(this.attempt === 0 ? 'connecting' : 'reconnecting');
     let socket: WebSocket;
     try {
-      socket = new WebSocket(this.url);
+      socket = new WebSocket(this.url, this.protocols);
     } catch {
       this.scheduleReconnect();
       return;

@@ -222,9 +222,11 @@ export function subscribeAgent(
 ): () => void {
   const token = getAgentToken(agentId);
   const base = websocketUrl(`/agents/${encodeURIComponent(agentId)}`);
+  // Browsers can't set WebSocket headers, so the token rides in Sec-WebSocket-Protocol;
+  // a query string would land in the server log.
   // Valuation updates carry no `type`; other frames name theirs. Unknown types are dropped.
   const socket = new ReconnectingSocket<AgentUpdate | SolverResultsFrame>(
-    token ? `${base}?t=${encodeURIComponent(token)}` : base,
+    base,
     {
       onMessage: frame => {
         if (!('type' in frame)) callback(frame);
@@ -232,6 +234,7 @@ export function subscribeAgent(
       },
       onStatus: options.onStatus,
     },
+    token ? ['quip.v1', `auth.${token}`] : undefined,
   );
   return () => socket.close();
 }
