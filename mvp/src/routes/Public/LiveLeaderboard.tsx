@@ -42,6 +42,8 @@ export default function LiveLeaderboard({
       <div className="qpub-board-head">
         <h2>Leaderboard</h2>
         {IS_MOCK && <span className="qpub-board-note">Demo data</span>}
+        {/* A failed poll keeps the last rows; say they may be stale. */}
+        {failed && shown.length > 0 && <span className="qpub-board-note">Reconnecting…</span>}
       </div>
 
       <div className="qpub-board-cols" aria-hidden>
