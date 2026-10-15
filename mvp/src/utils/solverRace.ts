@@ -72,10 +72,7 @@ function solved(row: SolverResult): boolean {
 export function solverRaceComparison(result: RoutingResult | null): SolverRaceComparison {
   const rows = solverRaceRows(result);
   const winner = rows.find(row => row.isWinner);
-  // A Quip order runs outside the race, so it is never the comparison opponent.
-  const opponent = rows.find(
-    row => !row.isWinner && row.feasible && row.solveTime != null && row.providerType !== 'NETWORK',
-  );
+  const opponent = raceRunnerUp(rows);
   if (!winner || !opponent || winner.solveTime == null || opponent.solveTime == null) {
     return {
       value: '—',
@@ -113,6 +110,19 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
   };
 }
 
+// The solver the winner is compared against, picked as the backend picks it for `outcome`
+// and the TV: the feasible race solver with the lowest objective. A Quip order runs outside
+// the race, so it is never one. Rows without objectives (demo data) fall back to the
+// fastest feasible solver.
+function raceRunnerUp(rows: SolverRaceRow[]): SolverRaceRow | undefined {
+  const candidates = rows.filter(
+    row => !row.isWinner && row.feasible && row.solveTime != null && row.providerType !== 'NETWORK',
+  );
+  const scored = candidates.filter(row => row.objective != null);
+  if (scored.length === 0) return candidates[0];
+  return scored.reduce((best, row) => (row.objective! < best.objective! ? row : best));
+}
+
 // A result without per-solver rows still names its winner.
 function winnerOnlyRow(result: RoutingResult): SolverResult {
   return {
@@ -139,8 +149,17 @@ function timeLabelFor(row: SolverResult): string {
 }
 
 function detailFor(row: SolverResult): string {
+  return [statusDetail(row), orderDetail(row)].filter(Boolean).join(' · ');
+}
+
+function statusDetail(row: SolverResult): string {
   if (row.status === 'winner') return 'winner';
   // 'feasible' is internal jargon — a valid runner-up needs no extra label.
   if (row.status === 'feasible') return '';
   return row.status; // infeasible / failed / timeout stay informative
+}
+
+// A Quip order is on chain under its order ID once proposed; show it so it can be looked up.
+export function orderDetail(row: SolverResult): string {
+  return row.orderId ? `order\u00a0${row.orderId}` : '';  // never split from its number
 }
