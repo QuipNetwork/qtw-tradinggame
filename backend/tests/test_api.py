@@ -540,11 +540,11 @@ def test_optimize_returns_routing_result():
         assert sum(entry["pct"] for entry in body["portfolio"]) == pytest.approx(100.0, abs=1e-6)
 
 
-@requires_gurobi
 def _auth_subprotocols(token: str) -> list[str]:
     return ["quip.v1", f"auth.{token}"]
 
 
+@requires_gurobi
 def test_websocket_streams_agent_update():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
