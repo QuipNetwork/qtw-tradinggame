@@ -135,7 +135,7 @@ production env unless deliberately running a hardware tuning pass.
 | `XQUAD_BACKEND` | no | `quip` | Unset/`off` keeps the direct D-Wave solver. `quip` also sends each manual solve to the Quip testnet as a background order; see Quip Testnet Orders. |
 | `QUIP_SIGNER_SEED` | yes with `XQUAD_BACKEND=quip` | 32-byte hex seed | The Quip signing account. Or set `QUIP_KEYSTORE` instead. |
 | `QUIP_KEYSTORE` | alternative to the seed | `/data/quip/keystore.json` | Keystore path inside the container; needs a mounted volume. |
-| `XQUAD_TIMEOUT_S` | no | `120` | How long the worker waits for one Quip order to finalize. |
+| `XQUAD_TIMEOUT_S` | yes with `XQUAD_BACKEND=quip` | `300` | How long the worker waits for one Quip order to finalize. The code default is `120`, which portfolio orders on Aglais runtime 119 exceed; set `300`. |
 | `QUIP_MAX_PENDING_ORDERS` | no | `3` | Orders queued or in flight at once; extra solves record the Quip row as `skipped`. |
 | `QUIP_RPC_URL` | no | unset | Unset uses xqsa's `aglais` preset (public RPC and faucet). Set only for another node. |
 | `QUIP_AUTOFUND` | no | `1` | `0` stops the faucet top-up when the account cannot cover an order. |
@@ -269,7 +269,20 @@ fresh empty account:
   `backend-deploy.sh` does not do; add a read-only `-v` mount to its
   `docker run` if you choose this.
 
-The server refuses to start with `XQUAD_BACKEND=quip` and neither variable set.
+Set `XQUAD_TIMEOUT_S=300` as well. On Aglais runtime 119 a portfolio order took
+from about 80s to about 290s to finalize, and an order past the timeout shows as
+`timeout` instead of its result. A longer timeout also holds each of the
+`QUIP_MAX_PENDING_ORDERS` slots longer, so under heavy traffic more solves
+record their Quip row as `skipped`.
+
+```bash
+XQUAD_BACKEND=quip
+QUIP_SIGNER_SEED=<32-byte hex seed of the signing account>
+XQUAD_TIMEOUT_S=300
+```
+
+The server refuses to start with `XQUAD_BACKEND=quip` and neither
+`QUIP_SIGNER_SEED` nor `QUIP_KEYSTORE` set.
 The Quip queue is in memory: a restart drops queued orders, and any result
 still `pending` is marked `failed` at the next startup.
 
