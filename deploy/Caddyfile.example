@@ -20,6 +20,10 @@ qtw.backend.quip.network {
 		-Server
 	}
 
+	# If you add a `log` directive, delete `request>headers>Sec-Websocket-Protocol` with a
+	# `format filter`: the agent websocket carries its owner token in that header, and Caddy
+	# redacts only Cookie, Set-Cookie, Authorization and Proxy-Authorization by default.
+	#
 	# Overwrite X-Real-IP with the real peer so the backend's rate limiter can't be
 	# fooled by a client-supplied X-Forwarded-For. The app reads X-Real-IP first.
 	reverse_proxy 127.0.0.1:8000 {
