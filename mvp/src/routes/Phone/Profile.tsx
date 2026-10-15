@@ -223,10 +223,12 @@ export default function PhoneProfile() {
     };
   }, [agentId]);
 
-  // A solver that finished after the race (a Quip order) updates the race shown.
+  // A solver that finished after the race (a Quip order) updates the race shown. Re-run when
+  // the result's job arrives too, in case the frame landed before the result did.
+  const resultJobId = result?.jobId;
   useEffect(() => {
     if (solverResults) setResult(prev => applySolverResults(prev, solverResults));
-  }, [solverResults]);
+  }, [solverResults, resultJobId]);
 
   // React to each live tick: extend the sparkline buffer and honor any QPU
   // cooldown the backend reports on the stream. The subscription itself is owned

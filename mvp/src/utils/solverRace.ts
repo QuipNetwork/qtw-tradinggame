@@ -149,8 +149,17 @@ function timeLabelFor(row: SolverResult): string {
 }
 
 function detailFor(row: SolverResult): string {
+  return [statusDetail(row), orderDetail(row)].filter(Boolean).join(' · ');
+}
+
+function statusDetail(row: SolverResult): string {
   if (row.status === 'winner') return 'winner';
   // 'feasible' is internal jargon — a valid runner-up needs no extra label.
   if (row.status === 'feasible') return '';
   return row.status; // infeasible / failed / timeout stay informative
+}
+
+// A Quip order is on chain under its order ID once proposed; show it so it can be looked up.
+export function orderDetail(row: SolverResult): string {
+  return row.orderId ? `order\u00a0${row.orderId}` : '';  // never split from its number
 }
