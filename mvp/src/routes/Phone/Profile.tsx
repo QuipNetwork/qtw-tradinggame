@@ -150,7 +150,8 @@ export default function PhoneProfile() {
   const [sliders, setSliders] = useState<number[] | null>(null);
   const [holdCount, setHoldCount] = useState<number | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const { update: live, solverResults } = useAgentLive(agentId);
+  const { update: live, solverResults, status: liveStatus } = useAgentLive(agentId);
+  const resultRef = useRef<RoutingResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'profile' | 'basket' | 'portfolio'>('profile');
   const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
@@ -229,6 +230,25 @@ export default function PhoneProfile() {
   useEffect(() => {
     if (solverResults) setResult(prev => applySolverResults(prev, solverResults));
   }, [solverResults, resultJobId]);
+
+  useEffect(() => {
+    resultRef.current = result;
+  }, [result]);
+
+  // The socket does not replay a frame pushed while it was down (a locked phone, say): when it
+  // reconnects with a Quip row still pending, re-read the race, keeping it only if it is still
+  // the solve on screen.
+  useEffect(() => {
+    if (liveStatus !== 'live' || !agentId) return;
+    if (!resultRef.current?.solverResults?.some(row => row.status === 'pending')) return;
+    let cancelled = false;
+    getLatestResult(agentId)
+      .then(latest => {
+        if (!cancelled && latest) setResult(prev => (prev?.jobId === latest.jobId ? latest : prev));
+      })
+      .catch(() => { /* keep the pending row; the next frame or a reload settles it */ });
+    return () => { cancelled = true; };
+  }, [agentId, liveStatus]);
 
   // React to each live tick: extend the sparkline buffer and honor any QPU
   // cooldown the backend reports on the stream. The subscription itself is owned
