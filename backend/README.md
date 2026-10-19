@@ -263,10 +263,12 @@ Things worth checking in the response:
 ## Test the live WebSocket
 
 The MTM loop pushes a valuation every `MTM_TICK_S` seconds (10s by default,
-matching assets-api's spot loop), and each optimize also pushes one.
-Scheduled rebalances run in a separate loop and use the same QPU-capable
-optimization path as manual retunes. With the server running and an agent that
-has optimized at least once:
+matching assets-api's spot loop), and each optimize also pushes one. A
+finished Quip order also pushes a `solver-results` frame with the job's
+solver rows (`{"type": "solver-results", "jobId", "solverResults", ...}`)
+alongside the valuation fields. Scheduled rebalances run in a separate loop
+and use the same QPU-capable optimization path as manual retunes. With the
+server running and an agent that has optimized at least once:
 
 ```bash
 .venv/bin/python - <<'PY'
