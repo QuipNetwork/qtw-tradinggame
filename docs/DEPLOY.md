@@ -102,7 +102,14 @@ The second URL is the Flux app domain and bypasses the custom hostname.
 
 ## Deploying Main To Orbit
 
-Not done yet. Moving `main` onto `deploy/orbit` takes:
+Not done yet. Until it is, the frontend on `main` runs against an older backend:
+`deploy/orbit` has no `GET /agents/{id}/latest-result`, so a phone shows no
+race until it retunes, and it accepts the agent token only as `?t=`, so the
+phone's websocket, which sends the token as a subprotocol, is rejected and the
+phone gets no live updates. Deploy `main` to Orbit before or together with the
+Netlify build of the same commit.
+
+Moving `main` onto `deploy/orbit` takes:
 
 1. **Send-off email.** Decide whether `93b1db9`'s send-off variant
    (`backend/src/backend/notifications/seeoff.py`) belongs on `main`. Building
@@ -112,9 +119,8 @@ Not done yet. Moving `main` onto `deploy/orbit` takes:
    `pyproject.toml` and `uv.lock` require Python `>=3.13`, and CI and the
    Dockerfile use 3.13; the current `3.12` pin cannot install it.
 3. **Dependencies.** `main` tracks `backend/uv.lock`, which Orbit would prefer
-   over `requirements.txt`. Regenerate the pins from the lock (this resolves
-   `xqsa==0.4.4`), keep the trailing `.` line, and leave `uv.lock` off
-   `deploy/orbit`:
+   over `requirements.txt`. Regenerate the pins from the lock, keep the trailing
+   `.` line, and leave `uv.lock` off `deploy/orbit`:
 
    ```bash
    cd backend
@@ -123,13 +129,20 @@ Not done yet. Moving `main` onto `deploy/orbit` takes:
    git rm uv.lock
    ```
 
+   Check that `requirements.txt` pins `xqsa==0.4.4`. Since Aglais runtime 119,
+   xqsa 0.4.2 and earlier cannot place Quip orders, so every Quip row would
+   fail.
 4. **Quip env.** With `XQUAD_BACKEND=quip`, add `QUIP_SIGNER_SEED` to the Orbit
    app env; the server refuses to start without it. `XQUAD_TIMEOUT_S` defaults to
-   180 s in code and needs no entry. Leave `XQUAD_BACKEND` unset to keep Quip
+   180 s in code and needs no entry; remove one left in the app env, since a
+   `120` or `300` overrides the default. Leave `XQUAD_BACKEND` unset to keep Quip
    orders off.
 5. **Deploy.** Point `deploy/orbit` at the result, Hard Redeploy, and run the
-   smoke tests. To roll back, point `deploy/orbit` at `6e66183` and Hard
-   Redeploy.
+   smoke tests. Until the Netlify frontend sends the websocket token as a
+   subprotocol, roll back by pointing `deploy/orbit` at `6e66183` and running a
+   Hard Redeploy. Once it does, roll back only to a commit that accepts the
+   subprotocol token: an older backend rejects the phone's websocket, and the
+   page shows no error.
 
 ## Backend Runtime Env
 
@@ -281,6 +294,11 @@ VITE_API_BASE=https://qtw.backend.quip.network
 Usually leave `VITE_WS_BASE` unset; the frontend derives websocket URLs from
 `VITE_API_BASE`. Set it only if websocket traffic uses a different host.
 
+The agent websocket sends the owner token in the `Sec-WebSocket-Protocol`
+request header (`quip.v1`, `auth.<token>`), since browsers cannot set other
+websocket headers and a query string would be logged. Any proxy in front of the
+backend must forward that header, and must not write it to an access log.
+
 Redeploy Netlify after env changes because Vite bakes `VITE_*` variables at
 build time.
 
@@ -377,7 +395,9 @@ After backend and frontend are connected:
 1. Open `https://qtw.quip.network`.
 2. Create an agent from the kiosk flow.
 3. Confirm the QR URL points to `https://qtw.quip.network/p/{agentId}`.
-4. Run an optimization and confirm the phone receives websocket updates.
+4. Run an optimization and confirm the phone receives websocket updates. With
+   `XQUAD_BACKEND=quip`, confirm the phone's Quip row goes from "on chain…" to
+   its final status and order ID without a reload.
 5. Confirm Supabase has rows with `environment='production'`.
 6. Hard Redeploy the Orbit app and confirm the agent/leaderboard hydrate from DB.
 7. Confirm `valuation_snapshots` are sampled around every 60 seconds, not every
@@ -395,7 +415,14 @@ After backend and frontend are connected:
   `QUIP_SIGNER_SEED` in the Orbit app env, or unset `XQUAD_BACKEND`.
 - Quip rows stay `failed` or `timeout`: search the app logs for `quip order`;
   the testnet RPC or faucet may be down, and https://aglais.quip.network lists
-  the current endpoints.
+  the current endpoints. Every order failing right after a deploy means an xqsa
+  older than 0.4.3 (see Deploying Main To Orbit).
+- The first Quip order after 5 minutes or more without one fails with `could not
+  read the QuantumComputeMempool.MaxNodes constant`: the Aglais RPC closed the
+  worker's idle connection. The worker then reconnects, so the next order goes
+  through.
+- The phone loads but never updates live: the backend is older than the
+  frontend and rejects the subprotocol token (see Deploying Main To Orbit).
 - `/healthz` returns `persistence: "memory"`: `DATABASE_URL` is missing from the
   Orbit app env, or the app was not Hard Redeployed after adding it.
 - `qtw.backend.quip.network` fails while `qtw-backend.app.runonflux.io` answers:
@@ -420,5 +447,7 @@ After backend and frontend are connected:
   proxy (`git show 486c19b:deploy/Caddyfile.example`) capped request bodies
   at 64 KB, added security headers, and overwrote `X-Real-IP`, which the
   signup rate limiter reads first; nothing in this repo does that on Orbit.
+  Also confirm that it forwards `Sec-WebSocket-Protocol` and does not log it
+  (see Netlify Frontend).
 - Decide whether `backend:image` in CI should keep pushing registry images that
   no deploy consumes.
