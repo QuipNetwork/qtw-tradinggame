@@ -40,8 +40,10 @@ background worker that submits one order at a time with one shared
 `SolverQuip`, so concurrent solves never sign with the same account nonce. When
 the order finalizes, its result (status, objective, order ID) replaces the
 `pending` entry in that job's solve snapshot. It never changes the agent's
-portfolio. `XQUAD_TIMEOUT_S` (default 120 s) is how long the worker waits for a
-proposed order to finalize.
+portfolio. `XQUAD_TIMEOUT_S` (default 180 s) is how long the worker waits for a
+proposed order to finalize. An order finalizes 10 blocks after its first
+answer; on Aglais (6 s blocks) the 28-asset order finalized 66–130 s after
+proposal, and 120 s timed out one order in eleven.
 
 At most `QUIP_MAX_PENDING_ORDERS` orders (default 3) are queued or in flight at
 once; a solve beyond that records its Quip row as `skipped`, so no order goes

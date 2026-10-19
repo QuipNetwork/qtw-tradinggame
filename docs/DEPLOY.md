@@ -135,7 +135,7 @@ production env unless deliberately running a hardware tuning pass.
 | `XQUAD_BACKEND` | no | `quip` | Unset/`off` keeps the direct D-Wave solver. `quip` also sends each manual solve to the Quip testnet as a background order; see Quip Testnet Orders. |
 | `QUIP_SIGNER_SEED` | yes with `XQUAD_BACKEND=quip` | 32-byte hex seed | The Quip signing account. Or set `QUIP_KEYSTORE` instead. |
 | `QUIP_KEYSTORE` | alternative to the seed | `/data/quip/keystore.json` | Keystore path inside the container; needs a mounted volume. |
-| `XQUAD_TIMEOUT_S` | no | `120` | How long the worker waits for one Quip order to finalize. |
+| `XQUAD_TIMEOUT_S` | no | `180` | How long the worker waits for one Quip order to finalize. |
 | `QUIP_MAX_PENDING_ORDERS` | no | `3` | Orders queued or in flight at once; extra solves record the Quip row as `skipped`. |
 | `QUIP_RPC_URL` | no | unset | Unset uses xqsa's `aglais` preset (public RPC and faucet). Set only for another node. |
 | `QUIP_AUTOFUND` | no | `1` | `0` stops the faucet top-up when the account cannot cover an order. |
