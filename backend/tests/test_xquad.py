@@ -2,6 +2,8 @@
 
 import argparse
 import logging
+import os
+import subprocess
 import sys
 import threading
 import time
@@ -84,7 +86,7 @@ class _FakeSolverQuip:
 
 
 def _quip_solver(monkeypatch):
-    monkeypatch.setitem(sys.modules, "xqsa", SimpleNamespace(SolverQuip=_FakeSolverQuip))
+    monkeypatch.setitem(sys.modules, "xqsa.quip", SimpleNamespace(SolverQuip=_FakeSolverQuip))
     return XquadProvider("quip")._make_solver()
 
 
@@ -106,8 +108,24 @@ def test_quip_rpc_url_bypasses_the_preset(monkeypatch):
     assert solver.kwargs == {"topology": "native", "timeout": config.XQUAD_TIMEOUT_S}
 
 
+@pytest.mark.parametrize(("override", "expected"), [(None, "180.0"), ("240", "240.0")])
+def test_quip_order_timeout_defaults_to_180_s(override, expected):
+    # config reads the environment at import, so read it in a fresh interpreter.
+    env = {k: v for k, v in os.environ.items() if k != "XQUAD_TIMEOUT_S"}
+    if override is not None:
+        env["XQUAD_TIMEOUT_S"] = override
+    out = subprocess.run(
+        [sys.executable, "-c", "from backend import config; print(config.XQUAD_TIMEOUT_S)"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert out.stdout.strip() == expected
+
+
 def test_full_universe_qubo_encodes_as_a_native_quip_order():
-    from xqsa.quip_codec import model_to_ising, native_placement
+    from xqsa.quip.codec import model_to_ising, native_placement
 
     args = argparse.Namespace(rebalance=50, risk=50, max_position=50, hold_count=8, assets=None)
     qubo = encode_qubo(_build_problem(list(TICKERS), args))
@@ -216,7 +234,7 @@ def test_quip_orders_share_one_solver(monkeypatch, synthetic_problem_3assets):
 
 
 def test_quip_order_timeout_keeps_its_order_id(monkeypatch, synthetic_problem_3assets):
-    from xqsa import QuipTimeoutError
+    from xqsa.quip import QuipTimeoutError
 
     order = _FakeQuipOrder(error=QuipTimeoutError(93))
     monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=order))

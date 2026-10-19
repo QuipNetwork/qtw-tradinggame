@@ -12,7 +12,7 @@ def to_xqmx(qubo: QuboMatrix):
 
     xquad uses integer coefficients; the Quip codec multiplies spin biases by
     1000 and stores them as i32, so a natural coefficient must stay within
-    xqsa.quip_codec.MAX_NATURAL_COEFFICIENT (2_147_483). The binary-to-spin
+    xqsa.quip.codec.MAX_NATURAL_COEFFICIENT (2_147_483). The binary-to-spin
     transform (h_i = a_i/2 + sum_j b_ij/4, J_ij = b_ij/4) puts at most half a
     variable's incident sum on its spin field, so scaling the largest incident
     sum to 1e6 keeps every coefficient well inside that range.

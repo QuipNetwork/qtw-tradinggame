@@ -37,8 +37,7 @@ start_container() {
 }
 
 check_health() {
-  local attempt
-  for attempt in $(seq 1 30); do
+  for _ in $(seq 1 30); do
     if curl -fsS "$HEALTH_URL" >/dev/null; then
       return 0
     fi
@@ -57,7 +56,9 @@ fi
 
 OLD_IMAGE=""
 if container_exists; then
-  OLD_IMAGE="$(docker inspect --format '{{.Config.Image}}' "$CONTAINER_NAME")"
+  # The image ID, not its tag: pulling a reused tag (main, latest) repoints it at
+  # the new image, so rolling back by tag would restart the failing image.
+  OLD_IMAGE="$(docker inspect --format '{{.Image}}' "$CONTAINER_NAME")"
 fi
 
 echo "pulling $IMAGE"
@@ -67,6 +68,9 @@ echo "restarting $CONTAINER_NAME"
 stop_and_remove
 if ! start_container "$IMAGE"; then
   echo "failed to start new backend container" >&2
+  # docker run creates the container before starting it, so a failed start leaves
+  # one behind that would block the rollback by name.
+  stop_and_remove
   if [ -n "$OLD_IMAGE" ]; then
     echo "rolling back to $OLD_IMAGE" >&2
     start_container "$OLD_IMAGE" || true
