@@ -2,6 +2,8 @@
 
 import argparse
 import logging
+import os
+import subprocess
 import sys
 import threading
 import time
@@ -104,6 +106,22 @@ def test_quip_rpc_url_bypasses_the_preset(monkeypatch):
 
     assert solver.network is None
     assert solver.kwargs == {"topology": "native", "timeout": config.XQUAD_TIMEOUT_S}
+
+
+@pytest.mark.parametrize(("override", "expected"), [(None, "180.0"), ("240", "240.0")])
+def test_quip_order_timeout_defaults_to_180_s(override, expected):
+    # config reads the environment at import, so read it in a fresh interpreter.
+    env = {k: v for k, v in os.environ.items() if k != "XQUAD_TIMEOUT_S"}
+    if override is not None:
+        env["XQUAD_TIMEOUT_S"] = override
+    out = subprocess.run(
+        [sys.executable, "-c", "from backend import config; print(config.XQUAD_TIMEOUT_S)"],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert out.stdout.strip() == expected
 
 
 def test_full_universe_qubo_encodes_as_a_native_quip_order():
