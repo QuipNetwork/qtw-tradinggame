@@ -49,8 +49,8 @@ def _final_quip_result(job_id: str, timeout_s: float) -> dict:
         time.sleep(1)
 
 
-# xqsa 0.4.3 deprecates SolverQuip.query() for get_receipt(), but a receipt cannot yet decode
-# the winning answer onto the model (QUI-1609), and the read-back needs that decode.
+# Since xqsa 0.4.3, SolverQuip.query() is deprecated for get_receipt(), but a receipt cannot
+# yet decode the winning answer onto the model (QUI-1609), and the read-back needs that decode.
 @pytest.mark.filterwarnings(r"ignore:SolverQuip\.query\(\) is deprecated:DeprecationWarning")
 def test_optimize_solves_the_portfolio_on_the_quip_testnet(monkeypatch):
     monkeypatch.setenv("XQUAD_BACKEND", "quip")

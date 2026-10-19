@@ -224,8 +224,9 @@ RACE_TIME_TIE_TOL: float = float(os.environ.get("RACE_TIME_TIE_TOL", 0.15))
 # proposal, finalizing 66-130 s later; 180 s covers a first answer up to ~19 blocks.
 XQUAD_TIMEOUT_S: float = float(os.environ.get("XQUAD_TIMEOUT_S", 180))
 # Most Quip orders outstanding (queued or in flight) at once. The worker runs one order at a
-# time, 1-2 min each, so this bounds how stale a queued order can get; a solve beyond it
-# records its Quip row as skipped.
+# time, usually 1-2 min each and at most XQUAD_TIMEOUT_S, so this bounds how stale a queued
+# order can get (at most (QUIP_MAX_PENDING_ORDERS - 1) * XQUAD_TIMEOUT_S, 6 min by default);
+# a solve beyond it records its Quip row as skipped.
 QUIP_MAX_PENDING_ORDERS: int = int(os.environ.get("QUIP_MAX_PENDING_ORDERS", 3))
 
 # -----------------------------------------------------------------------------
