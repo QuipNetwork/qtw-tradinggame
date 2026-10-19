@@ -256,9 +256,10 @@ def classify_outcome(
 
 
 def _classify_outcome(winner: Solution, feasible: list[Solution]) -> str:
-    """Race-path wrapper: pick the best feasible runner-up, then classify (see classify_outcome)."""
+    """Race-path wrapper: pick the best feasible runner-up (equal objectives go to the faster
+    solver), then classify (see classify_outcome)."""
     others = [s for s in feasible if s is not winner and s.objective is not None]
-    runner = min(others, key=lambda s: s.objective) if others else None
+    runner = min(others, key=lambda s: (s.objective, s.solve_time_s)) if others else None
     return classify_outcome(
         winner.objective,
         winner.solve_time_s,

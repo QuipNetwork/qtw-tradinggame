@@ -112,15 +112,20 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
 
 // The solver the winner is compared against, picked as the backend picks it for `outcome`
 // and the TV: the feasible race solver with the lowest objective. A Quip order runs outside
-// the race, so it is never one. Rows without objectives (demo data) fall back to the
-// fastest feasible solver.
+// the race, so it is never one. Equal objectives go to the faster solver, as in the backend.
+// Rows without objectives (demo data) fall back to the fastest feasible solver.
 function raceRunnerUp(rows: SolverRaceRow[]): SolverRaceRow | undefined {
   const candidates = rows.filter(
     row => !row.isWinner && row.feasible && row.solveTime != null && row.providerType !== 'NETWORK',
   );
   const scored = candidates.filter(row => row.objective != null);
   if (scored.length === 0) return candidates[0];
-  return scored.reduce((best, row) => (row.objective! < best.objective! ? row : best));
+  return scored.reduce((best, row) =>
+    row.objective! < best.objective! ||
+    (row.objective === best.objective && row.solveTime! < best.solveTime!)
+      ? row
+      : best,
+  );
 }
 
 // A result without per-solver rows still names its winner.

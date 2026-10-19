@@ -15,7 +15,7 @@ dependencies = [
     "gurobipy>=11.0",
     "dwave-neal>=0.6",
     "dwave-system>=1.20",
-    "xqsa[quip,dwave]==0.4.1",
+    "xqsa[quip,dwave]==0.4.4",
     "better-profanity>=0.7",
 ]
 
