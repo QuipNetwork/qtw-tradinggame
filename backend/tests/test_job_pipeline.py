@@ -7,7 +7,7 @@ import importlib.util
 import pytest
 
 from backend.api.schemas import AgentConfig, SliderValues
-from backend.orchestration.job import run_optimization
+from backend.orchestration.job import race_comparison, run_optimization
 from backend.persistence.agents import get_agent_store
 
 pytestmark = pytest.mark.skipif(
@@ -152,3 +152,14 @@ def test_convex_fallback_holds_all_and_ignores_hold_count(monkeypatch):
     result = run_optimization(record.id).result
     # convex mode ignores holdCount: every basket asset is held
     assert {e.ticker for e in result.portfolio} == set(BASKET)
+
+
+def test_race_comparison_runner_up_tie_goes_to_the_faster_solver():
+    runs = [
+        {"provider": "sa", "feasible": True, "objective": 0.001, "solveTime": 0.10},
+        {"provider": "gurobi", "feasible": True, "objective": 0.001, "solveTime": 0.50},
+        {"provider": "dwave", "feasible": True, "objective": 0.001, "solveTime": 0.11},
+    ]
+    outcome, runner = race_comparison(runs, "sa")
+    assert runner["provider"] == "dwave"
+    assert outcome == "tie"

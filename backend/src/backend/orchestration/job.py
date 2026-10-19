@@ -11,6 +11,7 @@ own worker thread, which records the result and publishes it through
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from .. import config
@@ -282,8 +283,9 @@ def _snapshot_solver_result(summary: dict) -> SolverResult:
 def race_comparison(runs: list[dict], winner_provider: str | None) -> tuple[str, dict | None]:
     """How the winner won against its best feasible race runner-up, from snapshot rows.
 
-    A Quip order runs outside the race, so its row is never the runner-up. Returns the
-    outcome (see classify_outcome) and the runner-up row, or None when there is none.
+    A Quip order runs outside the race, so its row is never the runner-up. Equal objectives
+    go to the faster solver, as on the phone and kiosk. Returns the outcome (see
+    classify_outcome) and the runner-up row, or None when there is none.
     """
     win = next((run for run in runs if run.get("provider") == winner_provider), None)
     scored = [
@@ -294,7 +296,11 @@ def race_comparison(runs: list[dict], winner_provider: str | None) -> tuple[str,
         and run.get("objective") is not None
         and run.get("feasible", True)
     ]
-    runner = min(scored, key=lambda run: run["objective"]) if scored else None
+    runner = (
+        min(scored, key=lambda run: (run["objective"], run.get("solveTime") or math.inf))
+        if scored
+        else None
+    )
     if win is None:
         return "quality", runner
     outcome = classify_outcome(

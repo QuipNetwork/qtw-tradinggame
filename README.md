@@ -1,6 +1,6 @@
 # Quip Network · QTW 2026 Trading Competition
 
-Booth activation for **Quantum.Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
+Booth activation for **Quantum.Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time. Every solve races classical solvers against the D-Wave QPU (when a Leap token is configured), and the race decides the portfolio. With `XQUAD_BACKEND=quip`, a manual solve also sends the same problem to the Quip testnet as an order that runs beside the race.
 
 ## Start here
 
@@ -40,10 +40,11 @@ See [`backend/README.md`](./backend/README.md) for the Python backend (solver ra
 Frontend: `netlify.toml` is wired up. Every push to `main` triggers an auto-build
 for the Netlify deployment surfaced at https://qtw.quip.network.
 
-Backend: `.gitlab-ci.yml` can test, build, and push the FastAPI Docker image,
-with a manual deploy job for a DigitalOcean droplet. See
-[`docs/DEPLOY.md`](./docs/DEPLOY.md) for the consolidated operator runbook,
-runtime environment reference, Supabase notes, and Proton SMTP setup.
+Backend: `.gitlab-ci.yml` tests the backend and builds and pushes its Docker
+image; deploys run by hand on the DigitalOcean droplet with
+`deploy/backend-deploy.sh`. See [`docs/DEPLOY.md`](./docs/DEPLOY.md) for the
+operator runbook, runtime environment reference, Supabase notes, Quip testnet
+settings, and Resend email setup.
 
 ## Engineering handoff
 
