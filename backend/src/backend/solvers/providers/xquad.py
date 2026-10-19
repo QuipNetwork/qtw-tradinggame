@@ -58,6 +58,13 @@ class XquadProvider:
         self.name = _NAMES[backend]
         self.role = _ROLES[backend]
         self._solver = solver
+        self._last_solved: float | None = None  # time.monotonic() when a solve last returned
+
+    def idle_s(self) -> float:
+        """Seconds since a solve last returned or raised; 0 before the first solve."""
+        if self._last_solved is None:
+            return 0.0
+        return time.monotonic() - self._last_solved
 
     def _make_solver(self):
         if self.backend == "quip":
@@ -79,7 +86,10 @@ class XquadProvider:
         if self._solver is None:
             self._solver = self._make_solver()
         started = time.perf_counter()
-        result = self._solver.solve(model)
+        try:
+            result = self._solver.solve(model)
+        finally:
+            self._last_solved = time.monotonic()
         elapsed = time.perf_counter() - started
         sample = result.sample
         if sample.size != qubo.n:

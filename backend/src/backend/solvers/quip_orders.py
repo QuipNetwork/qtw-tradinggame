@@ -3,8 +3,11 @@
 A chain order takes over a minute to finalize, so the race returns on the local solvers and
 the order runs here instead: one worker thread and one shared solver. Submitting one order at
 a time keeps two races from signing with the same account nonce, and reusing the solver
-saves a connect and metadata load per order. Whatever an order ends as (solved, timed out
-with an order ID, failed) is handed to `on_done`.
+saves a connect and metadata load per order. Aglais closes a websocket that has carried no
+traffic for about two minutes, and substrate-interface only finds out on its next read, so a
+solver idle for longer than IDLE_RECONNECT_S is rebuilt before the order rather than failing
+it. Whatever an order ends as (solved, timed out with an order ID, failed) is handed to
+`on_done`.
 
 At most QUIP_MAX_PENDING_ORDERS orders are outstanding (queued or in flight), so an order
 never goes out long after the problem it was built from; `submit` refuses the rest. The
@@ -32,6 +35,9 @@ log = logging.getLogger(__name__)
 
 PROVIDER = "xquad-quip"
 ROLE = "NETWORK"
+# Aglais closed every connection idle for 121 s or more and none idle for 118 s or less
+# (2026-10-19). Reconnecting costs about 3 s against an order of one to two minutes.
+IDLE_RECONNECT_S = 60.0
 
 OnDone = Callable[[dict[str, Any]], None]
 
@@ -40,7 +46,8 @@ _queue: queue.SimpleQueue[tuple[PortfolioProblem, OnDone, Future]] = queue.Simpl
 _outstanding = 0  # queued plus in flight, guarded by _lock
 _accepting = True
 _worker: threading.Thread | None = None
-# Touched only on the worker thread. Dropped after any failure so the next order reconnects.
+# Touched only on the worker thread. Dropped after any failure so the next order reconnects,
+# and replaced when idle for longer than IDLE_RECONNECT_S.
 _provider: XquadProvider | None = None
 
 
@@ -115,6 +122,9 @@ def _run(problem: PortfolioProblem, on_done: OnDone) -> None:
     from xqsa.quip import QuipTimeoutError
 
     global _provider
+    if _provider is not None and (idle_s := _provider.idle_s()) > IDLE_RECONNECT_S:
+        log.info("quip solver idle for %.0f s, reconnecting", idle_s)
+        _provider = None
     if _provider is None:
         _provider = XquadProvider("quip")
     try:
