@@ -6,8 +6,10 @@ exists because the procedure that actually ran on that box **was never written d
 artifacts proving it disappeared with the droplet.
 
 Read this if you need to understand how the image that served production for a month was produced,
-or why `deploy/backend-deploy.sh` and earlier versions of `docs/DEPLOY.md` do not describe it.
-The current deploy is in `docs/DEPLOY.md`.
+or why `deploy/backend-deploy.sh` and earlier versions of `docs/DEPLOY.md` did not describe it.
+The current deploy is in `docs/DEPLOY.md`. The script and `deploy/Caddyfile.example` were removed
+from the repo in October 2026; read them with `git show 486c19b:deploy/backend-deploy.sh` and
+`git show 486c19b:deploy/Caddyfile.example`.
 
 > **Confidence.** Everything under "Observed" was read directly off the droplet on 2026-07-26/27
 > before it was stopped. Everything under "Reconstructed" is inference from those artifacts — the
@@ -19,7 +21,7 @@ The current deploy is in `docs/DEPLOY.md`.
 
 ## The short version
 
-The repo's `deploy/backend-deploy.sh` describes a **pull-and-restart** deploy. What actually happened
+The repo's `deploy/backend-deploy.sh` described a **pull-and-restart** deploy. What actually happened
 was a **build-on-the-box, stage-a-release, rename-the-old-container** deploy. Three of its steps have
 no counterpart in the script, and one step in the script (`docker pull`) could not have worked at all.
 
@@ -153,11 +155,11 @@ removing `DWAVE_API_TOKEN`, so it is verified, not merely inferred.
 
 ---
 
-## Why `deploy/backend-deploy.sh` does not describe this
+## Why `deploy/backend-deploy.sh` did not describe this
 
-The script is a genuine, working pull-and-restart deploy — but for a different world:
+The script was a genuine, working pull-and-restart deploy — but for a different world:
 
-| Script does | Reality |
+| Script did | Reality |
 |---|---|
 | `docker pull "$IMAGE"` | **Cannot work.** Tags were local and unnamespaced (`qtw-backend:48f080a`), and the box had no `/root/.docker`. A pull would fail or silently resolve nothing. |
 | `docker stop` then `docker rm` | The box **renamed** to `qtw-backend-prev-$TS` and kept the container. |
@@ -165,7 +167,7 @@ The script is a genuine, working pull-and-restart deploy — but for a different
 | nothing about building | The image was built on the droplet. |
 | rollback re-runs `$OLD_IMAGE` | Correct in spirit, and the image tags for rollback did exist locally. |
 
-Everything the script *does* say about the run invocation, the env-file path, the loopback bind, and
+Everything the script *did* say about the run invocation, the env-file path, the loopback bind, and
 the 30 × 2s health poll matches reality exactly. It is the surrounding lifecycle that was missing.
 
 ## Why `docs/DEPLOY.md` did not describe this either

@@ -19,7 +19,6 @@ design-doc.html        Full project summary (open in any browser)
 mvp/                   Vite + React + TypeScript app — the live MVP
 backend/               FastAPI backend, solver race, persistence, Docker image
 docs/                  Deployment runbook, backend dataflow, TODO, research notes
-deploy/                Retired DigitalOcean deploy script and Caddy example
 reference-files/       Base @ Consensys Miami screenshots (referenced by design doc)
 shared-design/         CSS + canvas glyph algorithms shared between MVP and doc
 ```
