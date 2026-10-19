@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# RETIRED. Registry-pull deploy for the DigitalOcean droplet, which was destroyed
+# on 2026-07-28. The backend now runs on Flux Orbit; see docs/DEPLOY.md.
 set -Eeuo pipefail
 
 CONTAINER_NAME="${BACKEND_CONTAINER_NAME:-qtw-backend}"

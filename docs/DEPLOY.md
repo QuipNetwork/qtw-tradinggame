@@ -6,8 +6,8 @@ Supabase/Postgres, and enabling Resend email.
 
 Backend dataflow: `docs/BACKEND_DAG.md`.
 CI pipeline: `.gitlab-ci.yml`.
-Deploy script: `deploy/backend-deploy.sh`.
-Caddy example: `deploy/Caddyfile.example`.
+Retired DigitalOcean deploy (June–July 2026): `docs/DEPLOY-DO-HISTORICAL.md`.
+Orbit migration record: Linear QUI-875 and QUI-876.
 
 ## Target Shape
 
@@ -17,10 +17,11 @@ Netlify frontend: https://qtw.quip.network
   VITE_WS_BASE unset unless websocket traffic uses a different host
         |
         v
-Caddy on DigitalOcean droplet, ports 80/443
+Flux load balancer: qtw.backend.quip.network -> qtw-backend.app.runonflux.io
         |
         v
-Docker container: qtw-backend, Uvicorn, one worker, 127.0.0.1:8000
+Flux Orbit app "qtw-backend", one instance
+  builds the deploy/orbit branch, Uvicorn, one worker, port 8000
         |
         +-> Supabase Postgres through DATABASE_URL
         +-> assets-api at https://asset-tracker.quip.network
@@ -29,66 +30,111 @@ Docker container: qtw-backend, Uvicorn, one worker, 127.0.0.1:8000
         +-> Resend email API when RESEND_API_KEY is set
 ```
 
-Run one backend container with one Uvicorn worker for the first production
-deployment. The websocket bus, MTM scheduler, scheduled rebalance loop, and
-solve queue are in-process.
+Run one instance with one Uvicorn worker. The websocket bus, MTM scheduler,
+scheduled rebalance loop, solve queue, and Quip order queue are in-process.
 
 ## What Goes Where
 
 | Surface | Put There | Never Put There |
 |---|---|---|
-| Netlify frontend env | `VITE_API_BASE`, optional `VITE_WS_BASE` | Database URLs, the Resend key, D-Wave tokens, Supabase service keys |
-| Droplet `/opt/qtw/backend.env` | Backend runtime env and secrets | Browser-visible values only |
-| GitLab CI/CD variables | Nothing for deploy; CI pushes images with the built-in registry credentials | Runtime app secrets |
+| Netlify frontend env | `VITE_API_BASE`, optional `VITE_WS_BASE` | Database URLs, the Resend key, D-Wave tokens, Quip seeds, Supabase service keys |
+| Flux Orbit app env (encrypted) | Backend runtime env and secrets | Browser-visible values only |
+| `deploy/orbit` branch | The code Orbit builds, `backend/requirements.txt` pins | Secrets |
+| GitLab CI/CD variables | Nothing for deploy | Runtime app secrets |
 | Supabase | Postgres data only | Browser direct access |
 
-## Operator Checklist
+## Deploy
 
-1. Provision a DigitalOcean Ubuntu droplet.
-2. Point `qtw.backend.quip.network` DNS to the droplet.
-3. Install Docker, Caddy, and curl.
-4. Create `/opt/qtw/backend.env`.
-5. Fill backend env values and secrets.
-6. Create `/etc/caddy/Caddyfile`.
-7. Log the droplet in to the GitLab container registry and copy
-   `deploy/backend-deploy.sh` to it.
-8. Run `backend-deploy.sh` with the image CI built (see Deploy).
-9. Set Netlify `VITE_API_BASE=https://qtw.backend.quip.network`.
-10. Redeploy Netlify.
-11. Run the production smoke tests below.
+The backend runs as a single-instance Flux Orbit app named `qtw-backend`. Orbit
+clones this repository's `deploy/orbit` branch and builds it on the Flux node;
+no container registry image is involved. The app settings recorded in QUI-875:
 
-## Droplet Bootstrap
-
-Run once on the DigitalOcean droplet:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y docker.io caddy curl
-
-sudo useradd --create-home --shell /bin/bash deploy
-sudo usermod -aG docker deploy
-
-sudo install -d -m 755 /opt/qtw
-sudo install -m 640 -o root -g deploy /dev/null /opt/qtw/backend.env
-sudoedit /opt/qtw/backend.env
-sudo chmod 640 /opt/qtw/backend.env
+```text
+PROJECT_PATH=backend
+APP_PORT=8000
+RUN_COMMAND=/opt/flux-tools/conda/bin/uvicorn backend.api.app:app --host 0.0.0.0 --port 8000 --workers 1
 ```
 
-If a firewall is enabled:
+Orbit installs Python dependencies from the first file it finds in
+`backend/`: `uv.lock`, then `requirements.txt`, then `pyproject.toml`.
+`deploy/orbit` carries a pinned `backend/requirements.txt` (captured from the
+retired droplet's container) and a `backend/.python-version` of `3.12`, and no
+`uv.lock`. Its last line, `.`, installs the backend package itself.
+
+`deploy/orbit` is not `main`. It branched from `main` at `3d6acc6` (2026-06-26)
+and adds two commits: `93b1db9` (the send-off email variant that was deployed)
+and `6e66183` (the Python pin and `requirements.txt`). Everything merged to
+`main` after June 26 is not deployed; see Deploying Main To Orbit.
+
+To deploy a change:
+
+1. Update `deploy/orbit` with the commit to run.
+2. In the Flux Cloud console, run a **Hard Redeploy** of `qtw-backend`.
+3. Watch the app logs for startup, then run the smoke tests below.
+
+Always use Hard Redeploy. The Python environment is per container while the
+packaged release persists, so a plain redeploy or restart brings the app back
+without its dependencies and it crash-loops with exit code 127.
+
+Orbit redeploys on new commits only when the app sets `POLLING_INTERVAL` or a
+`WEBHOOK_SECRET` with a webhook pointed at it. The `qtw-backend` app
+specification is encrypted, so this cannot be read from the public Flux API, and
+the GitLab project has no Orbit webhook. Until someone with access to the Flux
+app confirms its settings, do not rely on a push to deploy, and do not push
+anything to `deploy/orbit` that you are not ready to run.
+
+CI does not deploy. `.gitlab-ci.yml` runs the backend tests and builds and
+pushes `registry.gitlab.com/quip.network/qtw-tradinggame/backend` images, which
+the Orbit app does not use.
+
+`/healthz` does not contact external services, so a healthy deploy does not
+prove that assets-api, Postgres, or the Quip RPC are reachable; check the
+startup logs (`assets-api reachable at …`) and run the smoke tests below.
+
+Health checks:
 
 ```bash
-sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
+curl -fsS https://qtw.backend.quip.network/healthz
+curl -fsS https://qtw-backend.app.runonflux.io/healthz
 ```
 
-The env file is `root:deploy` with mode `640` so the deploy user can run Docker
-with `--env-file /opt/qtw/backend.env`.
+The second URL is the Flux app domain and bypasses the custom hostname.
+
+## Deploying Main To Orbit
+
+Not done yet. Moving `main` onto `deploy/orbit` takes:
+
+1. **Send-off email.** Decide whether `93b1db9`'s send-off variant
+   (`backend/src/backend/notifications/seeoff.py`) belongs on `main`. Building
+   `deploy/orbit` from `main` without it replaces the deployed variant with
+   `main`'s.
+2. **Python version.** Set `backend/.python-version` to `3.13`. `main`'s
+   `pyproject.toml` and `uv.lock` require Python `>=3.13`, and CI and the
+   Dockerfile use 3.13; the current `3.12` pin cannot install it.
+3. **Dependencies.** `main` tracks `backend/uv.lock`, which Orbit would prefer
+   over `requirements.txt`. Regenerate the pins from the lock (this resolves
+   `xqsa==0.4.4`), keep the trailing `.` line, and leave `uv.lock` off
+   `deploy/orbit`:
+
+   ```bash
+   cd backend
+   uv export --format requirements-txt --frozen --no-dev --no-hashes --no-emit-project > requirements.txt
+   printf '\n.\n' >> requirements.txt
+   git rm uv.lock
+   ```
+
+4. **Quip env.** With `XQUAD_BACKEND=quip`, add `QUIP_SIGNER_SEED` to the Orbit
+   app env; the server refuses to start without it. `XQUAD_TIMEOUT_S` defaults to
+   180 s in code and needs no entry. Leave `XQUAD_BACKEND` unset to keep Quip
+   orders off.
+5. **Deploy.** Point `deploy/orbit` at the result, Hard Redeploy, and run the
+   smoke tests. To roll back, point `deploy/orbit` at `6e66183` and Hard
+   Redeploy.
 
 ## Backend Runtime Env
 
-Create `/opt/qtw/backend.env` from `backend/.env.example`, then fill real
-secrets on the droplet only:
+Set backend env in the Orbit app's encrypted environment, using
+`backend/.env.example` as the reference. Never commit real values:
 
 ```bash
 APP_ENV=production
@@ -106,6 +152,10 @@ DWAVE_API_TOKEN=<Leap token>
 RESEND_API_KEY=<Resend API key>
 EMAIL_FROM=Quip Network <noreply@quip.network>
 ```
+
+The Orbit app env was pruned during the move (QUI-875): `DWAVE_API_TOKEN` was
+removed deliberately, so the deployed backend runs without the QPU, and
+variables that duplicated a code default were dropped.
 
 `MARKET_DATA_SOURCE` defaults to `assets-api`; set
 `MARKET_DATA_SOURCE=synthetic` only for offline demos or debugging without real
@@ -134,16 +184,22 @@ production env unless deliberately running a hardware tuning pass.
 | `RESEND_TIMEOUT_S` | no | `10` | Resend API request timeout. |
 | `XQUAD_BACKEND` | no | `quip` | Unset/`off` keeps the direct D-Wave solver. `quip` also sends each manual solve to the Quip testnet as a background order; see Quip Testnet Orders. |
 | `QUIP_SIGNER_SEED` | yes with `XQUAD_BACKEND=quip` | 32-byte hex seed | The Quip signing account. Or set `QUIP_KEYSTORE` instead. |
-| `QUIP_KEYSTORE` | alternative to the seed | `/data/quip/keystore.json` | Keystore path inside the container; needs a mounted volume. |
+| `QUIP_KEYSTORE` | alternative to the seed | `/data/quip/keystore.json` | Keystore path inside the app; the Orbit deploy provides env vars only, so use the seed there. |
 | `XQUAD_TIMEOUT_S` | no | `180` | How long the worker waits for one Quip order to finalize. |
 | `QUIP_MAX_PENDING_ORDERS` | no | `3` | Orders queued or in flight at once; extra solves record the Quip row as `skipped`. |
 | `QUIP_RPC_URL` | no | unset | Unset uses xqsa's `aglais` preset (public RPC and faucet). Set only for another node. |
 | `QUIP_AUTOFUND` | no | `1` | `0` stops the faucet top-up when the account cannot cover an order. |
 
+## Applying Env Changes
+
+Edit the env in the Orbit app settings, then run a **Hard Redeploy**. A restart
+or plain redeploy does not apply env changes and leaves the app without its
+Python dependencies (see Deploy).
+
 ## Supabase/Postgres
 
-Store `DATABASE_URL` only on the backend host/container. The browser and
-Netlify frontend must never receive the database password.
+Store `DATABASE_URL` only in the Orbit app env. The browser and Netlify frontend
+must never receive the database password.
 
 Prefer the Supabase session pooler on port `5432`:
 
@@ -179,117 +235,37 @@ delete from agents where environment = 'local';
 commit;
 ```
 
-Restart the backend after cleanup because the running process may still hold the
-old working set in memory.
-
-## DNS And Caddy
-
-Point DNS:
-
-```text
-qtw.backend.quip.network A <droplet-ip>
-```
-
-Create `/etc/caddy/Caddyfile` from `deploy/Caddyfile.example`. The core proxy
-shape is:
-
-```caddy
-qtw.backend.quip.network {
-	encode zstd gzip
-	reverse_proxy 127.0.0.1:8000
-}
-```
-
-Reload Caddy:
-
-```bash
-sudo systemctl reload caddy
-```
-
-Caddy can issue TLS only after DNS resolves to the droplet and ports `80/443`
-are open. The backend container binds to `127.0.0.1:8000`; public traffic should
-enter through Caddy.
-
-## Deploy
-
-CI builds and pushes the image; deploys are run by hand on the droplet with
-`deploy/backend-deploy.sh`. There is no CI deploy job.
-
-Every pipeline pushes `registry.gitlab.com/quip.network/qtw-tradinggame/backend`
-tagged with the commit SHA and the branch slug. `main` also gets `main` and
-`latest`; `deployment-dev` also gets `deployment-dev`.
-
-One-time droplet setup, as the `deploy` user:
-
-```bash
-# A GitLab deploy token with the read_registry scope.
-docker login registry.gitlab.com
-# Copy deploy/backend-deploy.sh from the repo to /opt/qtw/backend-deploy.sh.
-```
-
-Each deploy:
-
-1. Push to `deployment-dev` or `main`.
-2. Let `backend:test` and `backend:image` pass.
-3. On the droplet, deploy the commit's SHA tag:
-
-```bash
-BACKEND_IMAGE=registry.gitlab.com/quip.network/qtw-tradinggame/backend:<commit-sha> \
-  /opt/qtw/backend-deploy.sh
-```
-
-The script pulls the image, replaces the `qtw-backend` container, and polls
-`/healthz` for up to 60 seconds. If the new container fails to start or never
-turns healthy, it prints the container logs and restarts the previous image,
-then exits non-zero. It reads `BACKEND_CONTAINER_NAME`,
-`DEPLOY_BACKEND_ENV_PATH` (default `/opt/qtw/backend.env`),
-`DEPLOY_BACKEND_BIND`, `DEPLOY_BACKEND_PORT`, and `DEPLOY_BACKEND_HEALTH_URL`
-for non-default layouts. Prefer the SHA tag over `main`/`latest` so the running
-version is unambiguous in `docker ps`.
-
-`/healthz` does not contact external services, so a healthy deploy does not
-prove that assets-api, Postgres, or the Quip RPC are reachable; check the
-startup logs (`assets-api reachable at …`) and run the smoke tests below.
+Redeploy the backend after cleanup because the running process may still hold
+the old working set in memory.
 
 ## Quip Testnet Orders
 
-Optional. With `XQUAD_BACKEND=quip`, each manual solve also proposes an order
-on the Quip testnet (Aglais) from a background worker. The local solver race
-decides the portfolio; the Quip result only fills in that solve's
+Optional, and not available on the deployed `deploy/orbit` code (see Deploying
+Main To Orbit). With `XQUAD_BACKEND=quip`, each manual solve also proposes an
+order on the Quip testnet (Aglais) from a background worker. The local solver
+race decides the portfolio; the Quip result only fills in that solve's
 `xquad-quip` row later, and never changes holdings. Scheduled rebalances do not
 send orders. Each order reserves about 1 AGLS reward plus a fee from the signing
 account, topped up from the public faucet when short.
 
-Give the backend one stable signing account, or every redeploy signs from a
-fresh empty account:
+Give the backend one stable signing account by setting `QUIP_SIGNER_SEED` in the
+Orbit app env; without one, every redeploy would sign from a fresh empty
+account. The server refuses to start with `XQUAD_BACKEND=quip` and neither
+`QUIP_SIGNER_SEED` nor `QUIP_KEYSTORE` set. The Quip queue is in memory: a
+redeploy drops queued orders, and any result still `pending` is marked `failed`
+at the next startup.
 
-- **`QUIP_SIGNER_SEED` in `/opt/qtw/backend.env`** works with
-  `backend-deploy.sh` as is.
-- **`QUIP_KEYSTORE`** needs the keystore mounted into the container, which
-  `backend-deploy.sh` does not do; add a read-only `-v` mount to its
-  `docker run` if you choose this.
-
-The server refuses to start with `XQUAD_BACKEND=quip` and neither variable set.
-The Quip queue is in memory: a restart drops queued orders, and any result
-still `pending` is marked `failed` at the next startup.
-
-Useful droplet checks:
-
-```bash
-docker ps
-docker logs --tail 120 qtw-backend
-curl -fsS http://127.0.0.1:8000/healthz
-curl -fsS https://qtw.backend.quip.network/healthz
-```
-
-Expected `/healthz` in production:
+Expected `/healthz` from the Orbit app (`qpuConfigured` is `false` while
+`DWAVE_API_TOKEN` is unset):
 
 ```json
 {
+  "status": "ok",
   "appEnv": "production",
   "persistence": "sql",
   "marketDataSource": "assets-api",
-  "qpuConfigured": true,
+  "assetsApiBaseUrl": "https://asset-tracker.quip.network",
+  "qpuConfigured": false,
   "gurobiInRace": false
 }
 ```
@@ -310,14 +286,13 @@ build time.
 
 ## Email (Resend)
 
-Transactional email goes through **Resend's HTTPS API** (port 443). DigitalOcean
-blocks outbound SMTP from the droplet (25/465/587 all time out), so SMTP — Proton
-or any relay on the standard ports — is not viable; Resend's API is the reliable
-sender.
+Transactional email goes through **Resend's HTTPS API** (port 443). The backend
+has no SMTP provider; SMTP was ruled out on the retired DigitalOcean droplet,
+which blocked outbound 25/465/587.
 
 Current behavior:
 
-- Email sends only from the FastAPI backend container.
+- Email sends only from the FastAPI backend.
 - Netlify and the browser never receive the Resend key.
 - After `POST /agents` persists the attendee, the backend sends a signup
   confirmation to anyone who provided an email. It carries the attendee's secure
@@ -338,7 +313,8 @@ Setup:
 1. Create a Resend account and a **send-only** API key.
 2. Verify the `quip.network` domain in Resend (add the DKIM + SPF DNS records it
    issues) so you can send from `noreply@quip.network`.
-3. Add to `/opt/qtw/backend.env` (backend-only — never commit, never put in Netlify):
+3. Add to the Orbit app env (backend-only — never commit, never put in Netlify),
+   then Hard Redeploy:
 
 ```bash
 RESEND_API_KEY=<Resend API key>
@@ -346,43 +322,14 @@ EMAIL_FROM=Quip Network <noreply@quip.network>
 ```
 
 Do not commit the key. If it was shared outside the production secret store,
-rotate it in the Resend dashboard before the final production deploy.
+rotate it in the Resend dashboard.
 
 To disable email, leave `RESEND_API_KEY` unset — the backend falls back to the
 no-op provider (logs only, no send).
 
-## Applying Env Changes
-
-Recreate the backend container after editing `/opt/qtw/backend.env`.
-
-Preferred path: rerun `backend-deploy.sh` with the running image's SHA tag (or
-a new one); it recreates the container and checks health.
-
-Important: `docker restart qtw-backend` is not enough. Docker reads
-`--env-file /opt/qtw/backend.env` when the container is created, not on restart.
-
-If you need to recreate the container manually with the currently running image:
-
-```bash
-IMAGE="$(docker inspect --format '{{.Config.Image}}' qtw-backend)"
-docker rm -f qtw-backend
-docker run -d \
-  --name qtw-backend \
-  --restart unless-stopped \
-  --env-file /opt/qtw/backend.env \
-  -p 127.0.0.1:8000:8000 \
-  "$IMAGE"
-```
-
 ## Email Smoke Test
 
-Check startup logs:
-
-```bash
-docker logs --tail 120 qtw-backend | grep -E "email provider"
-```
-
-Expected startup log shape:
+Check the startup lines in the Orbit app logs for:
 
 ```text
 email provider: resend from=Quip Network <noreply@quip.network>
@@ -416,9 +363,9 @@ Expected result:
 - The API returns `200`.
 - The test inbox receives a QTW signup confirmation from
   `Quip Network <noreply@quip.network>`.
-- If Resend rejects the send, signup still returns `200`; check
-  `docker logs --tail 120 qtw-backend` for the stack trace (a 403 usually means
-  the `quip.network` domain is not verified in Resend).
+- If Resend rejects the send, signup still returns `200`; check the Orbit app
+  logs for the stack trace (a 403 usually means the `quip.network` domain is not
+  verified in Resend).
 
 The health endpoint does not expose email status by design. Use logs and the
 smoke-test email for delivery confirmation.
@@ -432,45 +379,46 @@ After backend and frontend are connected:
 3. Confirm the QR URL points to `https://qtw.quip.network/p/{agentId}`.
 4. Run an optimization and confirm the phone receives websocket updates.
 5. Confirm Supabase has rows with `environment='production'`.
-6. Restart by recreating the backend container and confirm the agent/leaderboard
-   hydrate from DB.
+6. Hard Redeploy the Orbit app and confirm the agent/leaderboard hydrate from DB.
 7. Confirm `valuation_snapshots` are sampled around every 60 seconds, not every
    MTM tick.
 8. If email is enabled, confirm an opted-in signup receives the confirmation email.
 
 ## Troubleshooting
 
-- `backend-deploy.sh` fails at `docker pull` with `denied`: the droplet is not
-  logged in to `registry.gitlab.com`, or the deploy token lacks `read_registry`.
-- `backend-deploy.sh` reports `backend env file not found`: confirm
-  `/opt/qtw/backend.env` exists and is readable by the `deploy` user.
-- Container exits at startup with `XQUAD_BACKEND=quip requires …`: set
-  `QUIP_SIGNER_SEED` (or a mounted `QUIP_KEYSTORE`), or unset `XQUAD_BACKEND`.
-- Quip rows stay `failed` or `timeout`: check `docker logs qtw-backend | grep
-  "quip order"`; the testnet RPC or faucet may be down, and
-  https://aglais.quip.network lists the current endpoints.
-- `/healthz` returns `persistence: "memory"`: `DATABASE_URL` is missing or not
-  loaded in the running container.
-- Caddy cannot issue TLS: confirm `qtw.backend.quip.network` resolves to the
-  droplet and ports `80/443` are open.
+- App crash-loops with exit code `127` after a redeploy: it was a plain
+  redeploy or restart; run a Hard Redeploy.
+- Build fails resolving dependencies: check which of `uv.lock`,
+  `requirements.txt`, or `pyproject.toml` Orbit used, and that
+  `backend/.python-version` satisfies the project's `requires-python`.
+- App exits at startup with `XQUAD_BACKEND=quip requires …`: set
+  `QUIP_SIGNER_SEED` in the Orbit app env, or unset `XQUAD_BACKEND`.
+- Quip rows stay `failed` or `timeout`: search the app logs for `quip order`;
+  the testnet RPC or faucet may be down, and https://aglais.quip.network lists
+  the current endpoints.
+- `/healthz` returns `persistence: "memory"`: `DATABASE_URL` is missing from the
+  Orbit app env, or the app was not Hard Redeployed after adding it.
+- `qtw.backend.quip.network` fails while `qtw-backend.app.runonflux.io` answers:
+  check the `qtw.backend.quip.network` DNS record, which points at
+  `qtw-backend.app.runonflux.io`.
 - Frontend still hits mocks: confirm Netlify has `VITE_API_BASE` set and the
   site was rebuilt after setting it.
-- QPU does not appear: confirm `DWAVE_API_TOKEN` is present in backend env and
-  the container was recreated after editing env.
-- Email provider remains `noop`: confirm `RESEND_API_KEY` is set and the container
-  was recreated after editing env.
+- QPU does not appear: `DWAVE_API_TOKEN` is not set in the Orbit app env, which
+  is the current deliberate state.
+- Email provider remains `noop`: confirm `RESEND_API_KEY` is set and the app
+  was Hard Redeployed after editing env.
 - Email does not arrive: confirm the `quip.network` domain is verified in Resend,
-  check the startup `email provider: resend` log, and backend logs for the send
+  check the startup `email provider: resend` log, and the app logs for the send
   stack trace.
 
 ## Remaining Deployment Work
 
-- Provision the DigitalOcean droplet.
-- Point DNS for `qtw.backend.quip.network`.
-- Create `/opt/qtw/backend.env` with production secrets.
-- Log the droplet in to the GitLab registry and copy `backend-deploy.sh` over.
-- Run the first deploy with `backend-deploy.sh`.
-- Set Netlify `VITE_API_BASE` and redeploy.
-- Complete a Supabase-backed smoke test.
-- Add hourly/daily scheduled result emails if booth email cadence is required
-  beyond the initial signup confirmation.
+- Deploy `main` to Orbit (see Deploying Main To Orbit).
+- Confirm whether the `qtw-backend` app sets `POLLING_INTERVAL` or a webhook,
+  and record the answer in Deploy.
+- Check what Flux's load balancer does in front of the app. The retired Caddy
+  proxy capped request bodies at 64 KB, added security headers, and overwrote
+  `X-Real-IP`, which the signup rate limiter reads first; nothing in this repo
+  does that on Orbit.
+- Decide whether `backend:image` in CI should keep pushing registry images that
+  no deploy consumes.
