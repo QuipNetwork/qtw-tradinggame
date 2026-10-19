@@ -40,8 +40,10 @@ background worker that submits one order at a time with one shared
 `SolverQuip`, so concurrent solves never sign with the same account nonce. When
 the order finalizes, its result (status, objective, order ID) replaces the
 `pending` entry in that job's solve snapshot. It never changes the agent's
-portfolio. `XQUAD_TIMEOUT_S` (default 120 s) is how long the worker waits for a
-proposed order to finalize.
+portfolio. `XQUAD_TIMEOUT_S` (default 180 s) is how long the worker waits for a
+proposed order to finalize. An order finalizes 10 blocks after its first
+answer; on Aglais (6 s blocks) the 28-asset order finalized 66–130 s after
+proposal, and 120 s timed out one order in eleven.
 
 At most `QUIP_MAX_PENDING_ORDERS` orders (default 3) are queued or in flight at
 once; a solve beyond that records its Quip row as `skipped`, so no order goes
@@ -86,8 +88,10 @@ hardware topology can host it. The provider submits it over its own coupling
 graph (`xqsa` native topology mode). CPU and GPU simulated-annealing miners
 answer these orders; D-Wave miners on the network do not, because they do not
 embed. An order that times out after submission stays live on chain; its
-snapshot entry keeps the order ID, and
-`SolverQuip.query(order_id, model, topology="native")` reads it back once final.
+snapshot entry keeps the order ID. `SolverQuip.get_receipt(order_id)` follows it
+to finality, and `SolverQuip.query(order_id, model, topology="native")` decodes
+its winning sample once final (deprecated since xqsa 0.4.3, with no replacement
+yet).
 
 What each suite covers:
 
@@ -285,8 +289,7 @@ See `../docs/DEPLOY.md` for the consolidated DigitalOcean Droplet + Docker
 operator runbook, production environment variables, Supabase/Postgres behavior,
 and Resend email setup.
 
-GitLab CI now includes backend test/build image jobs and a manual droplet deploy
-job. The deploy job becomes usable after the droplet is provisioned, Docker/Caddy
-are installed, `/opt/qtw/backend.env` exists, and the GitLab CI deploy variables
-are set. Resend email is wired for opted-in signup confirmation emails when
-RESEND_API_KEY is set; recurring hourly/daily result emails still need scheduler work.
+GitLab CI runs the backend tests and builds and pushes the image; deploys run by
+hand on the droplet with `../deploy/backend-deploy.sh`. Resend email is wired
+for opted-in signup confirmation emails when RESEND_API_KEY is set; recurring
+hourly/daily result emails still need scheduler work.

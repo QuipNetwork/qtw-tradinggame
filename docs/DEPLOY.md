@@ -25,6 +25,7 @@ Docker container: qtw-backend, Uvicorn, one worker, 127.0.0.1:8000
         +-> Supabase Postgres through DATABASE_URL
         +-> assets-api at https://asset-tracker.quip.network
         +-> D-Wave Leap when DWAVE_API_TOKEN is set
+        +-> Quip testnet (Aglais) when XQUAD_BACKEND=quip
         +-> Resend email API when RESEND_API_KEY is set
 ```
 
@@ -38,7 +39,7 @@ solve queue are in-process.
 |---|---|---|
 | Netlify frontend env | `VITE_API_BASE`, optional `VITE_WS_BASE` | Database URLs, the Resend key, D-Wave tokens, Supabase service keys |
 | Droplet `/opt/qtw/backend.env` | Backend runtime env and secrets | Browser-visible values only |
-| GitLab CI/CD variables | Deploy SSH settings | Runtime app secrets unless they are needed by CI |
+| GitLab CI/CD variables | Nothing for deploy; CI pushes images with the built-in registry credentials | Runtime app secrets |
 | Supabase | Postgres data only | Browser direct access |
 
 ## Operator Checklist
@@ -49,8 +50,9 @@ solve queue are in-process.
 4. Create `/opt/qtw/backend.env`.
 5. Fill backend env values and secrets.
 6. Create `/etc/caddy/Caddyfile`.
-7. Set GitLab deploy variables.
-8. Run the manual GitLab `backend:deploy` job.
+7. Log the droplet in to the GitLab container registry and copy
+   `deploy/backend-deploy.sh` to it.
+8. Run `backend-deploy.sh` with the image CI built (see Deploy).
 9. Set Netlify `VITE_API_BASE=https://qtw.backend.quip.network`.
 10. Redeploy Netlify.
 11. Run the production smoke tests below.
@@ -70,12 +72,6 @@ sudo install -d -m 755 /opt/qtw
 sudo install -m 640 -o root -g deploy /dev/null /opt/qtw/backend.env
 sudoedit /opt/qtw/backend.env
 sudo chmod 640 /opt/qtw/backend.env
-```
-
-Add the CI deploy public key to:
-
-```text
-/home/deploy/.ssh/authorized_keys
 ```
 
 If a firewall is enabled:
@@ -136,6 +132,13 @@ production env unless deliberately running a hardware tuning pass.
 | `RESEND_API_KEY` | yes for email | `<Resend API key>` | Registers the Resend (HTTPS) email provider at startup. If unset, email stays no-op. |
 | `EMAIL_FROM` | yes for email | `Quip Network <noreply@quip.network>` | Display sender; must be an address on a Resend-verified domain. |
 | `RESEND_TIMEOUT_S` | no | `10` | Resend API request timeout. |
+| `XQUAD_BACKEND` | no | `quip` | Unset/`off` keeps the direct D-Wave solver. `quip` also sends each manual solve to the Quip testnet as a background order; see Quip Testnet Orders. |
+| `QUIP_SIGNER_SEED` | yes with `XQUAD_BACKEND=quip` | 32-byte hex seed | The Quip signing account. Or set `QUIP_KEYSTORE` instead. |
+| `QUIP_KEYSTORE` | alternative to the seed | `/data/quip/keystore.json` | Keystore path inside the container; needs a mounted volume. |
+| `XQUAD_TIMEOUT_S` | no | `180` | How long the worker waits for one Quip order to finalize. |
+| `QUIP_MAX_PENDING_ORDERS` | no | `3` | Orders queued or in flight at once; extra solves record the Quip row as `skipped`. |
+| `QUIP_RPC_URL` | no | unset | Unset uses xqsa's `aglais` preset (public RPC and faucet). Set only for another node. |
+| `QUIP_AUTOFUND` | no | `1` | `0` stops the faucet top-up when the account cannot cover an order. |
 
 ## Supabase/Postgres
 
@@ -207,28 +210,68 @@ Caddy can issue TLS only after DNS resolves to the droplet and ports `80/443`
 are open. The backend container binds to `127.0.0.1:8000`; public traffic should
 enter through Caddy.
 
-## GitLab CI/CD Variables
-
-Set these in GitLab project settings:
-
-| Variable | Required | Example |
-|---|---:|---|
-| `DEPLOY_HOST` | yes | `203.0.113.10` or `qtw.backend.quip.network` |
-| `DEPLOY_SSH_PRIVATE_KEY` | yes | Private key matching the droplet deploy public key |
-| `DEPLOY_USER` | no | `deploy` |
-| `DEPLOY_SSH_PORT` | no | `22` |
-| `DEPLOY_BACKEND_ENV_PATH` | no | `/opt/qtw/backend.env` |
-| `DEPLOY_BACKEND_HEALTH_URL` | no | `http://127.0.0.1:8000/healthz` |
-
-GitLab provides `CI_REGISTRY`, `CI_REGISTRY_IMAGE`, `CI_REGISTRY_USER`, and
-`CI_REGISTRY_PASSWORD` automatically for image build and droplet pull.
-
 ## Deploy
+
+CI builds and pushes the image; deploys are run by hand on the droplet with
+`deploy/backend-deploy.sh`. There is no CI deploy job.
+
+Every pipeline pushes `registry.gitlab.com/quip.network/qtw-tradinggame/backend`
+tagged with the commit SHA and the branch slug. `main` also gets `main` and
+`latest`; `deployment-dev` also gets `deployment-dev`.
+
+One-time droplet setup, as the `deploy` user:
+
+```bash
+# A GitLab deploy token with the read_registry scope.
+docker login registry.gitlab.com
+# Copy deploy/backend-deploy.sh from the repo to /opt/qtw/backend-deploy.sh.
+```
+
+Each deploy:
 
 1. Push to `deployment-dev` or `main`.
 2. Let `backend:test` and `backend:image` pass.
-3. Manually run `backend:deploy`.
-4. Confirm the deploy job reports a healthy backend.
+3. On the droplet, deploy the commit's SHA tag:
+
+```bash
+BACKEND_IMAGE=registry.gitlab.com/quip.network/qtw-tradinggame/backend:<commit-sha> \
+  /opt/qtw/backend-deploy.sh
+```
+
+The script pulls the image, replaces the `qtw-backend` container, and polls
+`/healthz` for up to 60 seconds. If the new container fails to start or never
+turns healthy, it prints the container logs and restarts the previous image,
+then exits non-zero. It reads `BACKEND_CONTAINER_NAME`,
+`DEPLOY_BACKEND_ENV_PATH` (default `/opt/qtw/backend.env`),
+`DEPLOY_BACKEND_BIND`, `DEPLOY_BACKEND_PORT`, and `DEPLOY_BACKEND_HEALTH_URL`
+for non-default layouts. Prefer the SHA tag over `main`/`latest` so the running
+version is unambiguous in `docker ps`.
+
+`/healthz` does not contact external services, so a healthy deploy does not
+prove that assets-api, Postgres, or the Quip RPC are reachable; check the
+startup logs (`assets-api reachable at …`) and run the smoke tests below.
+
+## Quip Testnet Orders
+
+Optional. With `XQUAD_BACKEND=quip`, each manual solve also proposes an order
+on the Quip testnet (Aglais) from a background worker. The local solver race
+decides the portfolio; the Quip result only fills in that solve's
+`xquad-quip` row later, and never changes holdings. Scheduled rebalances do not
+send orders. Each order reserves about 1 AGLS reward plus a fee from the signing
+account, topped up from the public faucet when short.
+
+Give the backend one stable signing account, or every redeploy signs from a
+fresh empty account:
+
+- **`QUIP_SIGNER_SEED` in `/opt/qtw/backend.env`** works with
+  `backend-deploy.sh` as is.
+- **`QUIP_KEYSTORE`** needs the keystore mounted into the container, which
+  `backend-deploy.sh` does not do; add a read-only `-v` mount to its
+  `docker run` if you choose this.
+
+The server refuses to start with `XQUAD_BACKEND=quip` and neither variable set.
+The Quip queue is in memory: a restart drops queued orders, and any result
+still `pending` is marked `failed` at the next startup.
 
 Useful droplet checks:
 
@@ -312,11 +355,8 @@ no-op provider (logs only, no send).
 
 Recreate the backend container after editing `/opt/qtw/backend.env`.
 
-Preferred path:
-
-1. Push the current branch.
-2. Let GitLab build the backend image.
-3. Run the manual `backend:deploy` job.
+Preferred path: rerun `backend-deploy.sh` with the running image's SHA tag (or
+a new one); it recreates the container and checks health.
 
 Important: `docker restart qtw-backend` is not enough. Docker reads
 `--env-file /opt/qtw/backend.env` when the container is created, not on restart.
@@ -400,10 +440,15 @@ After backend and frontend are connected:
 
 ## Troubleshooting
 
-- Deploy job fails before SSH: check `DEPLOY_HOST`, `DEPLOY_SSH_PRIVATE_KEY`,
-  deploy public key, and droplet firewall.
-- Deploy job fails at `--env-file`: confirm `/opt/qtw/backend.env` exists and is
-  readable by the `deploy` user.
+- `backend-deploy.sh` fails at `docker pull` with `denied`: the droplet is not
+  logged in to `registry.gitlab.com`, or the deploy token lacks `read_registry`.
+- `backend-deploy.sh` reports `backend env file not found`: confirm
+  `/opt/qtw/backend.env` exists and is readable by the `deploy` user.
+- Container exits at startup with `XQUAD_BACKEND=quip requires …`: set
+  `QUIP_SIGNER_SEED` (or a mounted `QUIP_KEYSTORE`), or unset `XQUAD_BACKEND`.
+- Quip rows stay `failed` or `timeout`: check `docker logs qtw-backend | grep
+  "quip order"`; the testnet RPC or faucet may be down, and
+  https://aglais.quip.network lists the current endpoints.
 - `/healthz` returns `persistence: "memory"`: `DATABASE_URL` is missing or not
   loaded in the running container.
 - Caddy cannot issue TLS: confirm `qtw.backend.quip.network` resolves to the
@@ -423,8 +468,8 @@ After backend and frontend are connected:
 - Provision the DigitalOcean droplet.
 - Point DNS for `qtw.backend.quip.network`.
 - Create `/opt/qtw/backend.env` with production secrets.
-- Set GitLab CI/CD deploy variables.
-- Run the first manual `backend:deploy` job.
+- Log the droplet in to the GitLab registry and copy `backend-deploy.sh` over.
+- Run the first deploy with `backend-deploy.sh`.
 - Set Netlify `VITE_API_BASE` and redeploy.
 - Complete a Supabase-backed smoke test.
 - Add hourly/daily scheduled result emails if booth email cadence is required
