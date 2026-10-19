@@ -1,4 +1,4 @@
-"""xquad 0.4.3 solver adapter for the Quip testnet and local/direct D-Wave providers."""
+"""xquad 0.4.4 solver adapter for the Quip testnet and local/direct D-Wave providers."""
 
 from __future__ import annotations
 
