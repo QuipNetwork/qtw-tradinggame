@@ -417,10 +417,10 @@ After backend and frontend are connected:
   the testnet RPC or faucet may be down, and https://aglais.quip.network lists
   the current endpoints. Every order failing right after a deploy means an xqsa
   older than 0.4.3 (see Deploying Main To Orbit).
-- The first Quip order after 5 minutes or more without one fails with `could not
-  read the QuantumComputeMempool.MaxNodes constant`: the Aglais RPC closed the
-  worker's idle connection. The worker then reconnects, so the next order goes
-  through.
+- The first Quip order after about two minutes without one fails with `could not
+  read the QuantumComputeMempool.MaxNodes constant`: the Aglais RPC closes a
+  websocket after about 120 s without traffic, and the worker reused the closed
+  connection. The worker then reconnects, so the next order goes through.
 - The phone loads but never updates live: the backend is older than the
   frontend and rejects the subprotocol token (see Deploying Main To Orbit).
 - `/healthz` returns `persistence: "memory"`: `DATABASE_URL` is missing from the
