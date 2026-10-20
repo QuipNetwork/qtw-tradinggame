@@ -105,9 +105,34 @@ export async function updateAgent(agentId: string, patch: Partial<AgentConfig>):
   return delay(next);
 }
 
+const LAST_RESULT_PREFIX = 'quip:mock:lastResult:';
+
+// The mock's stand-in for the backend's solve history: the last result per agent.
 export async function requestOptimization(
   agentId: string,
   patch: OptimizePatch = {},
+): Promise<RoutingResult> {
+  const result = await simulateOptimization(agentId, patch);
+  try {
+    localStorage.setItem(LAST_RESULT_PREFIX + agentId, JSON.stringify(result));
+  } catch {
+    /* storage unavailable: the profile just shows no race */
+  }
+  return result;
+}
+
+export async function getLatestResult(agentId: string): Promise<RoutingResult | null> {
+  try {
+    const raw = localStorage.getItem(LAST_RESULT_PREFIX + agentId);
+    return delay(raw ? (JSON.parse(raw) as RoutingResult) : null);
+  } catch {
+    return delay(null);
+  }
+}
+
+async function simulateOptimization(
+  agentId: string,
+  patch: OptimizePatch,
 ): Promise<RoutingResult> {
   if (patch.sliders || patch.assets) {
     await updateAgent(agentId, patch);

@@ -150,6 +150,21 @@ export async function requestOptimization(
   });
 }
 
+// The agent's newest solve with any late results (a finished Quip order) in place;
+// null before the first solve.
+export async function getLatestResult(agentId: string): Promise<RoutingResult | null> {
+  try {
+    return await request<RoutingResult>(`/agents/${encodeURIComponent(agentId)}/latest-result`, {
+      headers: authHeaders(agentId),
+    });
+  } catch (error) {
+    if (error instanceof BackendApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return request<LeaderboardEntry[]>('/leaderboard');
 }

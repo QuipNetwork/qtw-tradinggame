@@ -122,6 +122,20 @@ class JobStore:
         with self._lock:
             return list(self._solve_snapshots)
 
+    def latest_solve_snapshot(self, agent_id: str) -> dict[str, Any] | None:
+        """The agent's newest solve snapshot, or None before its first solve.
+
+        Snapshots are kept in solve order, including after a DB reload. The copy's solver
+        results are a new list, because a late result replaces entries in place.
+        """
+        with self._lock:
+            snapshot = next(
+                (s for s in reversed(self._solve_snapshots) if s["agent_id"] == agent_id), None
+            )
+            if snapshot is None:
+                return None
+            return {**snapshot, "solver_results": list(snapshot["solver_results"])}
+
     def reset(self) -> None:
         with self._lock:
             self._jobs.clear()

@@ -22,7 +22,7 @@ from ..financial.basket import validate_basket
 from ..financial.prices.assets_api import AssetsApiError
 from ..notifications.dispatch import maybe_send_update_email
 from ..notifications.email import send_signup_confirmation
-from ..orchestration.job import run_optimization
+from ..orchestration.job import routing_result_from_snapshot, run_optimization
 from ..persistence.agents import AgentRecord, EmailAlreadyRegistered, get_agent_store
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
@@ -141,6 +141,29 @@ async def get_agent(agent_id: str) -> AgentConfig:
     config_out = record.to_config()
     config_out.qpu_budget = get_qpu_budget_store().status(agent_id)
     return config_out
+
+
+@router.get(
+    "/agents/{agent_id}/latest-result",
+    response_model=RoutingResult,
+    dependencies=[Depends(require_agent_token)],
+)
+async def latest_result(agent_id: str) -> RoutingResult:
+    """The agent's newest solve, as optimize returned it, with late results (a finished
+    Quip order) in place. 404 before the first solve."""
+    record = get_agent_store().get(agent_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="agent not found")
+    store = get_job_store()
+    snapshot = store.latest_solve_snapshot(agent_id)
+    job = store.get(snapshot["job_id"]) if snapshot is not None else None
+    if snapshot is None or job is None:
+        raise HTTPException(status_code=404, detail="no solve yet")
+    result = routing_result_from_snapshot(job, snapshot)
+    result.next_rebalance_at = record.next_rebalance_at
+    result.rebalance_interval_hours = record.rebalance_interval_hours
+    result.qpu_budget = get_qpu_budget_store().status(agent_id)
+    return result
 
 
 @router.patch(
