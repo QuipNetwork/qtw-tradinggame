@@ -8,8 +8,8 @@ artifacts proving it disappeared with the droplet.
 Read this if you need to understand how the image that served production for a month was produced,
 or why `deploy/backend-deploy.sh` and earlier versions of `docs/DEPLOY.md` did not describe it.
 The current deploy is in `docs/DEPLOY.md`. The script and `deploy/Caddyfile.example` were removed
-from the repo in October 2026; read them with `git show 486c19b:deploy/backend-deploy.sh` and
-`git show 486c19b:deploy/Caddyfile.example`.
+from the repo in October 2026; read them with `git show 9de8084:deploy/backend-deploy.sh` and
+`git show 9de8084:deploy/Caddyfile.example`.
 
 > **Confidence.** Everything under "Observed" was read directly off the droplet on 2026-07-26/27
 > before it was stopped. Everything under "Reconstructed" is inference from those artifacts — the

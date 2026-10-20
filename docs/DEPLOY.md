@@ -444,7 +444,7 @@ After backend and frontend are connected:
 - Confirm whether the `qtw-backend` app sets `POLLING_INTERVAL` or a webhook,
   and record the answer in Deploy.
 - Check what Flux's load balancer does in front of the app. The retired Caddy
-  proxy (`git show 486c19b:deploy/Caddyfile.example`) capped request bodies
+  proxy (`git show 9de8084:deploy/Caddyfile.example`) capped request bodies
   at 64 KB, added security headers, and overwrote `X-Real-IP`, which the
   signup rate limiter reads first; nothing in this repo does that on Orbit.
   Also confirm that it forwards `Sec-WebSocket-Protocol` and does not log it
