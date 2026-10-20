@@ -293,11 +293,11 @@ PY
 
 ## Production wiring status
 
-See `../docs/DEPLOY.md` for the consolidated DigitalOcean Droplet + Docker
-operator runbook, production environment variables, Supabase/Postgres behavior,
-and Resend email setup.
+See `../docs/DEPLOY.md` for the Flux Orbit operator runbook, production
+environment variables, Supabase/Postgres behavior, and Resend email setup.
 
-GitLab CI runs the backend tests and builds and pushes the image; deploys run by
-hand on the droplet with `../deploy/backend-deploy.sh`. Resend email is wired
+Production runs as a Flux Orbit app built from the `deploy/orbit` branch. GitLab
+CI runs the backend tests and builds and pushes an image that the Orbit app does
+not use. Resend email is wired
 for opted-in signup confirmation emails when RESEND_API_KEY is set; recurring
 hourly/daily result emails still need scheduler work.

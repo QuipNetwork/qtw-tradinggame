@@ -19,7 +19,6 @@ design-doc.html        Full project summary (open in any browser)
 mvp/                   Vite + React + TypeScript app — the live MVP
 backend/               FastAPI backend, solver race, persistence, Docker image
 docs/                  Deployment runbook, backend dataflow, TODO, research notes
-deploy/                Droplet deploy script and Caddy proxy example
 reference-files/       Base @ Consensys Miami screenshots (referenced by design doc)
 shared-design/         CSS + canvas glyph algorithms shared between MVP and doc
 ```
@@ -40,11 +39,12 @@ See [`backend/README.md`](./backend/README.md) for the Python backend (solver ra
 Frontend: `netlify.toml` is wired up. Every push to `main` triggers an auto-build
 for the Netlify deployment surfaced at https://qtw.quip.network.
 
-Backend: `.gitlab-ci.yml` tests the backend and builds and pushes its Docker
-image; deploys run by hand on the DigitalOcean droplet with
-`deploy/backend-deploy.sh`. See [`docs/DEPLOY.md`](./docs/DEPLOY.md) for the
-operator runbook, runtime environment reference, Supabase notes, Quip testnet
-settings, and Resend email setup.
+Backend: a single-instance Flux Orbit app builds and runs the `deploy/orbit`
+branch, which is behind `main`. Deploys are a Hard Redeploy of that app in Flux;
+CI only runs the backend tests and builds an image the app does not use. See
+[`docs/DEPLOY.md`](./docs/DEPLOY.md) for the operator runbook, what moving
+`main` onto `deploy/orbit` takes, the runtime environment reference, Supabase
+notes, Quip testnet settings, and Resend email setup.
 
 ## Engineering handoff
 
