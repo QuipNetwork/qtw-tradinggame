@@ -276,7 +276,10 @@ import asyncio, json, websockets
 AGENT = "<AGENT_ID>"
 TOKEN = "<TOKEN>"
 async def main():
-    async with websockets.connect(f"ws://127.0.0.1:8000/agents/{AGENT}?t={TOKEN}") as ws:
+    # The owner token travels as a subprotocol, so it stays out of URLs and logs.
+    async with websockets.connect(
+        f"ws://127.0.0.1:8000/agents/{AGENT}", subprotocols=["quip.v1", f"auth.{TOKEN}"]
+    ) as ws:
         for _ in range(3):
             print(json.loads(await ws.recv()))   # {plUSD, plPct, total, holdings, asOf, stale, nextRebalanceAt}
 asyncio.run(main())

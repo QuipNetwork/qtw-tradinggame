@@ -540,31 +540,71 @@ def test_optimize_returns_routing_result():
         assert sum(entry["pct"] for entry in body["portfolio"]) == pytest.approx(100.0, abs=1e-6)
 
 
+def _auth_subprotocols(token: str) -> list[str]:
+    return ["quip.v1", f"auth.{token}"]
+
+
 @requires_gurobi
 def test_websocket_streams_agent_update():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
         token = client.headers["Authorization"].split(" ", 1)[1]
         client.post(f"/agents/{agent_id}/optimize", json={})
-        with client.websocket_connect(f"/agents/{agent_id}?t={token}") as socket:
+        with client.websocket_connect(
+            f"/agents/{agent_id}", subprotocols=_auth_subprotocols(token)
+        ) as socket:
+            assert socket.accepted_subprotocol == "quip.v1"
             client.post(f"/agents/{agent_id}/optimize", json={})  # retune → push
             update = socket.receive_json()
             assert {"plUSD", "plPct", "total", "holdings", "asOf", "stale"} <= set(update)
             assert {h["ticker"] for h in update["holdings"]} == set(_BASKET)
 
 
-def test_agent_websocket_rejects_without_token():
+def _public_agent(client: TestClient) -> str:
+    body = client.post(
+        "/agents",
+        json={"name": "WS", "email": "ws@example.com", "sliders": _SLIDERS, "assets": _BASKET},
+    ).json()
+    return body["agentId"]
+
+
+@pytest.mark.parametrize(
+    "subprotocols",
+    [
+        None,  # no token at all
+        ["quip.v1", "auth.wrong"],
+        ["auth.wrong"],  # a token without the protocol it belongs to
+    ],
+)
+def test_agent_websocket_rejects_a_missing_or_wrong_token(subprotocols):
     from starlette.websockets import WebSocketDisconnect
 
     with TestClient(create_app()) as client:
-        body = client.post(
-            "/agents",
-            json={"name": "WS", "email": "ws@example.com", "sliders": _SLIDERS, "assets": _BASKET},
-        ).json()
-        agent_id = body["agentId"]
+        agent_id = _public_agent(client)
         with pytest.raises(WebSocketDisconnect):
-            with client.websocket_connect(f"/agents/{agent_id}"):  # no ?t= → 1008
+            with client.websocket_connect(f"/agents/{agent_id}", subprotocols=subprotocols):
                 pass
+
+
+def test_agent_websocket_still_accepts_the_legacy_query_token():
+    # TODO(QUI-1855): delete with the ?t= fallback.
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        token = client.headers["Authorization"].split(" ", 1)[1]
+        with client.websocket_connect(f"/agents/{agent_id}?t={token}") as socket:
+            assert socket.accepted_subprotocol is None
+
+
+def test_legacy_query_tokens_are_redacted_from_the_server_log(caplog):
+    import logging
+
+    create_app()
+    caplog.set_level(logging.INFO, logger="uvicorn.error")
+    logging.getLogger("uvicorn.error").info(
+        '%s - "WebSocket %s" [accepted]', "127.0.0.1:5000", "/agents/abc?t=s3cret-token"
+    )
+    assert "s3cret-token" not in caplog.text
+    assert "/agents/abc?t=<redacted>" in caplog.text
 
 
 def test_basket_below_minimum_is_rejected():

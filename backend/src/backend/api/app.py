@@ -140,6 +140,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    ws.redact_ws_tokens()
     # No public API explorer on a real deploy (production/booth); keep it locally.
     docs_on = config.APP_ENV.strip().lower() not in config.DB_REQUIRED_ENVS
     app = FastAPI(
