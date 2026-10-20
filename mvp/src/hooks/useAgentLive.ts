@@ -4,17 +4,20 @@
 // and the kiosk welcome.
 
 import { useEffect, useState } from 'react';
-import type { AgentUpdate, ConnectionStatus } from '../api';
+import type { AgentUpdate, ConnectionStatus, SolverResultsFrame } from '../api';
 import { subscribeAgent } from '../api';
 
 export type AgentLive = {
   update: AgentUpdate | null;
   status: ConnectionStatus;
+  // The latest late solver results (a finished Quip order), for the page to apply.
+  solverResults: SolverResultsFrame | null;
 };
 
 export function useAgentLive(agentId: string | undefined): AgentLive {
   const [update, setUpdate] = useState<AgentUpdate | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
+  const [solverResults, setSolverResults] = useState<SolverResultsFrame | null>(null);
 
   useEffect(() => {
     if (!agentId) {
@@ -22,9 +25,12 @@ export function useAgentLive(agentId: string | undefined): AgentLive {
       return;
     }
     setStatus('connecting');
-    const unsubscribe = subscribeAgent(agentId, setUpdate, { onStatus: setStatus });
+    const unsubscribe = subscribeAgent(agentId, setUpdate, {
+      onStatus: setStatus,
+      onSolverResults: setSolverResults,
+    });
     return unsubscribe;
   }, [agentId]);
 
-  return { update, status };
+  return { update, status, solverResults };
 }

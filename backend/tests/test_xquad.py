@@ -1,6 +1,7 @@
 """xquad adapter tests: integer QUBO, backend selection, and sample decoding."""
 
 import argparse
+import asyncio
 import logging
 import os
 import subprocess
@@ -17,6 +18,7 @@ from backend import config
 from backend.api.app import create_app
 from backend.api.schemas import AgentConfig, SliderValues
 from backend.cli import _build_problem
+from backend.events.bus import get_bus
 from backend.financial.basket import TICKERS
 from backend.financial.qubo_encoder import encode_qubo
 from backend.orchestration.job import run_optimization
@@ -343,6 +345,34 @@ def test_optimize_returns_before_the_quip_order_finalizes(monkeypatch):
     final = _snapshot_quip_result()
     assert final["status"] in ("feasible", "infeasible")
     assert final["orderId"] == "92"
+
+
+async def test_a_finished_quip_order_is_pushed_to_the_agent_channel(monkeypatch):
+    monkeypatch.setenv("XQUAD_BACKEND", "quip")
+    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
+    monkeypatch.setattr(quip_orders, "_provider", XquadProvider("quip", solver=_FakeQuipOrder()))
+    agent = _quip_agent()
+    bus = get_bus()
+    bus.bind_loop(asyncio.get_running_loop())
+    queue = bus.subscribe(f"agent:{agent.id}")
+    try:
+        # run_optimization returns its own events for the caller to publish, so the only
+        # frame on the channel is the one the Quip worker pushes when the order finishes.
+        outcome = await asyncio.to_thread(run_optimization, agent.id)
+        frame = await asyncio.wait_for(queue.get(), 10)
+    finally:
+        bus.unsubscribe(f"agent:{agent.id}", queue)
+        bus.bind_loop(None)
+
+    assert frame["type"] == "solver-results"
+    assert frame["jobId"] == outcome.result.job_id
+    quip = next(r for r in frame["solverResults"] if r["providerType"] == "NETWORK")
+    assert quip["provider"] == "Quip testnet (xquad)"
+    assert quip["status"] in ("feasible", "infeasible")
+    assert quip["orderId"] == "92"
+    assert _snapshot_quip_result()["orderId"] == "92"  # stored before it was pushed
+    # Frontends from before the frame read every agent frame as a valuation update.
+    assert {"plUSD", "plPct", "total"} <= frame.keys()
 
 
 def test_optimize_records_a_skipped_order_when_too_many_are_pending(monkeypatch):

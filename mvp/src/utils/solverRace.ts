@@ -1,4 +1,4 @@
-import type { RoutingResult, SolverResult } from '../api';
+import type { RoutingResult, SolverResult, SolverResultsFrame } from '../api';
 
 export type SolverRaceRow = SolverResult & {
   label: string;
@@ -23,6 +23,16 @@ const STATUS_ORDER: Record<SolverResult['status'], number> = {
   failed: 5,
   timeout: 6,
 };
+
+// Late solver results replace the rows of the race they belong to; a frame for an older
+// job (the agent re-solved meanwhile) leaves the shown race alone.
+export function applySolverResults(
+  result: RoutingResult | null,
+  frame: SolverResultsFrame,
+): RoutingResult | null {
+  if (!result?.jobId || result.jobId !== frame.jobId) return result;
+  return { ...result, solverResults: frame.solverResults };
+}
 
 export function solverRaceRows(result: RoutingResult | null): SolverRaceRow[] {
   if (!result) return [];
@@ -144,8 +154,17 @@ function timeLabelFor(row: SolverResult): string {
 }
 
 function detailFor(row: SolverResult): string {
+  return [statusDetail(row), orderDetail(row)].filter(Boolean).join(' · ');
+}
+
+function statusDetail(row: SolverResult): string {
   if (row.status === 'winner') return 'winner';
   // 'feasible' is internal jargon — a valid runner-up needs no extra label.
   if (row.status === 'feasible') return '';
   return row.status; // infeasible / failed / timeout stay informative
+}
+
+// A Quip order is on chain under its order ID once proposed; show it so it can be looked up.
+export function orderDetail(row: SolverResult): string {
+  return row.orderId ? `order\u00a0${row.orderId}` : '';  // never split from its number
 }

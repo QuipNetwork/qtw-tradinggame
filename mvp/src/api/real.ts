@@ -10,6 +10,7 @@ import type {
   QpuBudgetStatus,
   RoutingResult,
   RoutingStats,
+  SolverResultsFrame,
   SubmitAgentResponse,
   SubscribeOptions,
   TvEvent,
@@ -221,9 +222,16 @@ export function subscribeAgent(
 ): () => void {
   const token = getAgentToken(agentId);
   const base = websocketUrl(`/agents/${encodeURIComponent(agentId)}`);
-  const socket = new ReconnectingSocket<AgentUpdate>(
+  // Valuation updates carry no `type`; other frames name theirs. Unknown types are dropped.
+  const socket = new ReconnectingSocket<AgentUpdate | SolverResultsFrame>(
     token ? `${base}?t=${encodeURIComponent(token)}` : base,
-    { onMessage: callback, onStatus: options.onStatus },
+    {
+      onMessage: frame => {
+        if (!('type' in frame)) callback(frame);
+        else if (frame.type === 'solver-results') options.onSolverResults?.(frame);
+      },
+      onStatus: options.onStatus,
+    },
   );
   return () => socket.close();
 }

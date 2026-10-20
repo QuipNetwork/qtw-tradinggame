@@ -6,6 +6,8 @@ WebSocket from ever blocking a publisher (the booth must not hang on one bad con
 
 from __future__ import annotations
 
+import asyncio
+
 from backend.events.bus import EventBus
 
 
@@ -56,3 +58,26 @@ def test_one_full_subscriber_does_not_starve_others():
     assert fast.get_nowait() == "b"
     assert slow.get_nowait() == "a"
     assert slow.empty()
+
+
+async def test_publish_threadsafe_delivers_from_a_worker_thread():
+    bus = EventBus()
+    bus.bind_loop(asyncio.get_running_loop())
+    q = bus.subscribe("c")
+    await asyncio.to_thread(bus.publish_threadsafe, "c", {"x": 1})
+    assert await asyncio.wait_for(q.get(), 1.0) == {"x": 1}
+
+
+def test_publish_threadsafe_without_a_bound_loop_is_noop():
+    bus = EventBus()
+    q = bus.subscribe("c")
+    bus.publish_threadsafe("c", {"x": 1})  # must not raise
+    assert q.empty()
+
+
+def test_publish_threadsafe_after_the_loop_closed_is_noop():
+    bus = EventBus()
+    loop = asyncio.new_event_loop()
+    bus.bind_loop(loop)
+    loop.close()
+    bus.publish_threadsafe("c", {"x": 1})  # shutdown race: must not raise

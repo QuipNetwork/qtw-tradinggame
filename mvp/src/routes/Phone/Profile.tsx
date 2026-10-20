@@ -11,7 +11,7 @@ import type {
 } from '../../api';
 import { getAgent, getLatestResult, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, getAgentToken, IS_MOCK, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
-import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
+import { applySolverResults, solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -150,7 +150,7 @@ export default function PhoneProfile() {
   const [sliders, setSliders] = useState<number[] | null>(null);
   const [holdCount, setHoldCount] = useState<number | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const { update: live } = useAgentLive(agentId);
+  const { update: live, solverResults } = useAgentLive(agentId);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'profile' | 'basket' | 'portfolio'>('profile');
   const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
@@ -222,6 +222,13 @@ export default function PhoneProfile() {
       window.clearInterval(timer);
     };
   }, [agentId]);
+
+  // A solver that finished after the race (a Quip order) updates the race shown. Re-run when
+  // the result's job arrives too, in case the frame landed before the result did.
+  const resultJobId = result?.jobId;
+  useEffect(() => {
+    if (solverResults) setResult(prev => applySolverResults(prev, solverResults));
+  }, [solverResults, resultJobId]);
 
   // React to each live tick: extend the sparkline buffer and honor any QPU
   // cooldown the backend reports on the stream. The subscription itself is owned

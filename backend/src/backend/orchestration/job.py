@@ -4,7 +4,9 @@ basket → slider_map → estimates(μ, Σ) → solver race → allocate → per
 Every solve is a fresh allocation: a retune liquidates all holdings at spot
 and reallocates the full value over the (possibly re-selected) basket. Returns
 the result plus the events to publish so the API layer can run this in a
-worker thread and publish on the event loop.
+worker thread and publish on the event loop. A Quip order finishes later on its
+own worker thread, which records the result and publishes it through
+`EventBus.publish_threadsafe`.
 """
 
 from __future__ import annotations
@@ -13,7 +15,15 @@ import math
 from dataclasses import dataclass
 
 from .. import config
-from ..api.schemas import PortfolioEntry, RoutingResult, SliderValues, SolverResult
+from ..api.schemas import (
+    AgentUpdate,
+    PortfolioEntry,
+    RoutingResult,
+    SliderValues,
+    SolverResult,
+)
+from ..events.bus import get_bus
+from ..events.feeds import agent_channel
 from ..financial.basket import get_asset, validate_basket
 from ..financial.estimators.covariance import covariance
 from ..financial.estimators.expected_return import expected_return
@@ -24,7 +34,7 @@ from ..financial.qubo_decoder import weights_to_portfolio
 from ..financial.qubo_encoder import resolve_frustration_beta
 from ..financial.slider_map import map_sliders
 from ..financial.types import PortfolioProblem
-from ..persistence.agents import AgentStore, get_agent_store
+from ..persistence.agents import AgentRecord, AgentStore, get_agent_store
 from ..persistence.jobs import JobRecord, JobStore, get_job_store
 from ..persistence.qpu_budget import (
     QpuBudgetExceeded,
@@ -198,7 +208,8 @@ def run_optimization(
     )
     if quip_order:
         submitted = quip_orders.submit(
-            problem, lambda quip_result: jobs.update_solver_result(job.id, quip_result)
+            problem,
+            lambda quip_result: _record_late_result(agents, jobs, agent_id, job.id, quip_result),
         )
         if submitted is None:  # too many orders pending: this solve proposes none
             skipped = quip_orders.skipped_result()
@@ -317,6 +328,44 @@ def routing_result_from_snapshot(job: JobRecord, snapshot: dict) -> RoutingResul
         job_id=job.id,
         solved_at=job.solved_at,
     )
+
+
+def _record_late_result(
+    agents: AgentStore, jobs: JobStore, agent_id: str, job_id: str, late_result: dict
+) -> None:
+    """Store a solver result that finished after the race, then push the job's rows to the
+    agent's open pages. Runs on the Quip order worker thread."""
+    rows = jobs.update_solver_result(job_id, late_result)
+    record = agents.get(agent_id)
+    if record is None:
+        return
+    get_bus().publish_threadsafe(
+        agent_channel(agent_id), _solver_results_frame(record, job_id, rows)
+    )
+
+
+def _solver_results_frame(record: AgentRecord, job_id: str, rows: list[dict]) -> dict:
+    """A "solver-results" frame for the agent channel.
+
+    Frontends from before this frame pass every agent frame to their live-valuation state,
+    so it carries a full valuation update from the agent record too. Drop that part once
+    those tabs are gone.
+    """
+    valuation = AgentUpdate(
+        plUSD=record.pl_usd,
+        plPct=record.pl_pct,
+        total=record.total,
+        asOf=record.valuation_as_of,
+        stale=record.valuation_stale,
+        nextRebalanceAt=record.next_rebalance_at,
+        rebalanceIntervalHours=record.rebalance_interval_hours,
+    )
+    return {
+        **valuation.model_dump(by_alias=True),
+        "type": "solver-results",
+        "jobId": job_id,
+        "solverResults": [_snapshot_solver_result(row).model_dump(by_alias=True) for row in rows],
+    }
 
 
 def _solver_run_summary(run: SolverRun) -> dict:

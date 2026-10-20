@@ -5,7 +5,7 @@ import { getAgent, getLatestResult, requestOptimization, assetIconSrc, assetColo
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
-import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
+import { applySolverResults, orderDetail, solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import StatusScreen from '../../components/StatusScreen';
@@ -26,7 +26,7 @@ export default function KioskWelcome() {
   const agentId = params.get('agent');
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const { update: live } = useAgentLive(agentId ?? undefined);
+  const { update: live, solverResults } = useAgentLive(agentId ?? undefined);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'auth' | 'error'>('loading');
   const [retryNonce, setRetryNonce] = useState(0);
@@ -68,6 +68,13 @@ export default function KioskWelcome() {
     })();
     return () => { cancelled = true; };
   }, [agentId, retryNonce]);
+
+  // A solver that finished after the race (a Quip order) updates the race shown. Re-run when
+  // the result's job arrives too, in case the frame landed before the result did.
+  const resultJobId = result?.jobId;
+  useEffect(() => {
+    if (solverResults) setResult(prev => applySolverResults(prev, solverResults));
+  }, [solverResults, resultJobId]);
 
   useEffect(() => {
     if (!agent || !glyphRef.current) return;
@@ -237,6 +244,7 @@ export default function KioskWelcome() {
                       {row.provider.split(' ')[0]}
                     </span>
                     <span className="v4m-race-l2">{row.provider.split(' ').slice(1).join(' ')} {row.providerType}</span>
+                    {row.orderId && <span className="v4m-race-l2">{orderDetail(row)}</span>}
                   </span>
                 <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
                 <span className="v4m-race-time">{row.timeLabel}</span>
