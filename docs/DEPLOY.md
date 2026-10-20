@@ -137,12 +137,23 @@ Moving `main` onto `deploy/orbit` takes:
    180 s in code and needs no entry; remove one left in the app env, since a
    `120` or `300` overrides the default. Leave `XQUAD_BACKEND` unset to keep Quip
    orders off.
-5. **Deploy.** Point `deploy/orbit` at the result, Hard Redeploy, and run the
-   smoke tests. Until the Netlify frontend sends the websocket token as a
-   subprotocol, roll back by pointing `deploy/orbit` at `6e66183` and running a
-   Hard Redeploy. Once it does, roll back only to a commit that accepts the
-   subprotocol token: an older backend rejects the phone's websocket, and the
-   page shows no error.
+5. **Tag the rollback target.** The result is built on `main`, and
+   `deploy/orbit`'s two commits are not on `main`, so moving the branch is a
+   force-push that leaves `6e66183` unreferenced. Tag it first so it cannot be
+   garbage-collected:
+
+   ```bash
+   git tag orbit-2026-07-27 6e66183
+   git push origin orbit-2026-07-27
+   ```
+
+6. **Deploy.** Force-push the result to `deploy/orbit` (the branch is not
+   protected; if it becomes protected, allow force push on it first), run a
+   Hard Redeploy, and run the smoke tests. Until the Netlify frontend sends the
+   websocket token as a subprotocol, roll back by force-pushing
+   `orbit-2026-07-27` to `deploy/orbit` and running a Hard Redeploy. Once it
+   does, roll back only to a commit that accepts the subprotocol token: an older
+   backend rejects the phone's websocket, and the page shows no error.
 
 ## Backend Runtime Env
 
