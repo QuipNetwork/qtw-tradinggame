@@ -261,3 +261,22 @@ def test_race_deadline_does_not_wait_for_blocked_provider(monkeypatch, synthetic
     assert result.winner.provider == "fast"
     by_provider = {run.provider: run for run in result.solver_runs}
     assert by_provider["blocked"].status == "timeout"
+
+
+def test_race_outcome_runner_up_tie_goes_to_the_faster_solver():
+    # Two runners-up with the same portfolio: the outcome is classified against the faster one,
+    # the solver the phone and kiosk compare against, not whichever finished the race list first.
+    def solution(provider: str, solve_time_s: float) -> Solution:
+        return Solution(
+            weights=np.array([0.5, 0.5]),
+            objective=0.001,
+            solve_time_s=solve_time_s,
+            provider=provider,
+            provider_role="CPU",
+            feasible=True,
+        )
+
+    winner = solution("sa", 0.10)
+    slow = solution("gurobi", 0.50)
+    fast = solution("dwave", 0.11)
+    assert router._classify_outcome(winner, [winner, slow, fast]) == "tie"

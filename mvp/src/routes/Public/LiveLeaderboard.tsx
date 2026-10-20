@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { getLeaderboard, IS_MOCK, type LeaderboardEntry } from '../../api';
+import { IS_MOCK, type LeaderboardEntry } from '../../api';
 import { useFlipList } from '../../utils/flip';
 import TickValue from '../../components/TickValue';
 import { fmtUsd } from '../../utils/format';
@@ -21,24 +20,20 @@ function lastAgentId(): string | null {
   }
 }
 
-// Live, self-polling leaderboard. Rows FLIP-glide when ranks change; P&L flashes
-// on each tick. The player's own agent (cookie) is highlighted "YOU".
-export default function LiveLeaderboard({ rows, limit = 8 }: { rows?: LeaderboardEntry[]; limit?: number }) {
-  const [board, setBoard] = useState<LeaderboardEntry[]>(rows ?? []);
+// Live leaderboard; the landing page polls and passes the rows (null until the first
+// poll answers). Rows FLIP-glide when ranks change; P&L flashes on each tick. The
+// player's own agent (cookie) is highlighted "YOU".
+export default function LiveLeaderboard({
+  rows,
+  failed = false,
+  limit = 8,
+}: {
+  rows: LeaderboardEntry[] | null;
+  failed?: boolean;
+  limit?: number;
+}) {
   const mine = lastAgentId();
-
-  useEffect(() => {
-    if (rows) return; // parent owns the data
-    let alive = true;
-    const pull = () => getLeaderboard().then(b => { if (alive) setBoard(b); }).catch(() => {});
-    pull();
-    const t = setInterval(pull, 5000);
-    return () => { alive = false; clearInterval(t); };
-  }, [rows]);
-
-  useEffect(() => { if (rows) setBoard(rows); }, [rows]);
-
-  const shown = board.slice(0, limit);
+  const shown = (rows ?? []).slice(0, limit);
   const orderKey = shown.map(r => r.agentId).join('>');
   const listRef = useFlipList<HTMLDivElement>(orderKey);
 
@@ -47,6 +42,8 @@ export default function LiveLeaderboard({ rows, limit = 8 }: { rows?: Leaderboar
       <div className="qpub-board-head">
         <h2>Leaderboard</h2>
         {IS_MOCK && <span className="qpub-board-note">Demo data</span>}
+        {/* A failed poll keeps the last rows; say they may be stale. */}
+        {failed && shown.length > 0 && <span className="qpub-board-note">Reconnecting…</span>}
       </div>
 
       <div className="qpub-board-cols" aria-hidden>
@@ -81,8 +78,15 @@ export default function LiveLeaderboard({ rows, limit = 8 }: { rows?: Leaderboar
             </div>
           );
         })}
-        {shown.length === 0 && <div className="qpub-board-empty">Loading the board…</div>}
+        {shown.length === 0 && <div className="qpub-board-empty">{emptyText(rows, failed)}</div>}
       </div>
     </section>
   );
+}
+
+// What an empty board means: still loading, unreachable, or no agents yet.
+function emptyText(rows: LeaderboardEntry[] | null, failed: boolean): string {
+  if (failed) return 'Leaderboard unavailable, retrying…';
+  if (rows === null) return 'Loading the board…';
+  return 'No agents yet. Be the first at the booth.';
 }

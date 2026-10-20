@@ -7,8 +7,8 @@ from typing import Literal
 
 import numpy as np
 
-ProviderName = Literal["dwave", "sa", "gurobi"]
-ProviderRole = Literal["QPU", "CPU"]
+ProviderName = Literal["dwave", "sa", "gurobi", "xquad-quip", "xquad-dwave-qpu", "xquad-dwave-cpu"]
+ProviderRole = Literal["QPU", "CPU", "NETWORK"]
 
 
 @dataclass(frozen=True)
@@ -93,6 +93,7 @@ class Solution:
     provider_role: ProviderRole
     feasible: bool  # set by feasibility checker, not the provider itself
     raw_bitstring: np.ndarray | None = None  # for QUBO solvers; None for Gurobi QP
+    order_id: str | None = None  # Quip chain order, for later lookup/audit
 
 
 @dataclass

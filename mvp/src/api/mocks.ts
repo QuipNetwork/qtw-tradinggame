@@ -105,9 +105,34 @@ export async function updateAgent(agentId: string, patch: Partial<AgentConfig>):
   return delay(next);
 }
 
+const LAST_RESULT_PREFIX = 'quip:mock:lastResult:';
+
+// The mock's stand-in for the backend's solve history: the last result per agent.
 export async function requestOptimization(
   agentId: string,
   patch: OptimizePatch = {},
+): Promise<RoutingResult> {
+  const result = await simulateOptimization(agentId, patch);
+  try {
+    localStorage.setItem(LAST_RESULT_PREFIX + agentId, JSON.stringify(result));
+  } catch {
+    /* storage unavailable: the profile just shows no race */
+  }
+  return result;
+}
+
+export async function getLatestResult(agentId: string): Promise<RoutingResult | null> {
+  try {
+    const raw = localStorage.getItem(LAST_RESULT_PREFIX + agentId);
+    return delay(raw ? (JSON.parse(raw) as RoutingResult) : null);
+  } catch {
+    return delay(null);
+  }
+}
+
+async function simulateOptimization(
+  agentId: string,
+  patch: OptimizePatch,
 ): Promise<RoutingResult> {
   if (patch.sliders || patch.assets) {
     await updateAgent(agentId, patch);
@@ -301,13 +326,16 @@ export async function getRoutingStats(): Promise<RoutingStats> {
       outcome === 'quality' ? 0.03 + Math.random() * 0.05 :          // runner-up faster but worse
       outcome === 'tie' ? winSec + 0.004 + Math.random() * 0.008 :   // within the time tolerance
       0.11 + Math.random() * 0.06;                                   // speed: runner-up slower
+    const noRunnerUp = i % 8 === 7;                 // ~1 in 8: no other valid finisher
     return {
       provider: qpu ? 'dwave' : 'sa',
       providerType: (qpu ? 'QPU' : 'CPU') as 'QPU' | 'CPU',
       solveTime: Math.round(winSec * 1000) / 1000,
-      vsTime: Math.round(vsSec * 1000) / 1000,
+      vsTime: noRunnerUp ? null : Math.round(vsSec * 1000) / 1000,
+      vsProvider: noRunnerUp ? null : qpu ? 'Simulated Annealing' : 'D-Wave Advantage',
+      vsProviderType: noRunnerUp ? null : ((qpu ? 'CPU' : 'QPU') as 'QPU' | 'CPU'),
       solvedAt: new Date(now - i * 47_000).toISOString(),
-      outcome,
+      outcome: noRunnerUp ? ('quality' as const) : outcome,
     };
   });
   return delay({

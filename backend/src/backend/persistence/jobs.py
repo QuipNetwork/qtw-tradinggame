@@ -85,9 +85,56 @@ class JobStore:
                 }
             )
 
+    def update_solver_result(self, job_id: str, result: dict[str, Any]) -> list[dict[str, Any]]:
+        """Replace the job snapshot's entry for `result["provider"]` (a solver that finishes
+        after the race, e.g. a Quip order); return the snapshot's updated solver results.
+
+        Raises KeyError if the job has no snapshot or the snapshot has no such provider.
+        """
+        with self._lock:
+            snapshot = next((s for s in self._solve_snapshots if s["job_id"] == job_id), None)
+            if snapshot is None:
+                raise KeyError(f"no solve snapshot for job {job_id!r}")
+            results = snapshot["solver_results"]
+            index = next(
+                (i for i, r in enumerate(results) if r["provider"] == result["provider"]), None
+            )
+            if index is None:
+                raise KeyError(f"job {job_id!r} has no {result['provider']!r} result")
+            results[index] = dict(result)
+            return list(results)
+
+    def fail_pending_results(self, error: str) -> dict[str, list[dict[str, Any]]]:
+        """Mark every `pending` solver result as `failed` with `error`; return the changed
+        snapshots' solver results by job id. Run at startup: a pending result belongs to an
+        order the previous process never finished recording."""
+        changed: dict[str, list[dict[str, Any]]] = {}
+        with self._lock:
+            for snapshot in self._solve_snapshots:
+                results = snapshot["solver_results"]
+                for index, result in enumerate(results):
+                    if result.get("status") == "pending":
+                        results[index] = {**result, "status": "failed", "error": error}
+                        changed[snapshot["job_id"]] = list(results)
+        return changed
+
     def solve_snapshots(self) -> list[dict[str, Any]]:
         with self._lock:
             return list(self._solve_snapshots)
+
+    def latest_solve_snapshot(self, agent_id: str) -> dict[str, Any] | None:
+        """The agent's newest solve snapshot, or None before its first solve.
+
+        Snapshots are kept in solve order, including after a DB reload. The copy's solver
+        results are a new list, because a late result replaces entries in place.
+        """
+        with self._lock:
+            snapshot = next(
+                (s for s in reversed(self._solve_snapshots) if s["agent_id"] == agent_id), None
+            )
+            if snapshot is None:
+                return None
+            return {**snapshot, "solver_results": list(snapshot["solver_results"])}
 
     def reset(self) -> None:
         with self._lock:

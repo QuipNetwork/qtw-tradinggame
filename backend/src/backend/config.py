@@ -217,6 +217,18 @@ RACE_WINNER_OBJECTIVE_TOL: float = float(os.environ.get("RACE_WINNER_OBJECTIVE_T
 # better objective is always a QUALITY win regardless of time.
 RACE_TIME_TIE_TOL: float = float(os.environ.get("RACE_TIME_TIE_TOL", 0.15))
 
+# Experimental xquad route (XQUAD_BACKEND). How long SolverQuip waits for a proposed
+# Quip order to finalize; the order runs outside the race (solvers/quip_orders.py).
+# An order finalizes 10 blocks (xqsa's block_wait) after its first answer. On Aglais
+# (6 s blocks) the 28-asset portfolio order was first answered 1-11 blocks after
+# proposal, finalizing 66-130 s later; 180 s covers a first answer up to ~19 blocks.
+XQUAD_TIMEOUT_S: float = float(os.environ.get("XQUAD_TIMEOUT_S", 180))
+# Most Quip orders outstanding (queued or in flight) at once. The worker runs one order at a
+# time, usually 1-2 min each and at most XQUAD_TIMEOUT_S, so this bounds how stale a queued
+# order can get (at most (QUIP_MAX_PENDING_ORDERS - 1) * XQUAD_TIMEOUT_S, 6 min by default);
+# a solve beyond it records its Quip row as skipped.
+QUIP_MAX_PENDING_ORDERS: int = int(os.environ.get("QUIP_MAX_PENDING_ORDERS", 3))
+
 # -----------------------------------------------------------------------------
 # D-Wave (joins the race only when DWAVE_API_TOKEN is set)
 # -----------------------------------------------------------------------------

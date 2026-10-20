@@ -1,4 +1,4 @@
-import type { RoutingResult, SolverResult } from '../api';
+import type { RoutingResult, SolverResult, SolverResultsFrame } from '../api';
 
 export type SolverRaceRow = SolverResult & {
   label: string;
@@ -18,12 +18,25 @@ const STATUS_ORDER: Record<SolverResult['status'], number> = {
   winner: 0,
   feasible: 1,
   infeasible: 2,
-  failed: 3,
-  timeout: 4,
+  pending: 3,
+  skipped: 4,
+  failed: 5,
+  timeout: 6,
 };
 
+// Late solver results replace the rows of the race they belong to; a frame for an older
+// job (the agent re-solved meanwhile) leaves the shown race alone.
+export function applySolverResults(
+  result: RoutingResult | null,
+  frame: SolverResultsFrame,
+): RoutingResult | null {
+  if (!result?.jobId || result.jobId !== frame.jobId) return result;
+  return { ...result, solverResults: frame.solverResults };
+}
+
 export function solverRaceRows(result: RoutingResult | null): SolverRaceRow[] {
-  const rows = result?.solverResults?.length ? result.solverResults : fallbackRows(result);
+  if (!result) return [];
+  const rows = result.solverResults?.length ? result.solverResults : [winnerOnlyRow(result)];
   const sorted = [...rows].sort((a, b) => {
     const statusDelta = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
     if (statusDelta !== 0) return statusDelta;
@@ -59,7 +72,7 @@ function solved(row: SolverResult): boolean {
 export function solverRaceComparison(result: RoutingResult | null): SolverRaceComparison {
   const rows = solverRaceRows(result);
   const winner = rows.find(row => row.isWinner);
-  const opponent = rows.find(row => !row.isWinner && row.feasible && row.solveTime != null);
+  const opponent = raceRunnerUp(rows);
   if (!winner || !opponent || winner.solveTime == null || opponent.solveTime == null) {
     return {
       value: '—',
@@ -97,18 +110,34 @@ export function solverRaceComparison(result: RoutingResult | null): SolverRaceCo
   };
 }
 
-function fallbackRows(result: RoutingResult | null): SolverResult[] {
-  const solveTime = result?.solveTime ?? 0.42;
-  return [
-    {
-      provider: result?.provider ?? 'D-Wave Advantage',
-      providerType: result?.providerType ?? 'QPU',
-      status: 'winner',
-      feasible: true,
-      solveTime,
-      raceTime: solveTime,
-    },
-  ];
+// The solver the winner is compared against, picked as the backend picks it for `outcome`
+// and the TV: the feasible race solver with the lowest objective. A Quip order runs outside
+// the race, so it is never one. Equal objectives go to the faster solver, as in the backend.
+// Rows without objectives (demo data) fall back to the fastest feasible solver.
+function raceRunnerUp(rows: SolverRaceRow[]): SolverRaceRow | undefined {
+  const candidates = rows.filter(
+    row => !row.isWinner && row.feasible && row.solveTime != null && row.providerType !== 'NETWORK',
+  );
+  const scored = candidates.filter(row => row.objective != null);
+  if (scored.length === 0) return candidates[0];
+  return scored.reduce((best, row) =>
+    row.objective! < best.objective! ||
+    (row.objective === best.objective && row.solveTime! < best.solveTime!)
+      ? row
+      : best,
+  );
+}
+
+// A result without per-solver rows still names its winner.
+function winnerOnlyRow(result: RoutingResult): SolverResult {
+  return {
+    provider: result.provider,
+    providerType: result.providerType,
+    status: 'winner',
+    feasible: true,
+    solveTime: result.solveTime,
+    raceTime: result.solveTime,
+  };
 }
 
 function displaySeconds(row: SolverResult): number {
@@ -116,6 +145,8 @@ function displaySeconds(row: SolverResult): number {
 }
 
 function timeLabelFor(row: SolverResult): string {
+  if (row.status === 'pending') return 'on chain…';
+  if (row.status === 'skipped') return 'skipped';
   if (row.status === 'timeout') return 'timeout';
   if (row.status === 'failed') return 'failed';
   const seconds = row.solveTime;
@@ -123,8 +154,17 @@ function timeLabelFor(row: SolverResult): string {
 }
 
 function detailFor(row: SolverResult): string {
+  return [statusDetail(row), orderDetail(row)].filter(Boolean).join(' · ');
+}
+
+function statusDetail(row: SolverResult): string {
   if (row.status === 'winner') return 'winner';
   // 'feasible' is internal jargon — a valid runner-up needs no extra label.
   if (row.status === 'feasible') return '';
   return row.status; // infeasible / failed / timeout stay informative
+}
+
+// A Quip order is on chain under its order ID once proposed; show it so it can be looked up.
+export function orderDetail(row: SolverResult): string {
+  return row.orderId ? `order\u00a0${row.orderId}` : '';  // never split from its number
 }

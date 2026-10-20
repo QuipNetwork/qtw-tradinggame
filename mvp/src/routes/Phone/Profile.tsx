@@ -9,9 +9,9 @@ import type {
   AssetInfo,
   QpuBudgetStatus,
 } from '../../api';
-import { getAgent, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, getAgentToken, IS_MOCK, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
+import { getAgent, getLatestResult, getLeaderboard, requestOptimization, updateAgent, storeAgentToken, getAgentToken, IS_MOCK, ASSETS, CRYPTO_ASSETS, STOCK_ASSETS, assetIconSrc, assetColor, ASSET_BY_TICKER } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
-import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
+import { applySolverResults, solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { glyphParams, labelFor, slidersToArray, holdCountDefault, holdCountMax, clampHoldCount, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import RebalanceSlider from '../../components/RebalanceSlider';
@@ -150,7 +150,8 @@ export default function PhoneProfile() {
   const [sliders, setSliders] = useState<number[] | null>(null);
   const [holdCount, setHoldCount] = useState<number | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const { update: live } = useAgentLive(agentId);
+  const { update: live, solverResults, status: liveStatus } = useAgentLive(agentId);
+  const resultRef = useRef<RoutingResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [view, setView] = useState<'profile' | 'basket' | 'portfolio'>('profile');
   const [basket, setBasket] = useState<Set<AssetTicker>>(new Set());
@@ -184,14 +185,13 @@ export default function PhoneProfile() {
         const targetMs = qpuCooldownTargetMs(a.qpuBudget);
         if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
 
-        const cachedRaw = sessionStorage.getItem('quip:lastResult:' + agentId);
-        if (cachedRaw) {
-          try {
-            const cached = JSON.parse(cachedRaw) as RoutingResult;
-            setResult(cached);
-            const cachedTargetMs = qpuCooldownTargetMs(cached.qpuBudget);
-            if (cachedTargetMs && cachedTargetMs > Date.now()) setQpuCooldownUntilMs(cachedTargetMs);
-          } catch { /* ignore a corrupt cache entry */ }
+        // The last race is secondary: if it can't load, the profile still opens without it.
+        const latest = await getLatestResult(agentId).catch(() => null);
+        if (cancelled) return;
+        if (latest) {
+          setResult(latest);
+          const latestTargetMs = qpuCooldownTargetMs(latest.qpuBudget);
+          if (latestTargetMs && latestTargetMs > Date.now()) setQpuCooldownUntilMs(latestTargetMs);
         }
         setLoadState('ready');
       } catch (err) {
@@ -223,6 +223,38 @@ export default function PhoneProfile() {
       window.clearInterval(timer);
     };
   }, [agentId]);
+
+  // A solver that finished after the race (a Quip order) updates the race shown. Re-run when
+  // the result's job arrives too, in case the frame landed before the result did.
+  const resultJobId = result?.jobId;
+  useEffect(() => {
+    if (solverResults) setResult(prev => applySolverResults(prev, solverResults));
+  }, [solverResults, resultJobId]);
+
+  useEffect(() => {
+    resultRef.current = result;
+  }, [result]);
+
+  // The socket does not replay a frame pushed while it was down (a locked phone, say): when it
+  // reconnects with a Quip row still pending, re-read the race and take its solver rows and
+  // outcome, only if it is still the solve on screen. latest-result leaves out the optimize
+  // response's rebalance and budget fields, so the rest of `result` stays as it was.
+  useEffect(() => {
+    if (liveStatus !== 'live' || !agentId) return;
+    if (!resultRef.current?.solverResults?.some(row => row.status === 'pending')) return;
+    let cancelled = false;
+    getLatestResult(agentId)
+      .then(latest => {
+        if (cancelled || !latest) return;
+        setResult(prev =>
+          prev && prev.jobId === latest.jobId
+            ? { ...prev, solverResults: latest.solverResults, outcome: latest.outcome }
+            : prev,
+        );
+      })
+      .catch(() => { /* keep the pending row; the next frame or a reload settles it */ });
+    return () => { cancelled = true; };
+  }, [agentId, liveStatus]);
 
   // React to each live tick: extend the sparkline buffer and honor any QPU
   // cooldown the backend reports on the stream. The subscription itself is owned
@@ -320,7 +352,6 @@ export default function PhoneProfile() {
         .catch(() => {});
       const targetMs = qpuCooldownTargetMs(r.qpuBudget);
       if (targetMs && targetMs > Date.now()) setQpuCooldownUntilMs(targetMs);
-      sessionStorage.setItem('quip:lastResult:' + agentId, JSON.stringify(r));
     } catch (err) {
       const cooldown = qpuCooldownFromError(err);
       if (cooldown) {
@@ -408,8 +439,6 @@ export default function PhoneProfile() {
   const portfolioHasStocks = portfolioRows.some(r => ASSET_BY_TICKER[r.ticker]?.class === 'stock');
   const showMarketClosed = !isUsStockMarketOpen(nowMs) && portfolioHasStocks;
 
-  const solveTime = result?.solveTime ?? 0.42;
-  const providerName = result?.provider ?? 'D-Wave Advantage';
   const raceRows = solverRaceRows(result);
   const raceComparison = solverRaceComparison(result);
   const nextRebalanceAt =
@@ -580,21 +609,34 @@ export default function PhoneProfile() {
 
             <div className="v4m-phone-mega">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span className="v4m-section-eyebrow cyan-dot cyan">Solved via Quip Network</span>
+                <span className="v4m-section-eyebrow cyan-dot cyan">
+                  {result ? 'Solved via Quip Network' : 'Race via Quip Network'}
+                </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+              {result ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                  <div>
+                    <div className="v4m-phone-mega-hero">{result.provider}</div>
+                    <div className="v4m-phone-mega-meta">
+                      {raceComparison.summary}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: 'italic', fontSize: '1.6rem', letterSpacing: '-0.025em', color: '#0891B2', lineHeight: 1 }}>
+                      {result.solveTime.toFixed(2)}s
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div>
-                  <div className="v4m-phone-mega-hero">{providerName}</div>
+                  <div className="v4m-phone-mega-hero">
+                    {agent.lastSolvedAt ? 'Last race unavailable' : 'No race yet'}
+                  </div>
                   <div className="v4m-phone-mega-meta">
-                    {raceComparison.summary}
+                    Retune to race the quantum and classical solvers.
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontStyle: 'italic', fontSize: '1.6rem', letterSpacing: '-0.025em', color: '#0891B2', lineHeight: 1 }}>
-                    {solveTime.toFixed(2)}s
-                  </div>
-                </div>
-              </div>
+              )}
               <div className="v4m-race-block" style={{ borderTop: '1px solid #ececef', paddingTop: 8 }}>
                 {raceRows.map(row => (
                   <div className={`v4m-race-row${row.isWinner ? ' winner' : ''}${row.feasible ? '' : ' muted'}`} style={{ gridTemplateColumns: '122px 1fr 54px' }} key={`${row.provider}-${row.status}`}>

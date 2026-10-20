@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import type { AgentConfig, RoutingResult } from '../../api';
-import { getAgent, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK, getAgentToken } from '../../api';
+import { getAgent, getLatestResult, requestOptimization, assetIconSrc, assetColor, ASSET_BY_TICKER, IS_MOCK, getAgentToken } from '../../api';
 import type { PortfolioEntry } from '../../api';
 import { renderGlyph, strHash, pickStyle } from '../../utils/glyph';
 import { renderQR } from '../../utils/qr';
-import { solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
+import { applySolverResults, orderDetail, solverRaceComparison, solverRaceRows } from '../../utils/solverRace';
 import { labelFor, glyphParams, maxPositionCapPct, riskLevelPct } from '../../utils/strategy';
 import { useAgentLive } from '../../hooks/useAgentLive';
 import StatusScreen from '../../components/StatusScreen';
@@ -26,7 +26,7 @@ export default function KioskWelcome() {
   const agentId = params.get('agent');
   const [agent, setAgent] = useState<AgentConfig | null>(null);
   const [result, setResult] = useState<RoutingResult | null>(null);
-  const { update: live } = useAgentLive(agentId ?? undefined);
+  const { update: live, solverResults } = useAgentLive(agentId ?? undefined);
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'notfound' | 'auth' | 'error'>('loading');
   const [retryNonce, setRetryNonce] = useState(0);
@@ -56,15 +56,9 @@ export default function KioskWelcome() {
         setAgent(a);
         setQrUrl(secureQrUrl ?? `${window.location.origin}/p/${agentId}`);
 
-        const cachedRaw = readSessionItem('quip:lastResult:' + agentId);
-        if (cachedRaw) {
-          try {
-            setResult(JSON.parse(cachedRaw) as RoutingResult);
-            setLoadState('ready');
-            return;
-          } catch { /* fall through to a fresh solve */ }
-        }
-        const r = await requestOptimization(agentId);
+        // Only the first visit solves; a refresh shows the agent's latest race instead of
+        // spending another QPU-budget slot and Quip order.
+        const r = (await getLatestResult(agentId)) ?? (await requestOptimization(agentId));
         if (cancelled) return;
         setResult(r);
         setLoadState('ready');
@@ -74,6 +68,13 @@ export default function KioskWelcome() {
     })();
     return () => { cancelled = true; };
   }, [agentId, retryNonce]);
+
+  // A solver that finished after the race (a Quip order) updates the race shown. Re-run when
+  // the result's job arrives too, in case the frame landed before the result did.
+  const resultJobId = result?.jobId;
+  useEffect(() => {
+    if (solverResults) setResult(prev => applySolverResults(prev, solverResults));
+  }, [solverResults, resultJobId]);
 
   useEffect(() => {
     if (!agent || !glyphRef.current) return;
@@ -152,8 +153,7 @@ export default function KioskWelcome() {
     );
   }
   // Hold the loader until BOTH the agent config AND the first solve are in. The config fetch is
-  // fast, but the solve takes ~1–10s — without `!result` here the hero would render mid-solve with
-  // a null result, flashing the "D-Wave Advantage 0.42s" placeholder before the real winner lands.
+  // fast, but the solve takes ~1–10s; the hero needs the real winner.
   if (!agent || !result) {
     return (
       <KioskStage>
@@ -244,6 +244,7 @@ export default function KioskWelcome() {
                       {row.provider.split(' ')[0]}
                     </span>
                     <span className="v4m-race-l2">{row.provider.split(' ').slice(1).join(' ')} {row.providerType}</span>
+                    {row.orderId && <span className="v4m-race-l2">{orderDetail(row)}</span>}
                   </span>
                 <div className="v4m-race-bar"><div className={`v4m-race-fill${row.isWinner ? ' q' : ''}`} style={{ width: `${row.barPct}%` }}></div></div>
                 <span className="v4m-race-time">{row.timeLabel}</span>

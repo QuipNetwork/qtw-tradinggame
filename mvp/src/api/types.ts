@@ -43,7 +43,7 @@ export type OptimizePatch = {
   assets?: AssetTicker[];
 };
 
-export type ProviderType = 'QPU' | 'CPU';
+export type ProviderType = 'QPU' | 'CPU' | 'NETWORK';
 
 export type QpuBudgetStatus = {
   used: number;
@@ -88,7 +88,16 @@ export type HoldingUpdate = {
   pct: number;
 };
 
-export type SolverStatus = 'winner' | 'feasible' | 'infeasible' | 'failed' | 'timeout';
+// A Quip network order finishes after the race returns: 'pending' while it is open on chain,
+// 'skipped' when too many orders were already pending to propose one.
+export type SolverStatus =
+  | 'winner'
+  | 'feasible'
+  | 'infeasible'
+  | 'failed'
+  | 'timeout'
+  | 'pending'
+  | 'skipped';
 
 export type SolverResult = {
   provider: string;
@@ -100,6 +109,7 @@ export type SolverResult = {
   objective?: number | null;
   bestObjective?: boolean;      // quality leader (lowest objective); may differ from winner
   error?: string | null;
+  orderId?: string | null;
 };
 
 export type RoutingResult = {
@@ -174,7 +184,11 @@ export type RecentRouting = {
   provider: string;             // raw key: 'dwave' | 'sa' | 'gurobi'
   providerType: ProviderType;   // 'QPU' | 'CPU'
   solveTime: number;            // winner seconds
-  vsTime: number | null;        // runner-up seconds (null if unavailable)
+  // The best feasible race runner-up (never the Quip order, which runs outside the race);
+  // null when there is none. Older backends send only vsTime.
+  vsTime: number | null;        // runner-up seconds
+  vsProvider?: string | null;   // runner-up display label, e.g. 'D-Wave Advantage'
+  vsProviderType?: ProviderType | null;
   solvedAt: string;             // ISO-8601 UTC
   // How the winner won, so a quality+speed tie reads as a tie, not a noise-level "X% faster".
   outcome?: 'quality' | 'speed' | 'tie';
@@ -207,8 +221,17 @@ export type AgentUpdate = {
 // or set directly by the mock simulator.
 export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting' | 'closed';
 
+// Pushed on the agent channel when a solver finishes after the race (a Quip order):
+// every solver row of that job, final where known.
+export type SolverResultsFrame = {
+  type: 'solver-results';
+  jobId: string;
+  solverResults: SolverResult[];
+};
+
 export type SubscribeOptions = {
   onStatus?: (status: ConnectionStatus) => void;
+  onSolverResults?: (frame: SolverResultsFrame) => void;
 };
 
 // Booth-wide TV events (WS /tv/events): a new agent's first solve triggers the

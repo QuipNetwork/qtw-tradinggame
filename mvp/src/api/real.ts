@@ -10,6 +10,7 @@ import type {
   QpuBudgetStatus,
   RoutingResult,
   RoutingStats,
+  SolverResultsFrame,
   SubmitAgentResponse,
   SubscribeOptions,
   TvEvent,
@@ -150,6 +151,21 @@ export async function requestOptimization(
   });
 }
 
+// The agent's newest solve with any late results (a finished Quip order) in place;
+// null before the first solve.
+export async function getLatestResult(agentId: string): Promise<RoutingResult | null> {
+  try {
+    return await request<RoutingResult>(`/agents/${encodeURIComponent(agentId)}/latest-result`, {
+      headers: authHeaders(agentId),
+    });
+  } catch (error) {
+    if (error instanceof BackendApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return request<LeaderboardEntry[]>('/leaderboard');
 }
@@ -206,9 +222,19 @@ export function subscribeAgent(
 ): () => void {
   const token = getAgentToken(agentId);
   const base = websocketUrl(`/agents/${encodeURIComponent(agentId)}`);
-  const socket = new ReconnectingSocket<AgentUpdate>(
-    token ? `${base}?t=${encodeURIComponent(token)}` : base,
-    { onMessage: callback, onStatus: options.onStatus },
+  // Browsers can't set WebSocket headers, so the token rides in Sec-WebSocket-Protocol;
+  // a query string would land in the server log.
+  // Valuation updates carry no `type`; other frames name theirs. Unknown types are dropped.
+  const socket = new ReconnectingSocket<AgentUpdate | SolverResultsFrame>(
+    base,
+    {
+      onMessage: frame => {
+        if (!('type' in frame)) callback(frame);
+        else if (frame.type === 'solver-results') options.onSolverResults?.(frame);
+      },
+      onStatus: options.onStatus,
+    },
+    token ? ['quip.v1', `auth.${token}`] : undefined,
   );
   return () => socket.close();
 }

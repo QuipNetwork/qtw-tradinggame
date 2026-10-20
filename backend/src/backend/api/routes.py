@@ -22,12 +22,16 @@ from ..financial.basket import validate_basket
 from ..financial.prices.assets_api import AssetsApiError
 from ..notifications.dispatch import maybe_send_update_email
 from ..notifications.email import send_signup_confirmation
-from ..orchestration.job import run_optimization
+from ..orchestration.job import (
+    provider_label,
+    race_comparison,
+    routing_result_from_snapshot,
+    run_optimization,
+)
 from ..persistence.agents import AgentRecord, EmailAlreadyRegistered, get_agent_store
 from ..persistence.jobs import get_job_store
 from ..persistence.leaderboard import build_leaderboard
 from ..persistence.qpu_budget import QpuBudgetExceeded, get_qpu_budget_store
-from ..solvers.router import classify_outcome
 from ..solvers.types import SolverFailed
 from .auth import new_agent_token, require_agent_token
 from .schemas import (
@@ -141,6 +145,29 @@ async def get_agent(agent_id: str) -> AgentConfig:
     config_out = record.to_config()
     config_out.qpu_budget = get_qpu_budget_store().status(agent_id)
     return config_out
+
+
+@router.get(
+    "/agents/{agent_id}/latest-result",
+    response_model=RoutingResult,
+    dependencies=[Depends(require_agent_token)],
+)
+async def latest_result(agent_id: str) -> RoutingResult:
+    """The agent's newest solve, as optimize returned it, with late results (a finished
+    Quip order) in place. 404 before the first solve."""
+    record = get_agent_store().get(agent_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="agent not found")
+    store = get_job_store()
+    snapshot = store.latest_solve_snapshot(agent_id)
+    job = store.get(snapshot["job_id"]) if snapshot is not None else None
+    if snapshot is None or job is None:
+        raise HTTPException(status_code=404, detail="no solve yet")
+    result = routing_result_from_snapshot(job, snapshot)
+    result.next_rebalance_at = record.next_rebalance_at
+    result.rebalance_interval_hours = record.rebalance_interval_hours
+    result.qpu_budget = get_qpu_budget_store().status(agent_id)
+    return result
 
 
 @router.patch(
@@ -275,49 +302,28 @@ async def routing_stats() -> RoutingStats:
             provider_counts.items(), key=lambda item: (-item[1], item[0][0])
         )
     ]
-    # Recent routings feed (newest first) for the TV roulette strip. Winner +
-    # timestamp come from the job log; the runner-up time (for the head-to-head
-    # comparison) comes from the matching solve snapshot when one is available.
+    # Recent routings feed (newest first) for the TV roulette strip. Winner + timestamp come
+    # from the job log; the runner-up it is compared against comes from the solve snapshot.
     snapshots_by_job = {snap["job_id"]: snap for snap in store.solve_snapshots()}
     recent: list[RecentRouting] = []
     for job in reversed(jobs[-RECENT_ROUTING_LIMIT:]):
-        vs_time: float | None = None
         outcome = "quality"
+        runner: dict | None = None
         snap = snapshots_by_job.get(job.id)
         if snap:
-            runs = snap.get("solver_results", [])
-            winner_provider = snap.get("winner_provider")
-            timed = [
-                run["solveTime"]
-                for run in runs
-                if run.get("provider") != winner_provider and run.get("solveTime") is not None
-            ]
-            if timed:
-                vs_time = min(timed)
-            # Classify HOW the winner won — same logic as the live race — so the TV reports a genuine
-            # tie instead of a misleading "X% faster" on a quality+speed tie.
-            win = next((run for run in runs if run.get("provider") == winner_provider), None)
-            scored = [
-                run
-                for run in runs
-                if run.get("provider") != winner_provider
-                and run.get("objective") is not None
-                and run.get("feasible", True)  # only a FEASIBLE runner-up is a real head-to-head
-            ]
-            runner = min(scored, key=lambda run: run["objective"]) if scored else None
-            if win is not None:
-                outcome = classify_outcome(
-                    win.get("objective"),
-                    win.get("solveTime"),
-                    runner.get("objective") if runner else None,
-                    runner.get("solveTime") if runner else None,
-                )
+            # Classified like the live race, so the TV reports a genuine tie instead of a
+            # misleading "X% faster" on a quality+speed tie.
+            outcome, runner = race_comparison(
+                snap.get("solver_results", []), snap.get("winner_provider")
+            )
         recent.append(
             RecentRouting(
                 provider=job.provider,
                 provider_type=job.provider_role,
                 solve_time=job.solve_time_s,
-                vs_time=vs_time,
+                vs_time=runner.get("solveTime") if runner else None,
+                vs_provider=provider_label(runner["provider"]) if runner else None,
+                vs_provider_type=runner.get("providerRole") if runner else None,
                 solved_at=job.solved_at,
                 outcome=outcome,
             )

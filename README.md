@@ -1,6 +1,6 @@
 # Quip Network · QTW 2026 Trading Competition
 
-Booth activation for **Quantum.Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time — every retune is routed through the Quip Network across quantum and classical providers.
+Booth activation for **Quantum.Tech World 2026** (Jun 25–26, 2026). Attendees create a trading agent at a kiosk, tune three strategy sliders, and watch their portfolio compete in real time. Every solve races classical solvers against the D-Wave QPU (when a Leap token is configured), and the race decides the portfolio. With `XQUAD_BACKEND=quip`, a manual solve also sends the same problem to the Quip testnet as an order that runs beside the race.
 
 ## Start here
 
@@ -19,7 +19,6 @@ design-doc.html        Full project summary (open in any browser)
 mvp/                   Vite + React + TypeScript app — the live MVP
 backend/               FastAPI backend, solver race, persistence, Docker image
 docs/                  Deployment runbook, backend dataflow, TODO, research notes
-deploy/                Droplet deploy script and Caddy proxy example
 reference-files/       Base @ Consensys Miami screenshots (referenced by design doc)
 shared-design/         CSS + canvas glyph algorithms shared between MVP and doc
 ```
@@ -40,10 +39,12 @@ See [`backend/README.md`](./backend/README.md) for the Python backend (solver ra
 Frontend: `netlify.toml` is wired up. Every push to `main` triggers an auto-build
 for the Netlify deployment surfaced at https://qtw.quip.network.
 
-Backend: `.gitlab-ci.yml` can test, build, and push the FastAPI Docker image,
-with a manual deploy job for a DigitalOcean droplet. See
-[`docs/DEPLOY.md`](./docs/DEPLOY.md) for the consolidated operator runbook,
-runtime environment reference, Supabase notes, and Proton SMTP setup.
+Backend: a single-instance Flux Orbit app builds and runs the `deploy/orbit`
+branch, which is behind `main`. Deploys are a Hard Redeploy of that app in Flux;
+CI only runs the backend tests and builds an image the app does not use. See
+[`docs/DEPLOY.md`](./docs/DEPLOY.md) for the operator runbook, what moving
+`main` onto `deploy/orbit` takes, the runtime environment reference, Supabase
+notes, Quip testnet settings, and Resend email setup.
 
 ## Engineering handoff
 

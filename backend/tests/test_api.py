@@ -332,8 +332,14 @@ def test_routing_stats_counts_recorded_winning_jobs():
         portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
         holdings_units={"BTC": 1.0},
         solver_results=[
-            {"provider": "sa", "solveTime": 0.21},
-            {"provider": "dwave", "solveTime": 0.12},
+            {"provider": "sa", "providerRole": "CPU", "solveTime": 0.21, "objective": 0.0001},
+            {
+                "provider": "dwave",
+                "providerRole": "QPU",
+                "feasible": True,
+                "solveTime": 0.12,
+                "objective": 0.0002,
+            },
         ],
         winner_provider="sa",
     )
@@ -350,6 +356,93 @@ def test_routing_stats_counts_recorded_winning_jobs():
         assert {provider["provider"] for provider in body["providers"]} == {"dwave", "sa"}
         assert body["recent"][0]["provider"] == "sa"
         assert body["recent"][0]["vsTime"] == 0.12
+        assert body["recent"][0]["vsProvider"] == "D-Wave Advantage"
+        assert body["recent"][0]["vsProviderType"] == "QPU"
+
+
+def _record_sa_win(solver_results):
+    jobs = get_job_store()
+    job = jobs.record(
+        "a1",
+        ProviderProvenance(
+            provider="sa",
+            provider_role="CPU",
+            q_hash="e" * 64,
+            deadline_s=3.0,
+            solve_time_s=0.02,
+            feasible=True,
+        ),
+    )
+    jobs.record_solve_snapshot(
+        job_id=job.id,
+        agent_id="a1",
+        sliders=_SLIDERS,
+        assets=_BASKET,
+        portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
+        holdings_units={"BTC": 1.0},
+        solver_results=[
+            {
+                "provider": "sa",
+                "providerRole": "CPU",
+                "feasible": True,
+                "solveTime": 0.02,
+                "objective": 0.0001,
+            },
+            *solver_results,
+        ],
+        winner_provider="sa",
+    )
+
+
+_FINISHED_QUIP_ROW = {
+    "provider": "xquad-quip",
+    "providerRole": "NETWORK",
+    "status": "feasible",
+    "feasible": True,
+    "solveTime": 78.75,
+    "objective": 0.00001,  # better than the winner, but the order ran outside the race
+}
+
+
+def test_routing_stats_compares_against_the_race_runner_up_not_the_quip_order():
+    _record_sa_win(
+        [
+            {
+                "provider": "dwave",
+                "providerRole": "QPU",
+                "feasible": True,
+                "solveTime": 0.12,
+                "objective": 0.0003,
+            },
+            _FINISHED_QUIP_ROW,
+        ]
+    )
+    with TestClient(create_app()) as client:
+        recent = client.get("/routing-stats").json()["recent"][0]
+        assert recent["vsTime"] == 0.12
+        assert recent["vsProvider"] == "D-Wave Advantage"
+        assert recent["vsProviderType"] == "QPU"
+        assert recent["outcome"] == "quality"
+
+
+def test_routing_stats_reports_no_runner_up_when_only_the_quip_order_finished():
+    _record_sa_win(
+        [
+            {
+                "provider": "dwave",
+                "providerRole": "QPU",
+                "feasible": False,
+                "solveTime": 0.12,
+                "objective": 0.0003,
+            },
+            _FINISHED_QUIP_ROW,
+        ]
+    )
+    with TestClient(create_app()) as client:
+        recent = client.get("/routing-stats").json()["recent"][0]
+        assert recent["vsTime"] is None
+        assert recent["vsProvider"] is None
+        assert recent["vsProviderType"] is None
 
 
 def test_routing_stats_recent_reports_tie_not_false_speed_win():
@@ -447,31 +540,71 @@ def test_optimize_returns_routing_result():
         assert sum(entry["pct"] for entry in body["portfolio"]) == pytest.approx(100.0, abs=1e-6)
 
 
+def _auth_subprotocols(token: str) -> list[str]:
+    return ["quip.v1", f"auth.{token}"]
+
+
 @requires_gurobi
 def test_websocket_streams_agent_update():
     with TestClient(create_app()) as client:
         agent_id = _create(client)
         token = client.headers["Authorization"].split(" ", 1)[1]
         client.post(f"/agents/{agent_id}/optimize", json={})
-        with client.websocket_connect(f"/agents/{agent_id}?t={token}") as socket:
+        with client.websocket_connect(
+            f"/agents/{agent_id}", subprotocols=_auth_subprotocols(token)
+        ) as socket:
+            assert socket.accepted_subprotocol == "quip.v1"
             client.post(f"/agents/{agent_id}/optimize", json={})  # retune → push
             update = socket.receive_json()
             assert {"plUSD", "plPct", "total", "holdings", "asOf", "stale"} <= set(update)
             assert {h["ticker"] for h in update["holdings"]} == set(_BASKET)
 
 
-def test_agent_websocket_rejects_without_token():
+def _public_agent(client: TestClient) -> str:
+    body = client.post(
+        "/agents",
+        json={"name": "WS", "email": "ws@example.com", "sliders": _SLIDERS, "assets": _BASKET},
+    ).json()
+    return body["agentId"]
+
+
+@pytest.mark.parametrize(
+    "subprotocols",
+    [
+        None,  # no token at all
+        ["quip.v1", "auth.wrong"],
+        ["auth.wrong"],  # a token without the protocol it belongs to
+    ],
+)
+def test_agent_websocket_rejects_a_missing_or_wrong_token(subprotocols):
     from starlette.websockets import WebSocketDisconnect
 
     with TestClient(create_app()) as client:
-        body = client.post(
-            "/agents",
-            json={"name": "WS", "email": "ws@example.com", "sliders": _SLIDERS, "assets": _BASKET},
-        ).json()
-        agent_id = body["agentId"]
+        agent_id = _public_agent(client)
         with pytest.raises(WebSocketDisconnect):
-            with client.websocket_connect(f"/agents/{agent_id}"):  # no ?t= → 1008
+            with client.websocket_connect(f"/agents/{agent_id}", subprotocols=subprotocols):
                 pass
+
+
+def test_agent_websocket_still_accepts_the_legacy_query_token():
+    # TODO(QUI-1855): delete with the ?t= fallback.
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        token = client.headers["Authorization"].split(" ", 1)[1]
+        with client.websocket_connect(f"/agents/{agent_id}?t={token}") as socket:
+            assert socket.accepted_subprotocol is None
+
+
+def test_legacy_query_tokens_are_redacted_from_the_server_log(caplog):
+    import logging
+
+    create_app()
+    caplog.set_level(logging.INFO, logger="uvicorn.error")
+    logging.getLogger("uvicorn.error").info(
+        '%s - "WebSocket %s" [accepted]', "127.0.0.1:5000", "/agents/abc?t=s3cret-token"
+    )
+    assert "s3cret-token" not in caplog.text
+    assert "/agents/abc?t=<redacted>" in caplog.text
 
 
 def test_basket_below_minimum_is_rejected():
@@ -594,6 +727,124 @@ def test_kiosk_signups_skip_per_ip_limit(monkeypatch):
         assert r2.status_code == 200
 
 
+def test_latest_result_is_404_before_the_first_solve():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        response = client.get(f"/agents/{agent_id}/latest-result")
+        assert response.status_code == 404
+        assert response.json()["detail"] == "no solve yet"
+        assert client.get("/agents/nope/latest-result").status_code == 404
+
+
+def test_latest_result_requires_the_owner_token():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        client.post(f"/agents/{agent_id}/optimize", json={})
+        del client.headers["Authorization"]
+        assert client.get(f"/agents/{agent_id}/latest-result").status_code == 401
+        wrong = {"Authorization": "Bearer wrong"}
+        assert client.get(f"/agents/{agent_id}/latest-result", headers=wrong).status_code == 403
+
+
+def test_latest_result_returns_the_newest_solve_as_optimize_did(monkeypatch):
+    monkeypatch.setattr(config, "GUROBI_IN_RACE", False)
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        client.post(f"/agents/{agent_id}/optimize", json={})
+        solved = client.post(f"/agents/{agent_id}/optimize", json={"assets": _ALT_BASKET}).json()
+
+        response = client.get(f"/agents/{agent_id}/latest-result")
+
+        assert response.status_code == 200
+        latest = response.json()
+        for field in (
+            "provider",
+            "providerType",
+            "solveTime",
+            "portfolio",
+            "solverResults",
+            "outcome",
+            "jobId",
+            "solvedAt",
+            "nextRebalanceAt",
+            "rebalanceIntervalHours",
+        ):
+            assert latest[field] == solved[field], field
+        assert {entry["ticker"] for entry in latest["portfolio"]} == set(_ALT_BASKET)
+        assert latest["qpuBudget"] is not None
+
+
+def test_latest_result_reads_old_rows_and_keeps_the_quip_order_out_of_the_comparison():
+    with TestClient(create_app()) as client:
+        agent_id = _create(client)
+        jobs = get_job_store()
+        job = jobs.record(
+            agent_id,
+            ProviderProvenance(
+                provider="sa",
+                provider_role="CPU",
+                q_hash="d" * 64,
+                deadline_s=3.0,
+                solve_time_s=0.10,
+                feasible=True,
+            ),
+        )
+        jobs.record_solve_snapshot(
+            job_id=job.id,
+            agent_id=agent_id,
+            sliders=_SLIDERS,
+            assets=_BASKET,
+            portfolio=[{"ticker": "BTC", "pct": 100.0, "usd": 10_000.0}],
+            holdings_units={"BTC": 1.0},
+            solver_results=[
+                # Written before bestObjective and orderId existed.
+                {
+                    "provider": "sa",
+                    "providerRole": "CPU",
+                    "status": "winner",
+                    "feasible": True,
+                    "solveTime": 0.10,
+                    "raceTime": 0.10,
+                    "objective": 0.00009,
+                    "error": None,
+                },
+                {
+                    "provider": "dwave",
+                    "providerRole": "QPU",
+                    "status": "feasible",
+                    "feasible": True,
+                    "solveTime": 0.106,
+                    "raceTime": 0.106,
+                    "objective": 0.00009,
+                    "error": None,
+                },
+                # A finished Quip order with a better objective is not a race runner-up.
+                {
+                    "provider": "xquad-quip",
+                    "providerRole": "NETWORK",
+                    "status": "feasible",
+                    "feasible": True,
+                    "solveTime": 78.75,
+                    "raceTime": None,
+                    "objective": 0.00001,
+                    "bestObjective": False,
+                    "error": None,
+                    "orderId": "357",
+                },
+            ],
+            winner_provider="sa",
+        )
+
+        latest = client.get(f"/agents/{agent_id}/latest-result").json()
+
+        assert latest["provider"] == "Simulated Annealing"
+        assert latest["outcome"] == "tie"  # against D-Wave, not the Quip order
+        rows = {row["provider"]: row for row in latest["solverResults"]}
+        assert rows["Simulated Annealing"]["bestObjective"] is False
+        assert rows["Simulated Annealing"]["orderId"] is None
+        assert rows["Quip testnet (xquad)"]["orderId"] == "357"
+
+
 @requires_gurobi
 def test_optimize_accepts_a_new_basket():
     with TestClient(create_app()) as client:
@@ -626,6 +877,24 @@ def test_required_config_allows_local_memory(monkeypatch, env):
     monkeypatch.setattr(config, "APP_ENV", env)
     monkeypatch.setattr(config, "DATABASE_URL", None)
     _check_required_config()  # no raise
+
+
+def test_quip_backend_refuses_to_start_without_a_signer(monkeypatch):
+    """A container without a signer would sign with a fresh throwaway keystore per deploy."""
+    monkeypatch.setattr(config, "APP_ENV", "local")
+    monkeypatch.setenv("XQUAD_BACKEND", "quip")
+    monkeypatch.delenv("QUIP_SIGNER_SEED", raising=False)
+    monkeypatch.delenv("QUIP_KEYSTORE", raising=False)
+    with pytest.raises(RuntimeError, match="QUIP_SIGNER_SEED"):
+        _check_required_config()
+    monkeypatch.setenv("QUIP_KEYSTORE", "/data/quip/keystore.json")
+    _check_required_config()  # no raise
+    monkeypatch.delenv("QUIP_KEYSTORE")
+    monkeypatch.setenv("QUIP_SIGNER_SEED", "00" * 32)
+    _check_required_config()  # no raise
+    monkeypatch.setenv("XQUAD_BACKEND", "dwave-cpu")
+    monkeypatch.delenv("QUIP_SIGNER_SEED")
+    _check_required_config()  # other backends need no signer
 
 
 def test_api_explorer_disabled_for_real_deploys(monkeypatch):
