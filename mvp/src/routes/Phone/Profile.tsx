@@ -236,15 +236,21 @@ export default function PhoneProfile() {
   }, [result]);
 
   // The socket does not replay a frame pushed while it was down (a locked phone, say): when it
-  // reconnects with a Quip row still pending, re-read the race, keeping it only if it is still
-  // the solve on screen.
+  // reconnects with a Quip row still pending, re-read the race and take its solver rows and
+  // outcome, only if it is still the solve on screen. latest-result leaves out the optimize
+  // response's rebalance and budget fields, so the rest of `result` stays as it was.
   useEffect(() => {
     if (liveStatus !== 'live' || !agentId) return;
     if (!resultRef.current?.solverResults?.some(row => row.status === 'pending')) return;
     let cancelled = false;
     getLatestResult(agentId)
       .then(latest => {
-        if (!cancelled && latest) setResult(prev => (prev?.jobId === latest.jobId ? latest : prev));
+        if (cancelled || !latest) return;
+        setResult(prev =>
+          prev && prev.jobId === latest.jobId
+            ? { ...prev, solverResults: latest.solverResults, outcome: latest.outcome }
+            : prev,
+        );
       })
       .catch(() => { /* keep the pending row; the next frame or a reload settles it */ });
     return () => { cancelled = true; };
