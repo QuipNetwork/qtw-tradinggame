@@ -37,7 +37,10 @@ manual solve proposes one; scheduled rebalances race the local solvers only and
 spend no admission budget. Optimize returns as soon as the local solvers
 finish, with the Quip row reported as `pending`. The order runs on one
 background worker that submits one order at a time with one shared
-`SolverQuip`, so concurrent solves never sign with the same account nonce. When
+`SolverQuip`, so concurrent solves never sign with the same account nonce.
+Aglais closes a websocket after about two minutes without traffic, so an order
+that follows more than a minute without one reconnects first (about 3 s)
+instead of reusing the solver's closed connection. When
 the order finalizes, its result (status, objective, order ID) replaces the
 `pending` entry in that job's solve snapshot. It never changes the agent's
 portfolio. `XQUAD_TIMEOUT_S` (default 180 s) is how long the worker waits for a

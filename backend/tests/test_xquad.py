@@ -25,6 +25,7 @@ from backend.orchestration.job import run_optimization
 from backend.persistence.agents import get_agent_store
 from backend.persistence.jobs import get_job_store
 from backend.solvers import quip_orders
+from backend.solvers.providers import xquad
 from backend.solvers.providers.xquad import XquadProvider, selected_backend
 from backend.solvers.router import build_providers
 from backend.solvers.xquad_model import smoke_xqmx, to_xqmx
@@ -191,18 +192,21 @@ def test_smoke_model_fits_one_hardware_edge():
 class _FakeQuipOrder:
     """Solves on the calling thread like SolverQuip.solve, selecting every variable.
 
-    With `release`, each solve blocks until the event is set, holding the worker busy."""
+    With `release`, each solve blocks until the event is set, holding the worker busy; with
+    `delay`, each solve takes that many seconds."""
 
-    def __init__(self, order_id=92, error=None, release=None):
+    def __init__(self, order_id=92, error=None, release=None, delay=0.0):
         self.order_id = order_id
         self.error = error
         self.release = release
+        self.delay = delay
         self.calls = 0
 
     def solve(self, model):
         self.calls += 1
         if self.release is not None:
             assert self.release.wait(10)
+        time.sleep(self.delay)
         if self.error is not None:
             raise self.error
         sample = type(model).binary_sample(model.size)
@@ -249,6 +253,75 @@ def test_quip_order_timeout_keeps_its_order_id(monkeypatch, synthetic_problem_3a
     assert result["orderId"] == "93"
     assert result["feasible"] is False
     assert quip_orders._provider is None  # the next order reconnects
+
+
+def _connect_quip(monkeypatch, *solvers):
+    """Stand in for Aglais: each new SolverQuip connection is the next of `solvers`.
+
+    Returns the solvers not yet connected."""
+    unused = list(solvers)
+    monkeypatch.setattr(xquad, "quip_solver", lambda **_kwargs: unused.pop(0))
+    monkeypatch.setattr(quip_orders, "_provider", None)
+    return unused
+
+
+def test_an_idle_quip_solver_reconnects_before_the_next_order(
+    monkeypatch, synthetic_problem_3assets
+):
+    from xqsa.quip import QuipConnectionError
+
+    monkeypatch.setattr(quip_orders, "IDLE_RECONNECT_S", 0.05)
+    first, second = _FakeQuipOrder(order_id=94), _FakeQuipOrder(order_id=95)
+    unused = _connect_quip(monkeypatch, first, second)
+    results = []
+
+    quip_orders.submit(synthetic_problem_3assets, results.append).result(timeout=10)
+    # Aglais closes the idle websocket, so the first solver's next read would fail.
+    first.error = QuipConnectionError("could not read the QuantumComputeMempool.MaxNodes constant")
+    time.sleep(0.1)
+    quip_orders.submit(synthetic_problem_3assets, results.append).result(timeout=10)
+
+    assert (first.calls, second.calls, unused) == (1, 1, [])
+    assert [r["orderId"] for r in results] == ["94", "95"]
+    assert all(r["status"] in ("feasible", "infeasible") for r in results)
+
+
+def test_a_solver_busy_for_longer_than_the_idle_limit_is_reused(
+    monkeypatch, synthetic_problem_3assets
+):
+    # Only the time between orders counts as idle: SolverQuip polls the chain while it waits.
+    monkeypatch.setattr(quip_orders, "IDLE_RECONNECT_S", 0.2)
+    order = _FakeQuipOrder(delay=0.3)
+    unused = _connect_quip(monkeypatch, order, _FakeQuipOrder(order_id=99))
+
+    futures = [quip_orders.submit(synthetic_problem_3assets, lambda _: None) for _ in range(2)]
+    for future in futures:
+        future.result(timeout=10)
+
+    assert order.calls == 2
+    assert len(unused) == 1  # never reconnected
+
+
+def test_a_connection_lost_after_proposing_is_not_proposed_again(
+    monkeypatch, synthetic_problem_3assets
+):
+    from xqsa.quip import QuipConnectionError
+
+    # The order is on chain and paid for; the websocket drops while waiting for it to finalize.
+    lost = _FakeQuipOrder(error=QuipConnectionError("could not read order 96"))
+    after = _FakeQuipOrder(order_id=97)
+    _connect_quip(monkeypatch, lost, after)
+    results = []
+
+    quip_orders.submit(synthetic_problem_3assets, results.append).result(timeout=10)
+
+    assert (lost.calls, after.calls) == (1, 0)
+    [result] = results
+    assert result["status"] == "failed"
+    assert "could not read order 96" in result["error"]
+    quip_orders.submit(synthetic_problem_3assets, results.append).result(timeout=10)
+    assert (lost.calls, after.calls) == (1, 1)  # the next order reconnects
+    assert results[-1]["orderId"] == "97"
 
 
 def test_quip_orders_are_capped_while_pending(monkeypatch, synthetic_problem_3assets):
