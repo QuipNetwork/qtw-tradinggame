@@ -61,7 +61,8 @@ export default function RoutingStatsPanel({ stats, showRecent = false }: Props) 
               <div className="v4-feed">
                 <div className="v4-feed-rows">
                   {recent.slice(0, DETAIL_ROWS).map((r, i) => {
-                    const altType = r.providerType === 'QPU' ? 'CPU' : 'QPU';
+                    // Name the solver it beat; an older backend sends only its time.
+                    const vs = r.vsProvider ? `${r.vsProvider} · ${r.vsProviderType}` : 'runner-up';
                     const faster =
                       r.vsTime != null && r.vsTime > r.solveTime
                         ? Math.round(((r.vsTime - r.solveTime) / r.vsTime) * 100)
@@ -69,16 +70,16 @@ export default function RoutingStatsPanel({ stats, showRecent = false }: Props) 
                     // Backend-classified outcome so a quality+speed TIE never reads as a misleading
                     // "X% faster": tie → both found the best portfolio at ~the same time; speed →
                     // winner genuinely faster; quality → winner's portfolio is better (may be slower).
-                    // No runner-up time → it never returned a usable result (infeasible / DNF).
+                    // No runner-up → no other race solver returned a valid result.
                     const line2 =
-                      r.outcome === 'tie' ? (
-                        <>Tied with {altType} <span className="alt">({fmtSecs(r.vsTime)})</span></>
+                      r.vsTime == null ? (
+                        <>No other valid finisher</>
+                      ) : r.outcome === 'tie' ? (
+                        <>Tied with {vs} <span className="alt">({fmtSecs(r.vsTime)})</span></>
                       ) : r.outcome === 'speed' ? (
-                        <>{faster ?? 0}% faster than {altType} <span className="alt">({fmtSecs(r.vsTime)})</span></>
-                      ) : r.vsTime != null ? (
-                        <>Best portfolio <span className="alt">vs {altType}</span></>
+                        <>{faster ?? 0}% faster than {vs} <span className="alt">({fmtSecs(r.vsTime)})</span></>
                       ) : (
-                        <>{altType} <span className="alt">did not finish</span></>
+                        <>Best portfolio <span className="alt">vs {vs}</span></>
                       );
                     return (
                       <div className={`v4-feed-row ${r.providerType === 'QPU' ? 'q' : 'c'}`} key={i}>

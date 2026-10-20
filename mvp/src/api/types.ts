@@ -184,7 +184,11 @@ export type RecentRouting = {
   provider: string;             // raw key: 'dwave' | 'sa' | 'gurobi'
   providerType: ProviderType;   // 'QPU' | 'CPU'
   solveTime: number;            // winner seconds
-  vsTime: number | null;        // runner-up seconds (null if unavailable)
+  // The best feasible race runner-up (never the Quip order, which runs outside the race);
+  // null when there is none. Older backends send only vsTime.
+  vsTime: number | null;        // runner-up seconds
+  vsProvider?: string | null;   // runner-up display label, e.g. 'D-Wave Advantage'
+  vsProviderType?: ProviderType | null;
   solvedAt: string;             // ISO-8601 UTC
   // How the winner won, so a quality+speed tie reads as a tie, not a noise-level "X% faster".
   outcome?: 'quality' | 'speed' | 'tie';
