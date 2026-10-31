@@ -1,3 +1,8 @@
+include:
+  - project: quip.network/ci-templates
+    ref: v1.1.0
+    file: templates/dependency-gate.yml
+
 stages:
   - test
   - build
