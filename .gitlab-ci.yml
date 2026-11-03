@@ -1,6 +1,6 @@
 include:
   - project: quip.network/ci-templates
-    ref: v1.1.0
+    ref: v1.2.0
     file: templates/dependency-gate.yml
 
 stages:
@@ -32,6 +32,8 @@ backend:image:
     name: gcr.io/kaniko-project/executor:v1.23.2-debug
     entrypoint: [""]
   needs:
+    - job: dependency-gate
+      optional: true
     - backend:test
   before_script:
     # GPU-runner firmware workaround. The amd64 builders are NVIDIA GPU hosts
